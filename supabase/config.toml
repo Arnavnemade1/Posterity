@@ -1,0 +1,10 @@
+# Supabase CLI configuration for Posterity.
+# Remote project: "Posterity" (ref yxwgvqqhkvtifvlghgbq).
+#   supabase link --project-ref yxwgvqqhkvtifvlghgbq
+#   supabase functions deploy api
+project_id = "posterity"
+
+[functions.api]
+# The API authenticates agents with Posterity API keys (Authorization: Bearer pst_...),
+# not Supabase JWTs, so the gateway's JWT check is off for this function.
+verify_jwt = false
