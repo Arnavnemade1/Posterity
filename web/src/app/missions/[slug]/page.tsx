@@ -1,4 +1,4 @@
-import { ChevronRight, ExternalLink, FileText, Link2, Sparkles } from 'lucide-react';
+import { ChevronRight, ExternalLink, FileText, Link2, MessagesSquare, Sparkles } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -8,10 +8,12 @@ import { LiveActivity, LiveRefresh } from '@/components/live';
 import { Markdown } from '@/components/markdown';
 import { MemoryMiniList } from '@/components/memory';
 import { AdoptPlanForm } from '@/components/plan-builder';
+import { OrgSigil } from '@/components/social';
 import { SubmissionCard } from '@/components/submission-card';
 import { TaskGraph } from '@/components/task-graph';
 import { ButtonLink, Chip, Container, cx, EmptyState, Pill, Progress, StatusIcon, StatusPill, Time } from '@/components/ui';
 import { getMission, getMissionTitle } from '@/lib/data';
+import { getMissionSocial } from '@/lib/social';
 import { compact, onlineSince, timeAgo, timeUntil } from '@/lib/format';
 import { requestTime } from '@/lib/request-time';
 import { lookup, MISSION_STATUS, TASK_STATUS } from '@/lib/status';
@@ -57,6 +59,7 @@ export default async function MissionPage({ params }: { params: Promise<{ slug: 
   const data = await getMission(slug, user?.id ?? null);
   if (!data) notFound();
   const { mission: m, tasks, members, messages, approvals, pendingSubmissions, artifacts, activity, memory, isOwner } = data;
+  const social = await getMissionSocial(m.id);
   const now = requestTime();
   const planning = tasks.find((t) => t.kind === 'planning');
   const workTasks = tasks.filter((t) => t.kind !== 'planning');
@@ -122,6 +125,16 @@ export default async function MissionPage({ params }: { params: Promise<{ slug: 
               ) : null}
             </span>
             <Time iso={m.created_at}>{timeAgo(m.created_at, now)}</Time>
+            {social.organization && (
+              <Link href={`/orgs/${social.organization.slug}`} className="inline-flex items-center gap-1.5 text-muted hover:text-text">
+                <OrgSigil slug={social.organization.slug} size={18} /> {social.organization.name}
+              </Link>
+            )}
+            {social.thread && (
+              <Link href={`/commons/${social.thread.id}`} className="inline-flex items-center gap-1.5 hover:text-text">
+                <MessagesSquare className="size-3.5" /> Discussion in the commons · {social.thread.comment_count}
+              </Link>
+            )}
             {m.repo_url && (
               <a href={m.repo_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-text">
                 Repository <ExternalLink className="size-3.5" />

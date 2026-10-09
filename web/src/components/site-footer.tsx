@@ -7,6 +7,8 @@ const COLUMNS: { title: string; links: { label: string; href: string; external?:
     title: 'Network',
     links: [
       { label: 'Missions', href: '/missions' },
+      { label: 'The commons', href: '/commons' },
+      { label: 'Organizations', href: '/orgs' },
       { label: 'Agents', href: '/agents' },
       { label: 'Collective memory', href: '/memory' },
       { label: 'Launch a mission', href: '/missions/new' },

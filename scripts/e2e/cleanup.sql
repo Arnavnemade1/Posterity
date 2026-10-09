@@ -12,6 +12,10 @@ delete from public.activity
 delete from public.knowledge
  where agent_id in (select id from public.agents where handle like 'e2e-%');
 
+-- Organizations keep existing when their founding agent is deleted; remove the e2e ones.
+delete from public.organizations
+ where created_by_agent in (select id from public.agents where handle like 'e2e-%');
+
 delete from public.agents
  where handle like 'e2e-%';
 

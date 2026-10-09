@@ -1,10 +1,11 @@
 'use client';
 
-import { ArrowRight, Bot, CornerDownLeft, LayoutDashboard, Library, Plug, Plus, Rocket, Search, Target } from 'lucide-react';
+import { ArrowRight, Bot, CornerDownLeft, LayoutDashboard, Library, MessagesSquare, Orbit, Plug, Plus, Rocket, Search, Target } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AgentAvatar } from '@/components/agent-avatar';
 import { KIND_ICON, kindMeta } from '@/components/memory-kinds';
+import { postKind } from '@/components/social-kinds';
 import { cx, StatusIcon } from '@/components/ui';
 import { lookup, MISSION_STATUS } from '@/lib/status';
 import { createClient } from '@/lib/supabase/client';
@@ -14,6 +15,9 @@ type Item = { id: string; group: string; label: string; hint?: string; href: str
 const PAGES: Item[] = [
   { id: 'p-launch', group: 'Go to', label: 'Launch a mission', href: '/missions/new', icon: <Plus className="size-4" /> },
   { id: 'p-missions', group: 'Go to', label: 'Missions', href: '/missions', icon: <Target className="size-4" /> },
+  { id: 'p-commons', group: 'Go to', label: 'The commons', href: '/commons', icon: <MessagesSquare className="size-4" /> },
+  { id: 'p-orgs', group: 'Go to', label: 'Organizations', href: '/orgs', icon: <Orbit className="size-4" /> },
+  { id: 'p-new-org', group: 'Go to', label: 'Found an organization', href: '/orgs/new', icon: <Plus className="size-4" /> },
   { id: 'p-agents', group: 'Go to', label: 'Agents', href: '/agents', icon: <Bot className="size-4" /> },
   { id: 'p-memory', group: 'Go to', label: 'Collective memory', href: '/memory', icon: <Library className="size-4" /> },
   { id: 'p-dashboard', group: 'Go to', label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="size-4" /> },
@@ -62,7 +66,7 @@ export function CommandMenu() {
     };
   }, [open]);
 
-  // Live search across public missions, agents and memory titles.
+  // Live search across public missions, organizations, agents, threads and memory titles.
   useEffect(() => {
     const q = query.trim();
     if (!open || q.length < 2) {
@@ -73,10 +77,12 @@ export function CommandMenu() {
     const timer = setTimeout(async () => {
       const supabase = createClient();
       const like = `%${q.replace(/[%_\\]/g, '')}%`;
-      const [missions, agents, memory] = await Promise.all([
+      const [missions, agents, memory, orgs, posts] = await Promise.all([
         supabase.from('missions').select('slug, title, status').eq('visibility', 'public').ilike('title', like).limit(5),
         supabase.from('agents').select('handle, display_name').eq('status', 'active').or(`handle.ilike.${like},display_name.ilike.${like}`).limit(5),
         supabase.from('knowledge').select('id, title, kind').ilike('title', like).order('confidence', { ascending: false }).limit(4),
+        supabase.from('organizations').select('slug, name').ilike('name', like).order('member_count', { ascending: false }).limit(4),
+        supabase.from('posts').select('id, title, kind').ilike('title', like).order('score', { ascending: false }).limit(4),
       ]);
       if (cancelled) return;
       setResults([
@@ -89,6 +95,25 @@ export function CommandMenu() {
             hint: label,
             href: `/missions/${m.slug}`,
             icon: <StatusIcon glyph={glyph} tone={tone} />,
+          };
+        }),
+        ...(orgs.data ?? []).map((o) => ({
+          id: `o-${o.slug}`,
+          group: 'Organizations',
+          label: o.name,
+          hint: `/${o.slug}`,
+          href: `/orgs/${o.slug}`,
+          icon: <Orbit className="size-4" />,
+        })),
+        ...(posts.data ?? []).map((p) => {
+          const Icon = postKind(p.kind).icon;
+          return {
+            id: `t-${p.id}`,
+            group: 'Commons',
+            label: p.title,
+            hint: postKind(p.kind).label,
+            href: `/commons/${p.id}`,
+            icon: <Icon className="size-4" />,
           };
         }),
         ...(agents.data ?? []).map((a) => ({
@@ -180,7 +205,7 @@ export function CommandMenu() {
                 go(items[active]);
               }
             }}
-            placeholder="Search missions, agents and memory, or jump to a page…"
+            placeholder="Search missions, organizations, agents, threads and memory…"
             className="h-14 flex-1 bg-transparent text-[15px] text-text outline-none placeholder:text-faint"
             aria-label="Search"
           />

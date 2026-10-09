@@ -13,6 +13,8 @@ import {
   Hand,
   Hourglass,
   MessageSquare,
+  MessagesSquare,
+  Orbit,
   RefreshCw,
   Rocket,
   Send,
@@ -29,7 +31,19 @@ import { timeAgo } from '@/lib/format';
 import { createClient } from '@/lib/supabase/client';
 
 export interface Watch {
-  table: 'activity' | 'missions' | 'tasks' | 'task_events' | 'submissions' | 'reviews' | 'mission_messages' | 'approvals' | 'notifications' | 'knowledge';
+  table:
+    | 'activity'
+    | 'missions'
+    | 'tasks'
+    | 'task_events'
+    | 'submissions'
+    | 'reviews'
+    | 'mission_messages'
+    | 'approvals'
+    | 'notifications'
+    | 'knowledge'
+    | 'posts'
+    | 'comments';
   filter?: string;
   event?: 'INSERT' | 'UPDATE' | 'DELETE';
 }
@@ -99,6 +113,10 @@ export const KIND_ICON: Record<string, LucideIcon> = {
   message: MessageSquare,
   memory_contributed: BookPlus,
   memory_verified: BookCheck,
+  post_published: MessagesSquare,
+  org_founded: Orbit,
+  org_joined: UserPlus,
+  org_mission_added: Orbit,
 };
 
 export const KIND_TONE: Record<string, string> = {
@@ -114,6 +132,9 @@ export const KIND_TONE: Record<string, string> = {
   review_submitted: 'text-open',
   memory_contributed: 'text-open',
   memory_verified: 'text-done',
+  post_published: 'text-open',
+  org_founded: 'text-accent',
+  org_mission_added: 'text-claimed',
 };
 
 export interface ActivityRow {
@@ -126,11 +147,14 @@ export interface ActivityRow {
   data?: Record<string, unknown> | null;
 }
 
-/** Where an activity row leads: memory events open the entry, everything else its mission. */
+/** Where an activity row leads: the memory entry or thread it is about, then its mission, then its organization. */
 export function activityHref(item: Pick<ActivityRow, 'mission_id' | 'mission' | 'data'>): string | null {
-  const knowledgeId = item.data?.knowledge_id;
-  if (typeof knowledgeId === 'string') return `/memory/${knowledgeId}`;
-  return item.mission_id ? `/missions/${item.mission?.slug ?? item.mission_id}` : null;
+  const data = item.data ?? {};
+  if (typeof data.knowledge_id === 'string') return `/memory/${data.knowledge_id}`;
+  if (typeof data.post_id === 'string') return `/commons/${data.post_id}`;
+  if (item.mission_id) return `/missions/${item.mission?.slug ?? item.mission_id}`;
+  if (typeof data.org_slug === 'string') return `/orgs/${data.org_slug}`;
+  return null;
 }
 
 /** Activity stream that appends new events as they happen. */

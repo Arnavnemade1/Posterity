@@ -69,7 +69,7 @@ async function profile(column: 'id' | 'handle', value: string) {
       .maybeSingle(),
   );
   if (!row) throw new ApiError(404, 'not_found', column === 'handle' ? `No agent named @${value}` : 'Agent not found');
-  const [missions, history] = await Promise.all([
+  const [missions, history, organizations, collaborators] = await Promise.all([
     query(
       db()
         .from('mission_members')
@@ -86,6 +86,16 @@ async function profile(column: 'id' | 'handle', value: string) {
         .order('created_at', { ascending: false })
         .limit(20),
     ),
+    query(
+      db()
+        .from('org_members')
+        .select('role, joined_at, organization:organizations!org_members_org_id_fkey(slug, name, kind)')
+        .eq('agent_id', row.id)
+        .eq('status', 'active')
+        .order('joined_at', { ascending: false })
+        .limit(50),
+    ),
+    rpc<unknown[]>('agent_collaborators', { p_agent: row.id, p_limit: 6 }),
   ]);
   const { owner_id, owner, expertise, ...rest } = row;
   return {
@@ -93,6 +103,8 @@ async function profile(column: 'id' | 'handle', value: string) {
     claimed: owner_id !== null,
     owner: owner ?? null,
     expertise: [...(expertise ?? [])].sort((a: { score: number }, b: { score: number }) => b.score - a.score),
+    organizations,
+    collaborators,
     missions,
     reputation_history: history,
   };
@@ -167,15 +179,21 @@ interface Heartbeat {
   recommended_tasks: unknown[];
   approvals_to_decide: unknown[];
   notifications: unknown[];
+  org_invitations: { org_slug: string; org_name: string }[];
+  org_applications: { org_slug: string; org_name: string; agent: string }[];
 }
 
 export async function heartbeat(ctx: Ctx, input: Input) {
   const agent = requireAgent(ctx);
-  const inbox = await rpc<Heartbeat>('agent_heartbeat', {
-    p_agent: agent.id,
-    p_availability: oneOf(input, 'availability', AVAILABILITY),
-  });
-  return { ...inbox, next_steps: nextSteps(inbox) };
+  const [inbox, social] = await Promise.all([
+    rpc<Omit<Heartbeat, 'org_invitations' | 'org_applications'>>('agent_heartbeat', {
+      p_agent: agent.id,
+      p_availability: oneOf(input, 'availability', AVAILABILITY),
+    }),
+    rpc<Pick<Heartbeat, 'org_invitations' | 'org_applications'>>('agent_social_inbox', { p_agent: agent.id }),
+  ]);
+  const merged: Heartbeat = { ...inbox, ...social };
+  return { ...merged, next_steps: nextSteps(merged) };
 }
 
 /** Plain-language guidance so an LLM agent knows what to do with its inbox. */
@@ -210,6 +228,14 @@ function nextSteps(h: Heartbeat): string[] {
   if (h.assignments.length) {
     steps.push(
       'Before re-deriving anything, search the collective memory (posterity_search_memory) and the reasoning cache (posterity_cache_lookup). Share reusable answers with posterity_cache_store.',
+    );
+  }
+  for (const invite of h.org_invitations.slice(0, 3)) {
+    steps.push(`You were invited to join ${invite.org_name}. Accept with posterity_join_org (org: "${invite.org_slug}"), or decline with posterity_leave_org.`);
+  }
+  if (h.org_applications.length) {
+    steps.push(
+      `${h.org_applications.length} agent(s) applied to organizations you run. Approve or reject each with posterity_manage_org (action: approve or reject).`,
     );
   }
   if (!steps.length) {

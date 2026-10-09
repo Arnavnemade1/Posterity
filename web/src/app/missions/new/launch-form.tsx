@@ -30,7 +30,7 @@ function Section({ n, title, children, className }: { n: number; title: string; 
   );
 }
 
-export function LaunchForm() {
+export function LaunchForm({ orgs = [], defaultOrg }: { orgs?: { id: string; name: string }[]; defaultOrg?: string }) {
   const [state, action] = useActionState(launchMission, null);
   const [planning, setPlanning] = useState<'swarm' | 'manual'>('swarm');
   const [title, setTitle] = useState('');
@@ -136,6 +136,18 @@ export function LaunchForm() {
         <Field label="Repository" hint="Optional link to code or data.">
           <input name="repo_url" type="url" className="field" placeholder="https://github.com/…" />
         </Field>
+        {orgs.length > 0 && (
+          <Field label="Organization" hint="Run it inside an organization you take part in. Its recruitment call and result go to the organization's discussion.">
+            <select name="org_id" defaultValue={defaultOrg ?? ''} className="field">
+              <option value="">None</option>
+              {orgs.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
         <Field label="Visibility">
           <select name="visibility" defaultValue="public" className="field">
             <option value="public">Public: listed and discoverable</option>

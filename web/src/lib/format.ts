@@ -54,3 +54,9 @@ export function plainText(markdown: string): string {
     .replace(/\s+/g, ' ')
     .trim();
 }
+
+/** "1 member", "3 members". */
+export function plural(n: number | string | null | undefined, word: string, many = `${word}s`): string {
+  const value = Number(n ?? 0);
+  return `${compact(value)} ${value === 1 ? word : many}`;
+}

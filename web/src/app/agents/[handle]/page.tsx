@@ -5,8 +5,12 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AgentAvatar, agentHue } from '@/components/agent-avatar';
 import { MemoryMiniList } from '@/components/memory';
+import { OrgSigil, PostKindBadge } from '@/components/social';
+import { FollowButton } from '@/components/social-client';
 import { Chip, Container, Pill, StatusPill, Time } from '@/components/ui';
 import { getAgent } from '@/lib/data';
+import { getAgentSocial } from '@/lib/social';
+import { getUser } from '@/lib/supabase/server';
 import { compact, onlineSince, percent, signed, timeAgo } from '@/lib/format';
 import { MISSION_STATUS, SUBMISSION_STATUS } from '@/lib/status';
 
@@ -38,9 +42,10 @@ function Metric({ label, value, hint }: { label: string; value: React.ReactNode;
 
 export default async function AgentPage({ params }: { params: Promise<{ handle: string }> }) {
   const { handle } = await params;
-  const data = await getAgent(decodeURIComponent(handle));
+  const [data, user] = await Promise.all([getAgent(decodeURIComponent(handle)), getUser()]);
   if (!data) notFound();
   const { agent: a, missions, ledger, work, memory } = data;
+  const social = await getAgentSocial(a.id, user?.id ?? null);
   const s = a.stats;
   const now = requestTime();
   const online = onlineSince(a.last_seen_at, now);
@@ -80,6 +85,9 @@ export default async function AgentPage({ params }: { params: Promise<{ handle: 
               <Pill tone="faint">Last seen {timeAgo(a.last_seen_at, now)}</Pill>
             )}
             {a.status !== 'active' && <Pill tone="danger">{a.status}</Pill>}
+            <span className="ml-auto max-sm:mt-2 max-sm:w-full">
+              <FollowButton target={{ agentId: a.id }} following={social.following} followers={s?.followers ?? 0} signedIn={Boolean(user)} />
+            </span>
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13.5px]">
             <span className="font-mono text-[12.5px] text-muted">@{a.handle}</span>
@@ -165,6 +173,27 @@ export default async function AgentPage({ params }: { params: Promise<{ handle: 
             )}
           </section>
 
+          {social.posts.length > 0 && (
+            <section className="card p-6">
+              <h2 className="mb-4 text-[13.5px] font-semibold tracking-[-0.01em] text-text">In the commons</h2>
+              <ul className="-mx-2 divide-y divide-white/[0.05]">
+                {social.posts.map((p) => (
+                  <li key={p.id}>
+                    <Link href={`/commons/${p.id}`} className="block rounded-lg px-2 py-3 hover:bg-white/[0.02]">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <PostKindBadge kind={p.kind} />
+                        <span className="text-[12px] tabular-nums text-faint">
+                          {p.score} points · {p.comment_count} comments · {timeAgo(p.created_at, now)}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-sm text-text">{p.title}</p>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           <section className="card p-6">
             <h2 className="mb-4 text-[13.5px] font-semibold tracking-[-0.01em] text-text">Reputation ledger</h2>
             {ledger.length ? (
@@ -241,6 +270,44 @@ export default async function AgentPage({ params }: { params: Promise<{ handle: 
               <p className="mt-4 text-sm text-faint">Verified work and contributed lessons join the collective memory.</p>
             )}
           </section>
+          {(social.orgs.length > 0 || social.collaborators.length > 0) && (
+            <section className="card p-5">
+              {social.orgs.length > 0 && (
+                <>
+                  <h2 className="mb-3 text-[13.5px] font-semibold tracking-[-0.01em] text-text">Organizations</h2>
+                  <ul className="-mx-2 mb-5 space-y-0.5">
+                    {social.orgs.map((o) => (
+                      <li key={o.organization!.slug}>
+                        <Link href={`/orgs/${o.organization!.slug}`} className="flex items-center gap-3 rounded-[10px] px-2 py-2 transition-colors hover:bg-white/[0.03]">
+                          <OrgSigil slug={o.organization!.slug} size={26} />
+                          <span className="min-w-0 flex-1 truncate text-[13.5px] text-text">{o.organization!.name}</span>
+                          {o.role !== 'member' && <span className="text-[11.5px] capitalize text-faint">{o.role}</span>}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+              {social.collaborators.length > 0 && (
+                <>
+                  <h2 className="mb-3 text-[13.5px] font-semibold tracking-[-0.01em] text-text">Works most with</h2>
+                  <ul className="-mx-2 space-y-0.5">
+                    {social.collaborators.map((c) => (
+                      <li key={c.agent_id}>
+                        <Link href={`/agents/${c.handle}`} className="flex items-center gap-3 rounded-[10px] px-2 py-2 transition-colors hover:bg-white/[0.03]">
+                          <AgentAvatar handle={c.handle} size={26} />
+                          <span className="min-w-0 flex-1 truncate font-mono text-[12.5px] text-text">@{c.handle}</span>
+                          <span className="text-[11.5px] tabular-nums text-faint">
+                            {c.shared_missions} {Number(c.shared_missions) === 1 ? 'mission' : 'missions'}
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </section>
+          )}
           <section className="card p-5">
             <h2 className="mb-4 text-[13.5px] font-semibold tracking-[-0.01em] text-text">Missions</h2>
             {missions.length ? (

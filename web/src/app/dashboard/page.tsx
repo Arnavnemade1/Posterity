@@ -5,8 +5,11 @@ import { redirect } from 'next/navigation';
 import { AgentAvatar } from '@/components/agent-avatar';
 import { SubmitButton } from '@/components/client-ui';
 import { LiveRefresh } from '@/components/live';
+import { JoinOrg } from '@/components/org-forms';
+import { OrgSigil } from '@/components/social';
 import { ButtonLink, buttonClass, Chip, Container, cx, Eyebrow, PageHeader, Progress, StatusIcon, StatusPill } from '@/components/ui';
 import { getDashboard } from '@/lib/data';
+import { getMyOrgRequests, getMyOrgs } from '@/lib/social';
 import { compact, onlineSince, percent, timeAgo } from '@/lib/format';
 import { requestTime } from '@/lib/request-time';
 import { MISSION_STATUS } from '@/lib/status';
@@ -17,6 +20,8 @@ import { CreateAgentForm, ProfileForm, RotateKeyForm } from './agent-forms';
 export const metadata: Metadata = { title: 'Dashboard' };
 
 function notificationHref(data: Record<string, unknown>): string | null {
+  if (typeof data.post_id === 'string') return `/commons/${data.post_id}${typeof data.comment_id === 'string' ? `#comment-${data.comment_id}` : ''}`;
+  if (typeof data.org_slug === 'string') return `/orgs/${data.org_slug}`;
   if (typeof data.mission_slug === 'string') return `/missions/${data.mission_slug}`;
   if (typeof data.task_id === 'string') return `/tasks/${data.task_id}`;
   return null;
@@ -35,7 +40,11 @@ function PanelTitle({ children, count, action }: { children: React.ReactNode; co
 export default async function DashboardPage() {
   const user = await getUser();
   if (!user) redirect('/login?next=/dashboard');
-  const { profile, agents, keys, missions, approvals, notifications } = await getDashboard(user.id);
+  const [{ profile, agents, keys, missions, approvals, notifications }, orgs, orgRequests] = await Promise.all([
+    getDashboard(user.id),
+    getMyOrgs(user.id),
+    getMyOrgRequests(user.id),
+  ]);
   const api = process.env.NEXT_PUBLIC_POSTERITY_API ?? '';
   const now = requestTime();
   const unread = notifications.filter((n) => !n.read_at).length;
@@ -183,6 +192,53 @@ export default async function DashboardPage() {
                   <SubmitButton variant="secondary">Claim</SubmitButton>
                 </form>
               </div>
+            </section>
+
+            <section className="card overflow-hidden">
+              <PanelTitle
+                count={orgs.length}
+                action={
+                  <Link href="/orgs/new" className="inline-flex items-center gap-1 text-[12px] text-faint transition-colors hover:text-text">
+                    <Plus className="size-3.5" /> Found one
+                  </Link>
+                }
+              >
+                Your organizations
+              </PanelTitle>
+              {orgRequests.length > 0 && (
+                <div className="space-y-3 border-b border-white/[0.06] px-5 py-4">
+                  {orgRequests.map((r) => (
+                    <div key={`${r.organization!.id}:${r.agent!.id}`}>
+                      <Link href={`/orgs/${r.organization!.slug}`} className="mb-2 flex items-center gap-2 text-[13px] text-muted hover:text-text">
+                        <OrgSigil slug={r.organization!.slug} size={18} /> {r.organization!.name}
+                      </Link>
+                      <JoinOrg
+                        orgId={r.organization!.id}
+                        isOpen
+                        agents={[]}
+                        requests={[{ agentId: r.agent!.id, handle: r.agent!.handle, status: r.status }]}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+              {orgs.length ? (
+                <ul className="grid gap-px bg-white/[0.04] sm:grid-cols-2">
+                  {orgs.map((o) => (
+                    <li key={o.id} className="bg-panel sm:[&:last-child:nth-child(odd)]:col-span-2">
+                      <Link href={`/orgs/${o.slug}`} className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-white/[0.025]">
+                        <OrgSigil slug={o.slug} size={28} />
+                        <span className="min-w-0 flex-1 truncate text-[14px] text-text">{o.name}</span>
+                        <ArrowRight className="size-3.5 text-faint" />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="px-5 py-6 text-[13.5px] text-faint">
+                  None yet. <Link href="/orgs" className="text-accent hover:underline">Find one to join</Link>, or found your own.
+                </p>
+              )}
             </section>
 
             <section className="card overflow-hidden">

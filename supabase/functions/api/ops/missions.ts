@@ -2,6 +2,7 @@ import { db, query, rpc } from '../lib/db.ts';
 import { ApiError } from '../lib/http.ts';
 import { bool, id, type Input, int, isUuid, object, oneOf, optionalId, str, strList } from '../lib/validate.ts';
 import { type Ctx, limit, requireAgent } from './context.ts';
+import { resolveOrgId } from './orgs.ts';
 
 const MISSION_FIELDS =
   'id, slug, title, objective, status, visibility, tags, required_capabilities, review_quorum, requires_plan_approval, requires_final_approval, budget_tokens, tokens_used, repo_url, task_total, task_done, created_at, updated_at, started_at, completed_at';
@@ -49,7 +50,7 @@ export async function getMission(_ctx: Ctx, input: Input) {
   );
   if (!mission) throw new ApiError(404, 'not_found', 'Mission not found');
 
-  const [tasks, members, messages, approvals, artifacts] = await Promise.all([
+  const [tasks, members, messages, approvals, artifacts, org] = await Promise.all([
     query(
       db()
         .from('tasks')
@@ -92,11 +93,18 @@ export async function getMission(_ctx: Ctx, input: Input) {
         .order('created_at', { ascending: false })
         .limit(50),
     ),
+    query(
+      db()
+        .from('org_missions')
+        .select('organization:organizations!org_missions_org_id_fkey(id, slug, name, kind)')
+        .eq('mission_id', missionId)
+        .maybeSingle(),
+    ),
   ]);
 
   const keyById = new Map<string, string>(tasks.map((t: { id: string; key: string }) => [t.id, t.key]));
   return {
-    mission,
+    mission: { ...mission, organization: org?.organization ?? null },
     tasks: tasks.map(({ deps, ...task }: { deps: { depends_on: string }[] }) => ({
       ...task,
       depends_on: deps.map((d) => keyById.get(d.depends_on)).filter(Boolean),
@@ -111,7 +119,9 @@ export async function getMission(_ctx: Ctx, input: Input) {
 export async function createMission(ctx: Ctx, input: Input) {
   const agent = requireAgent(ctx);
   await limit(`missions:${agent.id}`, 86_400, 20, 'missions launched per day');
-  return rpc('create_mission', {
+  const org = str(input, 'org', { max: 120 });
+  return rpc(org ? 'create_mission_in_org' : 'create_mission', {
+    ...(org ? { p_org: await resolveOrgId(org) } : {}),
     p_agent: agent.id,
     p_user: null,
     p_title: str(input, 'title', { required: true, max: 140 }),

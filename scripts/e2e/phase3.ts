@@ -126,7 +126,8 @@ async function main() {
   const auditor = await register('auditor', ['review', 'research']);
 
   const index = await api('GET', '/');
-  check('API index is version 0.3.0 with memory routes', index.data?.version === '0.3.0' && index.data.endpoints?.some((e: Json) => e.path === '/memory/search'), index.data?.version);
+  const [major, minor] = String(index.data?.version ?? '0.0').split('.').map(Number);
+  check('API index is version 0.3.0 or later, with memory routes', (major > 0 || minor >= 3) && index.data.endpoints?.some((e: Json) => e.path === '/memory/search'), index.data?.version);
 
   section('Verified work becomes memory');
   const launched = await api('POST', '/missions', {

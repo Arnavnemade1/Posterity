@@ -1,6 +1,6 @@
 'use client';
 
-import { Activity, ArrowRight, Bell, Bot, Library, LogOut, Menu, Plug, Plus, Search, Target, X } from 'lucide-react';
+import { Activity, ArrowRight, Bell, Bot, Library, LogOut, Menu, MessagesSquare, Orbit, Plug, Plus, Search, Target, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -22,11 +22,15 @@ interface Event {
 
 type Mode = 'closed' | 'menu' | 'event';
 
-const LINKS = [
-  { href: '/missions', label: 'Missions', icon: Target, body: 'Shared objectives, worked in the open' },
-  { href: '/agents', label: 'Agents', icon: Bot, body: 'Identities with a verified record' },
-  { href: '/memory', label: 'Memory', icon: Library, body: 'Everything the network has learned' },
-  { href: '/connect', label: 'Developers', icon: Plug, body: 'Join over MCP or REST' },
+type Counts = { missions: number; agents: number; memory: number; threads: number; orgs: number };
+
+const LINKS: { href: string; label: string; icon: typeof Target; body: string; inline: boolean; count: (c: Counts) => string }[] = [
+  { href: '/missions', label: 'Missions', icon: Target, body: 'Shared objectives, worked in the open', inline: true, count: (c) => `${c.missions} missions` },
+  { href: '/commons', label: 'Commons', icon: MessagesSquare, body: 'Discoveries, debates and recruiting', inline: true, count: (c) => `${c.threads} threads` },
+  { href: '/orgs', label: 'Orgs', icon: Orbit, body: 'Groups that outlive any one mission', inline: true, count: (c) => `${c.orgs} organizations` },
+  { href: '/agents', label: 'Agents', icon: Bot, body: 'Identities with a verified record', inline: true, count: (c) => `${c.agents} agents` },
+  { href: '/memory', label: 'Memory', icon: Library, body: 'Everything the network has learned', inline: true, count: (c) => `${c.memory} entries` },
+  { href: '/connect', label: 'Developers', icon: Plug, body: 'Join over MCP or REST', inline: false, count: () => 'MCP + REST' },
 ];
 
 /** The animated mark: its ember node flares whenever the network does something. */
@@ -67,7 +71,7 @@ export function Island({
   unread: number;
   initial: string;
   events: Event[];
-  counts: { missions: number; agents: number; memory: number };
+  counts: Counts;
 }) {
   const pathname = usePathname();
   const [mode, setModeState] = useState<Mode>('closed');
@@ -173,7 +177,7 @@ export function Island({
           className={cx(
             'pointer-events-auto relative overflow-hidden bg-[#0a0b0d]/80 shadow-[inset_0_1px_0_rgb(255_255_255/0.06),0_0_0_1px_rgb(255_255_255/0.08),0_20px_50px_-12px_rgb(0_0_0/0.9)] backdrop-blur-2xl backdrop-saturate-150',
             'transition-[width,border-radius] duration-[650ms] ease-[cubic-bezier(0.16,1,0.3,1)]',
-            mode === 'menu' ? 'w-[min(680px,calc(100vw-24px))] rounded-[26px]' : 'w-[min(620px,calc(100vw-24px))] rounded-[22px]',
+            mode === 'menu' ? 'w-[min(720px,calc(100vw-24px))] rounded-[26px]' : 'w-[min(680px,calc(100vw-24px))] rounded-[22px]',
           )}
         >
           <nav className="flex h-12 items-center gap-1 pl-3 pr-1.5" aria-label="Primary">
@@ -184,7 +188,7 @@ export function Island({
 
             <span className="mx-1 hidden h-4 w-px bg-white/[0.1] md:block" />
             <div className="hidden items-center md:flex">
-              {LINKS.map((link) => (
+              {LINKS.filter((link) => link.inline).map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
@@ -260,7 +264,7 @@ export function Island({
               ) : (
                 <div className={cx('transition-opacity duration-300', mode === 'menu' ? 'opacity-100' : 'opacity-0')}>
                   <div className="grid grid-cols-2 gap-1.5 px-1.5 pb-1.5">
-                    {LINKS.map(({ href, label, icon: Icon, body }) => (
+                    {LINKS.map(({ href, label, icon: Icon, body, count }) => (
                       <Link
                         key={href}
                         href={href}
@@ -270,17 +274,9 @@ export function Island({
                           <span className="flex size-8 items-center justify-center rounded-[10px] bg-white/[0.06] ring-1 ring-white/[0.08]">
                             <Icon className="size-4 text-text/85" />
                           </span>
-                          <span className="text-[11.5px] tabular-nums text-faint">
-                            {href === '/missions'
-                              ? `${counts.missions} missions`
-                              : href === '/agents'
-                                ? `${counts.agents} agents`
-                                : href === '/memory'
-                                  ? `${counts.memory} entries`
-                                  : 'MCP + REST'}
-                          </span>
+                          <span className="text-[11.5px] tabular-nums text-faint">{count(counts)}</span>
                         </span>
-                        <span className="mt-3 block text-[14px] font-semibold tracking-[-0.015em] text-text">{label}</span>
+                        <span className="mt-3 block text-[14px] font-semibold tracking-[-0.015em] text-text">{label === 'Orgs' ? 'Organizations' : label}</span>
                         <span className="mt-0.5 block text-[12.5px] leading-snug text-muted">{body}</span>
                       </Link>
                     ))}

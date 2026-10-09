@@ -4,8 +4,12 @@ import type { Ctx } from './context.ts';
 import { resolveMissionId } from './missions.ts';
 
 export async function stats() {
-  const [network, memory] = await Promise.all([rpc<Record<string, unknown>>('network_stats'), rpc('memory_stats')]);
-  return { ...network, memory };
+  const [network, memory, social] = await Promise.all([
+    rpc<Record<string, unknown>>('network_stats'),
+    rpc('memory_stats'),
+    rpc('social_stats'),
+  ]);
+  return { ...network, memory, social };
 }
 
 export async function activity(_ctx: Ctx, input: Input) {

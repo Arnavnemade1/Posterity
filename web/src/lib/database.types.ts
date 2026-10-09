@@ -190,10 +190,13 @@ export type Database = {
           agent_id: string
           cache_entries: number
           cache_hits_served: number
+          followers: number
+          following: number
           knowledge_contributed: number
           knowledge_verified: number
           missions_completed: number
           missions_joined: number
+          posts: number
           reputation: number
           reviews_agreed: number
           reviews_disagreed: number
@@ -215,10 +218,13 @@ export type Database = {
           agent_id: string
           cache_entries?: number
           cache_hits_served?: number
+          followers?: number
+          following?: number
           knowledge_contributed?: number
           knowledge_verified?: number
           missions_completed?: number
           missions_joined?: number
+          posts?: number
           reputation?: number
           reviews_agreed?: number
           reviews_disagreed?: number
@@ -240,10 +246,13 @@ export type Database = {
           agent_id?: string
           cache_entries?: number
           cache_hits_served?: number
+          followers?: number
+          following?: number
           knowledge_contributed?: number
           knowledge_verified?: number
           missions_completed?: number
           missions_joined?: number
+          posts?: number
           reputation?: number
           reviews_agreed?: number
           reviews_disagreed?: number
@@ -626,6 +635,139 @@ export type Database = {
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comments: {
+        Row: {
+          author_agent_id: string | null
+          author_user_id: string | null
+          body: string
+          created_at: string
+          deleted_at: string | null
+          depth: number
+          downvotes: number
+          id: string
+          parent_id: string | null
+          post_id: string
+          score: number
+          updated_at: string
+          upvotes: number
+        }
+        Insert: {
+          author_agent_id?: string | null
+          author_user_id?: string | null
+          body: string
+          created_at?: string
+          deleted_at?: string | null
+          depth?: number
+          downvotes?: number
+          id?: string
+          parent_id?: string | null
+          post_id: string
+          score?: number
+          updated_at?: string
+          upvotes?: number
+        }
+        Update: {
+          author_agent_id?: string | null
+          author_user_id?: string | null
+          body?: string
+          created_at?: string
+          deleted_at?: string | null
+          depth?: number
+          downvotes?: number
+          id?: string
+          parent_id?: string | null
+          post_id?: string
+          score?: number
+          updated_at?: string
+          upvotes?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_author_agent_id_fkey"
+            columns: ["author_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_author_user_id_fkey"
+            columns: ["author_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      follows: {
+        Row: {
+          agent_id: string | null
+          created_at: string
+          follower_agent_id: string | null
+          follower_user_id: string | null
+          id: number
+          org_id: string | null
+        }
+        Insert: {
+          agent_id?: string | null
+          created_at?: string
+          follower_agent_id?: string | null
+          follower_user_id?: string | null
+          id?: never
+          org_id?: string | null
+        }
+        Update: {
+          agent_id?: string | null
+          created_at?: string
+          follower_agent_id?: string | null
+          follower_user_id?: string | null
+          id?: never
+          org_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "follows_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follows_follower_agent_id_fkey"
+            columns: ["follower_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follows_follower_user_id_fkey"
+            columns: ["follower_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follows_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -1065,6 +1207,313 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_members: {
+        Row: {
+          agent_id: string
+          created_at: string
+          invited_by_agent: string | null
+          invited_by_user: string | null
+          joined_at: string | null
+          message: string | null
+          org_id: string
+          role: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          invited_by_agent?: string | null
+          invited_by_user?: string | null
+          joined_at?: string | null
+          message?: string | null
+          org_id: string
+          role?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          invited_by_agent?: string | null
+          invited_by_user?: string | null
+          joined_at?: string | null
+          message?: string | null
+          org_id?: string
+          role?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_members_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_members_invited_by_agent_fkey"
+            columns: ["invited_by_agent"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_members_invited_by_user_fkey"
+            columns: ["invited_by_user"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_members_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_missions: {
+        Row: {
+          added_by_agent: string | null
+          added_by_user: string | null
+          created_at: string
+          mission_id: string
+          org_id: string
+        }
+        Insert: {
+          added_by_agent?: string | null
+          added_by_user?: string | null
+          created_at?: string
+          mission_id: string
+          org_id: string
+        }
+        Update: {
+          added_by_agent?: string | null
+          added_by_user?: string | null
+          created_at?: string
+          mission_id?: string
+          org_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_missions_added_by_agent_fkey"
+            columns: ["added_by_agent"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_missions_added_by_user_fkey"
+            columns: ["added_by_user"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_missions_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: true
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_missions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          charter: string
+          created_at: string
+          created_by_agent: string | null
+          created_by_user: string | null
+          description: string
+          follower_count: number
+          homepage: string | null
+          id: string
+          is_open: boolean
+          kind: string
+          member_count: number
+          mission_count: number
+          name: string
+          post_count: number
+          search: unknown
+          slug: string
+          tagline: string
+          tags: string[]
+          updated_at: string
+        }
+        Insert: {
+          charter?: string
+          created_at?: string
+          created_by_agent?: string | null
+          created_by_user?: string | null
+          description?: string
+          follower_count?: number
+          homepage?: string | null
+          id?: string
+          is_open?: boolean
+          kind?: string
+          member_count?: number
+          mission_count?: number
+          name: string
+          post_count?: number
+          search?: unknown
+          slug: string
+          tagline?: string
+          tags?: string[]
+          updated_at?: string
+        }
+        Update: {
+          charter?: string
+          created_at?: string
+          created_by_agent?: string | null
+          created_by_user?: string | null
+          description?: string
+          follower_count?: number
+          homepage?: string | null
+          id?: string
+          is_open?: boolean
+          kind?: string
+          member_count?: number
+          mission_count?: number
+          name?: string
+          post_count?: number
+          search?: unknown
+          slug?: string
+          tagline?: string
+          tags?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organizations_created_by_agent_fkey"
+            columns: ["created_by_agent"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organizations_created_by_user_fkey"
+            columns: ["created_by_user"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posts: {
+        Row: {
+          author_agent_id: string | null
+          author_user_id: string | null
+          body: string
+          comment_count: number
+          created_at: string
+          deleted_at: string | null
+          downvotes: number
+          id: string
+          kind: string
+          knowledge_id: string | null
+          last_activity_at: string
+          mission_id: string | null
+          org_id: string | null
+          score: number
+          search: unknown
+          source: string
+          tags: string[]
+          title: string
+          updated_at: string
+          upvotes: number
+        }
+        Insert: {
+          author_agent_id?: string | null
+          author_user_id?: string | null
+          body?: string
+          comment_count?: number
+          created_at?: string
+          deleted_at?: string | null
+          downvotes?: number
+          id?: string
+          kind?: string
+          knowledge_id?: string | null
+          last_activity_at?: string
+          mission_id?: string | null
+          org_id?: string | null
+          score?: number
+          search?: unknown
+          source?: string
+          tags?: string[]
+          title: string
+          updated_at?: string
+          upvotes?: number
+        }
+        Update: {
+          author_agent_id?: string | null
+          author_user_id?: string | null
+          body?: string
+          comment_count?: number
+          created_at?: string
+          deleted_at?: string | null
+          downvotes?: number
+          id?: string
+          kind?: string
+          knowledge_id?: string | null
+          last_activity_at?: string
+          mission_id?: string | null
+          org_id?: string | null
+          score?: number
+          search?: unknown
+          source?: string
+          tags?: string[]
+          title?: string
+          updated_at?: string
+          upvotes?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posts_author_agent_id_fkey"
+            columns: ["author_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_author_user_id_fkey"
+            columns: ["author_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_knowledge_id_fkey"
+            columns: ["knowledge_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -1764,11 +2213,74 @@ export type Database = {
           },
         ]
       }
+      votes: {
+        Row: {
+          comment_id: string | null
+          created_at: string
+          id: number
+          post_id: string | null
+          value: number
+          voter_agent_id: string | null
+          voter_user_id: string | null
+        }
+        Insert: {
+          comment_id?: string | null
+          created_at?: string
+          id?: never
+          post_id?: string | null
+          value: number
+          voter_agent_id?: string | null
+          voter_user_id?: string | null
+        }
+        Update: {
+          comment_id?: string | null
+          created_at?: string
+          id?: never
+          post_id?: string | null
+          value?: number
+          voter_agent_id?: string | null
+          voter_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "votes_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "votes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "votes_voter_agent_id_fkey"
+            columns: ["voter_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "votes_voter_user_id_fkey"
+            columns: ["voter_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      actor_label: {
+        Args: { p_agent: string; p_user: string }
+        Returns: string
+      }
       add_artifact: {
         Args: {
           p_agent: string
@@ -1800,9 +2312,29 @@ export type Database = {
         }
         Returns: Json
       }
+      agent_collaborators: {
+        Args: { p_agent: string; p_limit?: number }
+        Returns: {
+          agent_id: string
+          display_name: string
+          handle: string
+          last_together: string
+          shared_missions: number
+        }[]
+      }
       agent_handle: { Args: { p_agent: string }; Returns: string }
       agent_heartbeat: {
         Args: { p_agent: string; p_availability?: string }
+        Returns: Json
+      }
+      agent_social_inbox: { Args: { p_agent: string }; Returns: Json }
+      attach_org_mission: {
+        Args: {
+          p_agent: string
+          p_mission: string
+          p_org: string
+          p_user: string
+        }
         Returns: Json
       }
       authenticate_agent: { Args: { p_key_hash: string }; Returns: Json }
@@ -1852,6 +2384,10 @@ export type Database = {
         Args: { p_agent: string; p_mission: string; p_user: string }
         Returns: boolean
       }
+      can_manage_org: {
+        Args: { p_agent: string; p_org: string; p_user: string }
+        Returns: boolean
+      }
       cancel_mission: {
         Args: {
           p_agent: string
@@ -1867,6 +2403,16 @@ export type Database = {
           p_reason?: string
           p_task: string
           p_user: string
+        }
+        Returns: Json
+      }
+      cast_vote: {
+        Args: {
+          p_agent: string
+          p_comment: string
+          p_post: string
+          p_user: string
+          p_value: number
         }
         Returns: Json
       }
@@ -1900,6 +2446,16 @@ export type Database = {
         }
         Returns: Json
       }
+      create_comment: {
+        Args: {
+          p_agent: string
+          p_body: string
+          p_parent?: string
+          p_post: string
+          p_user: string
+        }
+        Returns: Json
+      }
       create_mission: {
         Args: {
           p_agent: string
@@ -1918,6 +2474,56 @@ export type Database = {
         }
         Returns: Json
       }
+      create_mission_in_org: {
+        Args: {
+          p_agent: string
+          p_budget_tokens?: number
+          p_description?: string
+          p_objective: string
+          p_org: string
+          p_plan?: Json
+          p_repo_url?: string
+          p_requires_final_approval?: boolean
+          p_requires_plan_approval?: boolean
+          p_review_quorum?: number
+          p_tags?: string[]
+          p_title: string
+          p_user: string
+          p_visibility?: string
+        }
+        Returns: Json
+      }
+      create_org: {
+        Args: {
+          p_agent: string
+          p_charter?: string
+          p_description?: string
+          p_founding_agent?: string
+          p_homepage?: string
+          p_is_open?: boolean
+          p_kind?: string
+          p_name: string
+          p_slug?: string
+          p_tagline?: string
+          p_tags?: string[]
+          p_user: string
+        }
+        Returns: Json
+      }
+      create_post: {
+        Args: {
+          p_agent: string
+          p_body?: string
+          p_kind?: string
+          p_knowledge?: string
+          p_mission?: string
+          p_org?: string
+          p_tags?: string[]
+          p_title: string
+          p_user: string
+        }
+        Returns: Json
+      }
       decide_approval: {
         Args: {
           p_agent: string
@@ -1926,6 +2532,14 @@ export type Database = {
           p_note?: string
           p_user: string
         }
+        Returns: Json
+      }
+      delete_comment: {
+        Args: { p_agent: string; p_comment: string; p_user: string }
+        Returns: Json
+      }
+      delete_post: {
+        Args: { p_agent: string; p_post: string; p_user: string }
         Returns: Json
       }
       endorse_knowledge: {
@@ -1973,7 +2587,12 @@ export type Database = {
         Args: { p_agent: string; p_mission: string; p_role?: string }
         Returns: Json
       }
+      join_org: {
+        Args: { p_agent: string; p_message?: string; p_org: string }
+        Returns: Json
+      }
       kick_embedder: { Args: never; Returns: undefined }
+      leave_org: { Args: { p_agent: string; p_org: string }; Returns: Json }
       log_activity: {
         Args: {
           p_agent?: string
@@ -2008,12 +2627,42 @@ export type Database = {
       mission_owner: { Args: { p_mission: string }; Returns: string }
       network_stats: { Args: never; Returns: Json }
       normalize_tags: { Args: { p: string[] }; Returns: string[] }
+      notify_actor: {
+        Args: {
+          p_agent: string
+          p_body?: string
+          p_data?: Json
+          p_kind: string
+          p_title: string
+          p_user: string
+        }
+        Returns: undefined
+      }
       notify_agent: {
         Args: {
           p_agent: string
           p_body?: string
           p_data?: Json
           p_kind: string
+          p_title: string
+        }
+        Returns: undefined
+      }
+      notify_mentions: {
+        Args: {
+          p_author_agent: string
+          p_data: Json
+          p_text: string
+          p_title: string
+        }
+        Returns: number
+      }
+      notify_org_managers: {
+        Args: {
+          p_body: string
+          p_data: Json
+          p_kind: string
+          p_org: string
           p_title: string
         }
         Returns: undefined
@@ -2027,6 +2676,49 @@ export type Database = {
           p_user: string
         }
         Returns: undefined
+      }
+      org_decide: {
+        Args: {
+          p_actor_agent: string
+          p_actor_user: string
+          p_agent: string
+          p_approve: boolean
+          p_org: string
+        }
+        Returns: Json
+      }
+      org_invite: {
+        Args: {
+          p_actor_agent: string
+          p_actor_user: string
+          p_agent: string
+          p_message?: string
+          p_org: string
+        }
+        Returns: Json
+      }
+      org_participant: {
+        Args: { p_agent: string; p_org: string; p_user: string }
+        Returns: boolean
+      }
+      org_remove_member: {
+        Args: {
+          p_actor_agent: string
+          p_actor_user: string
+          p_agent: string
+          p_org: string
+        }
+        Returns: Json
+      }
+      org_set_role: {
+        Args: {
+          p_actor_agent: string
+          p_actor_user: string
+          p_agent: string
+          p_org: string
+          p_role: string
+        }
+        Returns: Json
       }
       planning_brief: {
         Args: { p_description: string; p_objective: string; p_title: string }
@@ -2106,6 +2798,36 @@ export type Database = {
       }
       request_reviews: { Args: { p_submission: string }; Returns: number }
       require_agent_owner: { Args: { p_agent: string }; Returns: string }
+      require_org: {
+        Args: { p_org: string }
+        Returns: {
+          charter: string
+          created_at: string
+          created_by_agent: string | null
+          created_by_user: string | null
+          description: string
+          follower_count: number
+          homepage: string | null
+          id: string
+          is_open: boolean
+          kind: string
+          member_count: number
+          mission_count: number
+          name: string
+          post_count: number
+          search: unknown
+          slug: string
+          tagline: string
+          tags: string[]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "organizations"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       require_user: { Args: never; Returns: string }
       review_submission: {
         Args: {
@@ -2155,6 +2877,16 @@ export type Database = {
           title: string
         }[]
       }
+      set_follow: {
+        Args: {
+          p_agent: string
+          p_follow?: boolean
+          p_follower_agent: string
+          p_follower_user: string
+          p_org: string
+        }
+        Returns: Json
+      }
       slugify: { Args: { p: string }; Returns: string }
       snippet: {
         Args: { "": Database["public"]["Tables"]["knowledge"]["Row"] }
@@ -2162,6 +2894,47 @@ export type Database = {
           error: true
         } & "the function public.snippet with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache"
       }
+      social_feed: {
+        Args: {
+          p_kind?: string
+          p_limit?: number
+          p_offset?: number
+          p_org?: string
+          p_query?: string
+          p_sort?: string
+          p_tag?: string
+          p_viewer_agent?: string
+          p_viewer_user?: string
+        }
+        Returns: {
+          author_agent_handle: string
+          author_agent_name: string
+          author_user_name: string
+          author_username: string
+          comment_count: number
+          created_at: string
+          downvotes: number
+          excerpt: string
+          id: string
+          kind: string
+          knowledge_id: string
+          last_activity_at: string
+          mission_id: string
+          mission_slug: string
+          mission_status: string
+          mission_title: string
+          org_id: string
+          org_name: string
+          org_slug: string
+          rank: number
+          score: number
+          source: string
+          tags: string[]
+          title: string
+          upvotes: number
+        }[]
+      }
+      social_stats: { Args: never; Returns: Json }
       specific_terms: { Args: { p_text: string }; Returns: string[] }
       store_knowledge_embedding: {
         Args: { p_embedding: string; p_id: string }
@@ -2211,6 +2984,33 @@ export type Database = {
         }
         Returns: Json
       }
+      update_org: {
+        Args: {
+          p_agent: string
+          p_charter?: string
+          p_description?: string
+          p_homepage?: string
+          p_is_open?: boolean
+          p_kind?: string
+          p_name?: string
+          p_org: string
+          p_tagline?: string
+          p_tags?: string[]
+          p_user: string
+        }
+        Returns: Json
+      }
+      validate_org_fields: {
+        Args: {
+          p_charter: string
+          p_description: string
+          p_homepage: string
+          p_kind: string
+          p_name: string
+          p_tagline: string
+        }
+        Returns: undefined
+      }
       validate_plan: {
         Args: { p_mission?: string; p_plan: Json }
         Returns: undefined
@@ -2230,6 +3030,10 @@ export type Database = {
           prefix: string
         }[]
       }
+      web_attach_org_mission: {
+        Args: { p_mission: string; p_org: string }
+        Returns: Json
+      }
       web_cancel_mission: {
         Args: { p_mission: string; p_reason?: string }
         Returns: Json
@@ -2239,6 +3043,10 @@ export type Database = {
         Returns: Json
       }
       web_claim_agent: { Args: { p_token: string }; Returns: Json }
+      web_comment: {
+        Args: { p_body: string; p_parent?: string; p_post: string }
+        Returns: Json
+      }
       web_create_agent: {
         Args: {
           p_bio?: string
@@ -2267,8 +3075,58 @@ export type Database = {
         }
         Returns: Json
       }
+      web_create_org: {
+        Args: {
+          p_charter?: string
+          p_description?: string
+          p_founding_agent?: string
+          p_homepage?: string
+          p_is_open?: boolean
+          p_kind?: string
+          p_name: string
+          p_slug?: string
+          p_tagline?: string
+          p_tags?: string[]
+        }
+        Returns: Json
+      }
+      web_create_org_mission: {
+        Args: {
+          p_budget_tokens?: number
+          p_description?: string
+          p_objective: string
+          p_org: string
+          p_plan?: Json
+          p_repo_url?: string
+          p_requires_final_approval?: boolean
+          p_requires_plan_approval?: boolean
+          p_review_quorum?: number
+          p_tags?: string[]
+          p_title: string
+          p_visibility?: string
+        }
+        Returns: Json
+      }
+      web_create_post: {
+        Args: {
+          p_body?: string
+          p_kind?: string
+          p_knowledge?: string
+          p_mission?: string
+          p_org?: string
+          p_tags?: string[]
+          p_title: string
+        }
+        Returns: Json
+      }
       web_decide_approval: {
         Args: { p_approval: string; p_approve: boolean; p_note?: string }
+        Returns: Json
+      }
+      web_delete_comment: { Args: { p_comment: string }; Returns: Json }
+      web_delete_post: { Args: { p_post: string }; Returns: Json }
+      web_follow: {
+        Args: { p_agent?: string; p_follow?: boolean; p_org?: string }
         Returns: Json
       }
       web_mark_notifications_read: {
@@ -2277,6 +3135,17 @@ export type Database = {
       }
       web_my_approvals: { Args: never; Returns: Json }
       web_my_missions: { Args: never; Returns: Json }
+      web_org_member: {
+        Args: {
+          p_action: string
+          p_agent: string
+          p_message?: string
+          p_org: string
+          p_role?: string
+        }
+        Returns: Json
+      }
+      web_org_requests: { Args: { p_org: string }; Returns: Json }
       web_post_message: {
         Args: {
           p_body: string
@@ -2310,8 +3179,26 @@ export type Database = {
         }
         Returns: Json
       }
+      web_update_org: {
+        Args: {
+          p_charter?: string
+          p_description?: string
+          p_homepage?: string
+          p_is_open?: boolean
+          p_kind?: string
+          p_name?: string
+          p_org: string
+          p_tagline?: string
+          p_tags?: string[]
+        }
+        Returns: Json
+      }
       web_update_profile: {
         Args: { p_bio?: string; p_display_name?: string; p_username?: string }
+        Returns: Json
+      }
+      web_vote: {
+        Args: { p_comment?: string; p_post?: string; p_value?: number }
         Returns: Json
       }
     }

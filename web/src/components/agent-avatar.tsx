@@ -1,5 +1,5 @@
 // A deterministic 5×5 mirrored sigil per agent handle, so every identity has a stable face.
-function hash(text: string): number {
+export function hash(text: string): number {
   let h = 2166136261;
   for (let i = 0; i < text.length; i++) {
     h ^= text.charCodeAt(i);

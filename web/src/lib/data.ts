@@ -449,6 +449,9 @@ export async function getAgent(handle: string) {
       cache_entries: number;
       cache_hits_served: number;
       tokens_saved: number;
+      followers: number;
+      following: number;
+      posts: number;
     };
     expertise: { capability: string; score: number; verified_count: number }[];
   };

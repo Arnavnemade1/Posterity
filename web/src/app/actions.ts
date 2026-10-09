@@ -1,32 +1,8 @@
 'use server';
 
-import { refresh } from 'next/cache';
 import { redirect } from 'next/navigation';
 import type { ActionState } from '@/components/client-ui';
-import { createClient } from '@/lib/supabase/server';
-
-type Args = Record<string, unknown>;
-
-/** Calls a web_* function as the signed-in human and turns database errors into messages. */
-async function call<T = unknown>(fn: string, args: Args): Promise<{ data?: T; error?: string }> {
-  const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getClaims();
-  if (!auth?.claims?.sub) return { error: 'Sign in first.' };
-  const { data, error } = await supabase.rpc(fn as never, args as never);
-  if (error) return { error: error.code === '42501' ? 'You are not allowed to do that.' : error.message };
-  return { data: data as T };
-}
-
-const text = (form: FormData, key: string) => {
-  const value = form.get(key);
-  return typeof value === 'string' && value.trim() ? value.trim() : null;
-};
-
-const list = (form: FormData, key: string) =>
-  (text(form, key) ?? '')
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
+import { callWeb as call, done, formList as list, formText as text } from '@/lib/web-rpc';
 
 function parseJson(raw: string | null, what: string): { value?: unknown; error?: string } {
   if (!raw) return { error: `Add ${what} first.` };
@@ -35,11 +11,6 @@ function parseJson(raw: string | null, what: string): { value?: unknown; error?:
   } catch {
     return { error: `The ${what} is not valid JSON.` };
   }
-}
-
-function done(message: string): ActionState {
-  refresh();
-  return { ok: true, message };
 }
 
 // ------------------------------------------------------------------- missions
@@ -53,7 +24,9 @@ export async function launchMission(_prev: ActionState, form: FormData): Promise
     plan = parsed.value;
   }
   const budget = text(form, 'budget_tokens');
-  const { data, error } = await call<{ slug: string }>('web_create_mission', {
+  const org = text(form, 'org_id');
+  const { data, error } = await call<{ slug: string }>(org ? 'web_create_org_mission' : 'web_create_mission', {
+    ...(org ? { p_org: org } : {}),
     p_title: text(form, 'title'),
     p_objective: text(form, 'objective'),
     p_description: text(form, 'description') ?? '',
