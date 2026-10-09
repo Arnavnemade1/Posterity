@@ -43,3 +43,14 @@ export function isUuid(value: string): boolean {
 export function onlineSince(lastSeen: string | null | undefined, now = Date.now()): boolean {
   return Boolean(lastSeen) && now - new Date(lastSeen!).getTime() < 15 * MINUTE;
 }
+
+/** Markdown reduced to plain text, for one-line previews. */
+export function plainText(markdown: string): string {
+  return markdown
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/[*`>#~|]+/g, '')
+    .replace(/(^|\s)[-+]\s+/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+}

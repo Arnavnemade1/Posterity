@@ -1,6 +1,8 @@
 // Server-side data loaders. Every read goes through RLS with the caller's session,
 // and every relationship embed names its foreign key: junction tables such as
 // review_requests and task_invitations make bare embeds ambiguous in PostgREST.
+// Memory search is the exception: it needs the API's embedding model (see lib/api.ts).
+import { apiGet, ApiRequestError } from '@/lib/api';
 import { isUuid } from '@/lib/format';
 import { createClient } from '@/lib/supabase/server';
 
@@ -32,6 +34,7 @@ export interface ActivityItem {
   mission_id: string | null;
   task_id: string | null;
   mission: { slug: string; title: string } | null;
+  data: Record<string, unknown> | null;
 }
 
 export interface MissionSummary {
@@ -125,7 +128,7 @@ export async function getActivity(opts: { missionId?: string; limit?: number } =
   const supabase = await db();
   let query = supabase
     .from('activity')
-    .select('id, kind, summary, created_at, mission_id, task_id, mission:missions!activity_mission_id_fkey(slug, title)')
+    .select('id, kind, summary, created_at, mission_id, task_id, data, mission:missions!activity_mission_id_fkey(slug, title)')
     .order('id', { ascending: false })
     .limit(opts.limit ?? 30);
   if (opts.missionId) query = query.eq('mission_id', opts.missionId);
@@ -169,7 +172,7 @@ export async function getMission(slugOrId: string, userId: string | null) {
     creator_agent: { handle: string; owner_id: string | null } | null;
   };
 
-  const [tasks, members, messages, approvals, submissions, artifacts, activity] = await Promise.all([
+  const [tasks, members, messages, approvals, submissions, artifacts, activity, memory] = await Promise.all([
     supabase
       .from('tasks')
       .select(
@@ -213,6 +216,7 @@ export async function getMission(slugOrId: string, userId: string | null) {
       .order('created_at', { ascending: false })
       .limit(50),
     getActivity({ missionId: m.id, limit: 25 }),
+    listMemory({ missionId: m.id, limit: 6 }),
   ]);
 
   const taskRows = (tasks.data ?? []) as unknown as (Omit<TaskNode, 'depends_on'> & { deps: { depends_on: string }[] })[];
@@ -265,6 +269,7 @@ export async function getMission(slugOrId: string, userId: string | null) {
       author: AgentRef | null;
     }[],
     activity,
+    memory,
     isOwner,
   };
 }
@@ -439,10 +444,15 @@ export async function getAgent(handle: string) {
       score_count: number;
       missions_joined: number;
       tokens_reported: number;
+      knowledge_contributed: number;
+      knowledge_verified: number;
+      cache_entries: number;
+      cache_hits_served: number;
+      tokens_saved: number;
     };
     expertise: { capability: string; score: number; verified_count: number }[];
   };
-  const [missions, ledger, work] = await Promise.all([
+  const [missions, ledger, work, memory] = await Promise.all([
     supabase
       .from('mission_members')
       .select('role, joined_at, mission:missions!mission_members_mission_id_fkey(slug, title, status)')
@@ -461,9 +471,11 @@ export async function getAgent(handle: string) {
       .eq('agent_id', a.id)
       .order('created_at', { ascending: false })
       .limit(20),
+    listMemory({ agentId: a.id, order: 'cited', limit: 4 }),
   ]);
   return {
     agent: { ...a, expertise: [...(a.expertise ?? [])].sort((x, y) => Number(y.score) - Number(x.score)) },
+    memory,
     missions: (missions.data ?? []) as unknown as { role: string; joined_at: string; mission: { slug: string; title: string; status: string } | null }[],
     ledger: (ledger.data ?? []) as unknown as { id: number; kind: string; delta: number; note: string | null; created_at: string; mission: { slug: string } | null }[],
     work: (work.data ?? []) as unknown as {
@@ -545,4 +557,161 @@ export async function getTaskTitle(id: string): Promise<string | null> {
   const supabase = await db();
   const { data } = await supabase.from('tasks').select('title').eq('id', id).maybeSingle();
   return data?.title ?? null;
+}
+
+// ——— Collective memory ———
+
+export interface MemoryStats {
+  knowledge: number;
+  knowledge_verified: number;
+  verified_results: number;
+  failed_experiments: number;
+  mission_results: number;
+  plans: number;
+  contributed: number;
+  endorsements: number;
+  citations: number;
+  pending_embeddings: number;
+  cache_entries: number;
+  cache_hits: number;
+  tokens_saved: number;
+}
+
+/** A memory entry as lists show it. Search results also say how well it matched. */
+export interface MemoryHit {
+  id: string;
+  kind: string;
+  title: string;
+  snippet: string;
+  status: string;
+  confidence: number;
+  agent_handle: string | null;
+  mission_slug: string | null;
+  mission_title: string | null;
+  task_id: string | null;
+  tags: string[];
+  endorsements: number;
+  citations: number;
+  created_at: string;
+  score?: number | null;
+  similarity?: number | null;
+  matched?: 'text' | 'semantic' | 'both' | null;
+}
+
+export interface MemoryEntry {
+  id: string;
+  kind: string;
+  title: string;
+  body: string;
+  status: string;
+  source: string;
+  confidence: number;
+  tags: string[];
+  capabilities: string[];
+  endorsements: number;
+  disputes: number;
+  citations: number;
+  embedded: boolean;
+  created_at: string;
+  verified_at: string | null;
+  author: { handle: string; display_name: string } | null;
+  mission: { id: string; slug: string; title: string; status: string } | null;
+  task: { id: string; key: string; title: string } | null;
+  submission_id: string | null;
+  reviews: { verdict: string; score: number | null; independent: boolean; reviewer: string }[];
+  endorsement_list: { verdict: string; note: string | null; weight: number; independent: boolean; agent: string; created_at: string }[];
+  related: { id: string; kind: string; title: string; status: string; similarity: number }[];
+}
+
+// `snippet` is a computed field (public.snippet), so lists never download full bodies.
+const MEMORY_LIST =
+  'id, kind, title, snippet, status, confidence, tags, endorsements, citations, created_at, task_id, agent:agents!knowledge_agent_id_fkey(handle), mission:missions!knowledge_mission_id_fkey(slug, title)';
+
+type MemoryRow = Omit<MemoryHit, 'agent_handle' | 'mission_slug' | 'mission_title'> & {
+  agent: { handle: string } | null;
+  mission: { slug: string; title: string } | null;
+};
+
+const toHit = ({ agent, mission, ...row }: MemoryRow): MemoryHit => ({
+  ...row,
+  agent_handle: agent?.handle ?? null,
+  mission_slug: mission?.slug ?? null,
+  mission_title: mission?.title ?? null,
+});
+
+export async function getMemoryStats(): Promise<MemoryStats> {
+  const supabase = await db();
+  const { data } = await supabase.rpc('memory_stats');
+  return (data ?? {}) as unknown as MemoryStats;
+}
+
+/** Entries straight from the public record, newest (or most cited) first. */
+export async function listMemory(
+  opts: { kind?: string; missionId?: string; agentId?: string; limit?: number; order?: 'recent' | 'cited' } = {},
+): Promise<MemoryHit[]> {
+  const supabase = await db();
+  let query = supabase.from('knowledge').select(MEMORY_LIST);
+  if (opts.kind) query = query.eq('kind', opts.kind);
+  if (opts.missionId) query = query.eq('mission_id', opts.missionId);
+  if (opts.agentId) query = query.eq('agent_id', opts.agentId);
+  if (opts.order === 'cited') query = query.order('citations', { ascending: false });
+  const { data } = await query.order('created_at', { ascending: false }).limit(opts.limit ?? 30);
+  return ((data ?? []) as unknown as MemoryRow[]).map(toHit);
+}
+
+/** Hybrid semantic and full-text search through the API. If the API is unreachable, falls back to full-text search here. */
+export async function searchMemory(
+  q: string,
+  opts: { kind?: string; missionId?: string; limit?: number } = {},
+): Promise<{ mode: 'hybrid' | 'text'; results: MemoryHit[] }> {
+  const limit = opts.limit ?? 30;
+  try {
+    return await apiGet<{ mode: 'hybrid' | 'text'; results: MemoryHit[] }>('/memory/search', { q, kind: opts.kind, mission: opts.missionId, limit });
+  } catch (err) {
+    console.error('memory search through the API failed; using full-text search', err);
+    const supabase = await db();
+    let query = supabase.from('knowledge').select(MEMORY_LIST).textSearch('search', q, { type: 'websearch', config: 'english' });
+    if (opts.kind) query = query.eq('kind', opts.kind);
+    if (opts.missionId) query = query.eq('mission_id', opts.missionId);
+    const { data } = await query.order('confidence', { ascending: false }).limit(limit);
+    return { mode: 'text', results: ((data ?? []) as unknown as MemoryRow[]).map((row) => ({ ...toHit(row), matched: 'text' as const })) };
+  }
+}
+
+/** One entry with its provenance, endorsements and semantically related entries. */
+export async function getMemoryEntry(id: string): Promise<MemoryEntry | null> {
+  if (!isUuid(id)) return null;
+  try {
+    return await apiGet<MemoryEntry>(`/memory/${id}`);
+  } catch (err) {
+    if (err instanceof ApiRequestError && err.status === 404) return null;
+    throw err;
+  }
+}
+
+/** Memory related to a task: verified results to build on, and approaches that already failed. */
+export async function getTaskMemory(taskId: string): Promise<MemoryHit[] | null> {
+  try {
+    return (await apiGet<{ related: MemoryHit[] }>(`/tasks/${taskId}/memory`)).related;
+  } catch (err) {
+    console.error('task memory lookup failed', err);
+    return null;
+  }
+}
+
+export async function getMemoryTitle(id: string): Promise<string | null> {
+  if (!isUuid(id)) return null;
+  const supabase = await db();
+  const { data } = await supabase.from('knowledge').select('title').eq('id', id).maybeSingle();
+  return data?.title ?? null;
+}
+
+export async function getMissionRef(slugOrId: string): Promise<{ id: string; slug: string; title: string } | null> {
+  const supabase = await db();
+  const { data } = await supabase
+    .from('missions')
+    .select('id, slug, title')
+    .eq(isUuid(slugOrId) ? 'id' : 'slug', slugOrId.toLowerCase())
+    .maybeSingle();
+  return data;
 }

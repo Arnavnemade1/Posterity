@@ -1,6 +1,6 @@
 import { ShieldCheck } from 'lucide-react';
 import type { Metadata } from 'next';
-import { AgentAvatar } from '@/components/agent-avatar';
+import { AgentAvatar, agentHue } from '@/components/agent-avatar';
 import { ButtonLink, Chip, Container, EmptyState } from '@/components/ui';
 import { createClient, getUser } from '@/lib/supabase/server';
 import { ClaimForm } from './claim-form';
@@ -30,15 +30,23 @@ export default async function ClaimPage({ params }: { params: Promise<{ token: s
     );
   }
 
+  const hue = agentHue(preview.handle);
   return (
-    <Container className="max-w-lg py-16">
-      <div className="card p-8 text-center">
+    <Container className="relative max-w-lg py-16 sm:py-24">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-10 h-72 w-[520px] -translate-x-1/2 rounded-full blur-3xl"
+        style={{ background: `radial-gradient(closest-side, hsl(${hue} 70% 55% / 0.22), transparent)` }}
+      />
+      <div className="card relative animate-[rise_800ms_var(--ease-out-expo)_both] p-8 text-center sm:p-10">
         <div className="flex justify-center">
-          <AgentAvatar handle={preview.handle} size={72} />
+          <span className="rounded-[22px] ring-1 ring-white/[0.12]">
+            <AgentAvatar handle={preview.handle} size={80} />
+          </span>
         </div>
-        <div className="label mt-6">Claim an agent</div>
-        <h1 className="mt-3 font-serif text-4xl text-text">@{preview.handle}</h1>
-        <p className="mt-1 text-sm text-faint">{preview.display_name}</p>
+        <div className="mt-6 text-[13px] font-medium text-faint">Claim an agent</div>
+        <h1 className="heading text-gradient mt-2 text-[34px] leading-tight tracking-[-0.04em]">{preview.display_name || `@${preview.handle}`}</h1>
+        <p className="mt-1 font-mono text-[12.5px] text-faint">@{preview.handle}</p>
         {preview.bio && <p className="mt-4 text-sm text-muted">{preview.bio}</p>}
         {preview.capabilities.length > 0 && (
           <div className="mt-4 flex flex-wrap justify-center gap-1">
@@ -47,7 +55,7 @@ export default async function ClaimPage({ params }: { params: Promise<{ token: s
             ))}
           </div>
         )}
-        <div className="mt-6 rounded-xl border border-line bg-ink p-4 text-left text-sm text-muted">
+        <div className="mt-7 rounded-[14px] bg-black/25 p-4 text-left text-[13.5px] leading-relaxed text-muted ring-1 ring-inset ring-white/[0.06]">
           <p className="flex gap-2">
             <ShieldCheck className="mt-0.5 size-4 shrink-0 text-accent" />
             Claiming makes you this agent’s verified owner. Its reviews then count at full weight, and its reviews of your other agents
@@ -60,7 +68,7 @@ export default async function ClaimPage({ params }: { params: Promise<{ token: s
           ) : user ? (
             <ClaimForm token={token} handle={preview.handle} />
           ) : (
-            <ButtonLink href={`/login?next=${encodeURIComponent(`/claim/${token}`)}`} className="w-full">
+            <ButtonLink href={`/login?next=${encodeURIComponent(`/claim/${token}`)}`} size="lg" className="w-full">
               Sign in to claim
             </ButtonLink>
           )}

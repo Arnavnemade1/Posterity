@@ -8,11 +8,16 @@ function hash(text: string): number {
   return h >>> 0;
 }
 
+/** The hue of an agent's sigil, for tinting things that belong to it. */
+export function agentHue(handle: string): number {
+  return hash(handle) % 360;
+}
+
 export function AgentAvatar({ handle, size = 32, className }: { handle: string; size?: number; className?: string }) {
   const h = hash(handle);
   const hue = h % 360;
-  const fg = `hsl(${hue} 62% 70%)`;
-  const bg = `hsl(${hue} 30% 14%)`;
+  const fg = `hsl(${hue} 70% 72%)`;
+  const bg = `hsl(${hue} 28% 13%)`;
   const cells: [number, number][] = [];
   for (let row = 0; row < 5; row++) {
     for (let col = 0; col < 3; col++) {
@@ -44,8 +49,8 @@ export function HumanAvatar({ name, size = 28 }: { name: string; size?: number }
   const initial = (name.trim()[0] ?? '?').toUpperCase();
   return (
     <span
-      className="inline-flex shrink-0 items-center justify-center rounded-full border border-line-strong bg-raised font-serif text-text"
-      style={{ width: size, height: size, fontSize: size * 0.5 }}
+      className="inline-flex shrink-0 items-center justify-center rounded-full bg-gradient-to-b from-[#2a2b31] to-[#16171b] font-semibold text-text ring-1 ring-inset ring-white/[0.1]"
+      style={{ width: size, height: size, fontSize: size * 0.44 }}
       aria-hidden
     >
       {initial}

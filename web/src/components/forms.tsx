@@ -14,9 +14,9 @@ function useResetOnSuccess(ok: boolean | undefined) {
 }
 
 const VERDICT_OPTIONS = [
-  { value: 'approve', label: 'Approve', hint: 'Meets the acceptance criteria', tone: 'peer-checked:border-done peer-checked:text-done' },
-  { value: 'request_changes', label: 'Request changes', hint: 'Fixable gaps', tone: 'peer-checked:border-claimed peer-checked:text-claimed' },
-  { value: 'reject', label: 'Reject', hint: 'Wrong or unusable', tone: 'peer-checked:border-danger peer-checked:text-danger' },
+  { value: 'approve', label: 'Approve', hint: 'Meets the acceptance criteria', tone: 'peer-checked:bg-done/[0.08] peer-checked:text-done peer-checked:ring-done/50' },
+  { value: 'request_changes', label: 'Request changes', hint: 'Fixable gaps', tone: 'peer-checked:bg-claimed/[0.08] peer-checked:text-claimed peer-checked:ring-claimed/50' },
+  { value: 'reject', label: 'Reject', hint: 'Wrong or unusable', tone: 'peer-checked:bg-danger/[0.08] peer-checked:text-danger peer-checked:ring-danger/50' },
 ];
 
 export function ReviewForm({ submissionId, isOwner }: { submissionId: string; isOwner: boolean }) {
@@ -26,12 +26,19 @@ export function ReviewForm({ submissionId, isOwner }: { submissionId: string; is
     <form action={action} className="space-y-3">
       <input type="hidden" name="submission_id" value={submissionId} />
       <fieldset>
-        <legend className="label mb-2">Your verdict{isOwner ? ' (as owner, your review decides)' : ''}</legend>
+        <legend className="label mb-2.5">
+          Your verdict{isOwner ? <span className="text-faint"> · as owner, your review decides</span> : ''}
+        </legend>
         <div className="grid gap-2 sm:grid-cols-3">
           {VERDICT_OPTIONS.map((o) => (
             <label key={o.value} className="cursor-pointer">
               <input type="radio" name="verdict" value={o.value} className="peer sr-only" required />
-              <span className={cx('block rounded-xl border border-line-strong px-3 py-2 text-sm text-muted transition-colors hover:text-text', o.tone)}>
+              <span
+                className={cx(
+                  'block rounded-xl px-3 py-2.5 text-sm text-muted ring-1 ring-inset ring-white/[0.09] transition-all hover:bg-white/[0.03] hover:text-text peer-focus-visible:ring-accent/60',
+                  o.tone,
+                )}
+              >
                 <span className="block font-medium">{o.label}</span>
                 <span className="block text-xs text-faint">{o.hint}</span>
               </span>
@@ -145,8 +152,11 @@ export function AddTaskForm({ missionId, existing }: { missionId: string; existi
           <legend className="label mb-2">Depends on</legend>
           <div className="flex flex-wrap gap-2">
             {existing.map((t) => (
-              <label key={t.key} className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-line px-2 py-1 text-xs text-muted">
-                <input type="checkbox" name="depends_on" value={t.key} className="accent-[#e8b25c]" />
+              <label
+                key={t.key}
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-white/[0.03] px-2.5 py-1 text-xs text-muted ring-1 ring-inset ring-white/[0.08] has-[:checked]:bg-accent/10 has-[:checked]:text-accent has-[:checked]:ring-accent/30"
+              >
+                <input type="checkbox" name="depends_on" value={t.key} className="accent-[#ffb257]" />
                 <span className="font-mono">{t.key}</span>
               </label>
             ))}
@@ -170,7 +180,7 @@ export function CancelMissionForm({ missionId }: { missionId: string }) {
       <input type="hidden" name="mission_id" value={missionId} />
       <input name="reason" className="field" placeholder="Reason (optional)" />
       <label className="flex items-center gap-2 text-xs text-muted">
-        <input type="checkbox" name="confirm" className="accent-[#ef8a80]" /> Cancel every open task in this mission
+        <input type="checkbox" name="confirm" className="accent-[#ff6b6b]" /> Cancel every open task in this mission
       </label>
       <div className="flex items-center gap-3">
         <SubmitButton size="sm" variant="danger" pendingLabel="Cancelling…">

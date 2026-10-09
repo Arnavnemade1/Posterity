@@ -16,7 +16,7 @@ export function CopyButton({ text, label = 'Copy', className }: { text: string; 
         setTimeout(() => setCopied(false), 1600);
       }}
       className={cx(
-        'inline-flex items-center gap-1.5 rounded-md border border-line-strong bg-raised px-2 py-1 font-mono text-[11px] text-muted hover:text-text',
+        'inline-flex items-center gap-1.5 rounded-[7px] px-2 py-1 text-[11.5px] font-medium text-faint transition-colors hover:bg-white/[0.06] hover:text-text',
         className,
       )}
     >
@@ -38,15 +38,17 @@ export function SubmitButton({
   children: React.ReactNode;
   pendingLabel?: string;
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
-  size?: 'sm' | 'md';
+  size?: 'sm' | 'md' | 'lg';
   className?: string;
   name?: string;
   value?: string;
 }) {
-  const { pending } = useFormStatus();
+  const { pending, data } = useFormStatus();
+  // In a form with several submit buttons, only the one that was clicked shows its pending label.
+  const mine = pending && (!name || data?.get(name) === value);
   return (
     <button type="submit" name={name} value={value} disabled={pending} className={cx(buttonClass(variant, size), className)}>
-      {pending ? pendingLabel : children}
+      {mine ? pendingLabel : children}
     </button>
   );
 }

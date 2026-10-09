@@ -1,11 +1,10 @@
 import { Plus, Search } from 'lucide-react';
-import { requestTime } from '@/lib/request-time';
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { LiveRefresh } from '@/components/live';
 import { MissionRow } from '@/components/mission-row';
-import { ButtonLink, Container, cx, EmptyState } from '@/components/ui';
+import { ButtonLink, Container, EmptyState, Eyebrow, PageHeader, Segmented } from '@/components/ui';
 import { listMissions } from '@/lib/data';
+import { requestTime } from '@/lib/request-time';
 
 export const metadata: Metadata = { title: 'Missions' };
 
@@ -22,63 +21,53 @@ export default async function MissionsPage({ searchParams }: { searchParams: Pro
   const now = requestTime();
 
   return (
-    <Container className="py-12">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <div className="label">Missions</div>
-          <h1 className="mt-3 font-serif text-5xl text-text">Work in the open</h1>
-          <p className="mt-3 max-w-xl text-sm text-muted">
-            Every mission is a shared objective with a task graph, a swarm of agents and a public record of what was verified.
-          </p>
+    <>
+      <PageHeader
+        eyebrow={<Eyebrow>Missions</Eyebrow>}
+        title="Work in the open."
+        description="Every mission is a shared objective with a task graph, a swarm of agents, and a public record of what was verified."
+        actions={
+          <ButtonLink href="/missions/new" size="lg">
+            <Plus className="size-4" /> Launch a mission
+          </ButtonLink>
+        }
+      />
+
+      <Container>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Segmented
+            label="Filter missions"
+            items={FILTERS.map((f) => {
+              const params = new URLSearchParams();
+              if (f.value) params.set('status', f.value);
+              if (q) params.set('q', q);
+              return { href: `/missions${params.size ? `?${params}` : ''}`, label: f.label, active: status === f.value };
+            })}
+          />
+          <form className="relative w-full sm:w-80" action="/missions">
+            {status && <input type="hidden" name="status" value={status} />}
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-faint" aria-hidden />
+            <input name="q" defaultValue={q} className="field h-10 pl-9" placeholder="Search missions" aria-label="Search missions" />
+          </form>
         </div>
-        <ButtonLink href="/missions/new">
-          <Plus className="size-4" /> Launch a mission
-        </ButtonLink>
-      </div>
 
-      <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <nav className="flex flex-wrap gap-1" aria-label="Filter missions">
-          {FILTERS.map((f) => {
-            const params = new URLSearchParams();
-            if (f.value) params.set('status', f.value);
-            if (q) params.set('q', q);
-            const active = status === f.value;
-            return (
-              <Link
-                key={f.label}
-                href={`/missions${params.size ? `?${params}` : ''}`}
-                aria-current={active ? 'page' : undefined}
-                className={cx(
-                  'rounded-full px-3 py-1.5 text-[13px] transition-colors',
-                  active ? 'bg-white/[0.08] text-text' : 'text-muted hover:text-text',
-                )}
-              >
-                {f.label}
-              </Link>
-            );
-          })}
-        </nav>
-        <form className="relative w-full sm:w-72" action="/missions">
-          {status && <input type="hidden" name="status" value={status} />}
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-faint" aria-hidden />
-          <input name="q" defaultValue={q} className="field pl-9" placeholder="Search missions" aria-label="Search missions" />
-        </form>
-      </div>
-
-      <div className="mt-6">
-        {missions.length ? (
-          <div className="grid gap-3 lg:grid-cols-2">
-            {missions.map((m) => (
-              <MissionRow key={m.id} mission={m} now={now} />
-            ))}
-          </div>
-        ) : (
-          <EmptyState title={q || status ? 'No missions match' : 'No missions yet'}>
-            {q || status ? 'Try another filter or search.' : 'Launch the first mission and the network will start recruiting.'}
-          </EmptyState>
-        )}
-      </div>
+        <div className="mt-6">
+          {missions.length ? (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {missions.map((m, i) => (
+                <div key={m.id} data-reveal style={{ ['--reveal-delay' as string]: `${Math.min(i, 8) * 40}ms` }}>
+                  <MissionRow mission={m} now={now} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState title={q || status ? 'No missions match' : 'No missions yet'}>
+              {q || status ? 'Try another filter or search.' : 'Launch the first mission and the network will start recruiting.'}
+            </EmptyState>
+          )}
+        </div>
+      </Container>
       <LiveRefresh channel="missions-list" watch={[{ table: 'missions' }]} showBadge={false} />
-    </Container>
+    </>
   );
 }

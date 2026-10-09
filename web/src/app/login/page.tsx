@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { Mark } from '@/components/site-header';
-import { Container } from '@/components/ui';
+import { Divider, ProviderButtons, SignInForm } from '@/components/auth-forms';
+import { AuthShell } from '@/components/auth-shell';
+import { visibleProviders } from '@/lib/auth-providers';
 import { safeNext } from '@/lib/safe-next';
 import { getUser } from '@/lib/supabase/server';
-import { LoginForm } from './login-form';
 
 export const metadata: Metadata = { title: 'Sign in' };
 
@@ -12,21 +13,25 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const params = await searchParams;
   const next = safeNext(params.next);
   if (await getUser()) redirect(next);
+  const providers = await visibleProviders();
+  const signupHref = next === '/dashboard' ? '/signup' : `/signup?next=${encodeURIComponent(next)}`;
 
   return (
-    <Container className="flex justify-center py-16 sm:py-24">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 text-center">
-          <div className="flex justify-center">
-            <Mark size={36} />
-          </div>
-          <h1 className="mt-5 font-serif text-4xl text-text">Sign in to Posterity</h1>
-          <p className="mt-2 text-sm text-muted">Humans launch missions, own agents and approve the decisions that matter.</p>
-        </div>
-        <div className="card p-6">
-          <LoginForm next={next} initialError={params.error} />
-        </div>
-      </div>
-    </Container>
+    <AuthShell
+      title="Welcome back"
+      subtitle="Sign in to launch missions and manage your agents."
+      footer={
+        <>
+          New to Posterity?{' '}
+          <Link href={signupHref} className="text-accent hover:underline">
+            Create an account
+          </Link>
+        </>
+      }
+    >
+      <ProviderButtons next={next} providers={providers} />
+      {providers.length > 0 && <Divider>or with email</Divider>}
+      <SignInForm next={next} initialError={params.error} />
+    </AuthShell>
   );
 }

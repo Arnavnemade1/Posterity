@@ -1,100 +1,411 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
-/* Posterity: an archival, observatory feel. Warm ink, hairlines, one amber accent. */
+/*
+  Posterity design system.
+  Near-black canvas, light as the only ornament. The interface is monochrome; color is
+  reserved for state (status glyphs) and for "ember", the light of verified work.
+*/
 @theme {
-  --color-ink: #0b0b0d;
-  --color-panel: #111114;
-  --color-raised: #18181c;
-  --color-line: rgb(255 255 255 / 0.08);
-  --color-line-strong: rgb(255 255 255 / 0.15);
-  --color-text: #ece9e3;
-  --color-muted: #a29e95;
-  --color-faint: #7a766e;
-  --color-accent: #e8b25c;
-  --color-accent-ink: #1c1407;
-  --color-open: #8db4ff;
-  --color-claimed: #b79bff;
-  --color-done: #7fd1a8;
-  --color-danger: #ef8a80;
+  --color-ink: #08090b;
+  --color-panel: #0e0f12;
+  --color-raised: #15161a;
+  --color-line: rgb(255 255 255 / 0.07);
+  --color-line-strong: rgb(255 255 255 / 0.12);
+  --color-text: #f2f3f5;
+  --color-muted: #9b9fa8;
+  --color-faint: #63676f;
+  --color-ghost: #3d4047;
+  --color-accent: #ffb257;
+  --color-accent-ink: #1a0f02;
+  --color-ember: #ff9f43;
+  --color-open: #7aa2ff;
+  --color-claimed: #f2b84b;
+  --color-review: #a993ff;
+  --color-done: #4fd18b;
+  --color-danger: #ff6b6b;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+
+  --animate-marquee: marquee 40s linear infinite;
+  --animate-rise: rise 0.9s var(--ease-out-expo) both;
+  --animate-fade: fade 1.2s var(--ease-out-expo) both;
+  --animate-shimmer: shimmer 2.4s linear infinite;
 }
 
 @theme inline {
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
-  --font-serif: var(--font-instrument-serif), ui-serif, Georgia, serif;
+}
+
+@keyframes marquee {
+  to { transform: translateX(-50%); }
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(14px); filter: blur(6px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@keyframes fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgb(79 209 139 / 0.55); }
+  70% { box-shadow: 0 0 0 6px rgb(79 209 139 / 0); }
+  100% { box-shadow: 0 0 0 0 rgb(79 209 139 / 0); }
+}
+@keyframes spin-slow {
+  to { transform: rotate(360deg); }
 }
 
 @layer base {
   html {
     color-scheme: dark;
     background: var(--color-ink);
+    -webkit-text-size-adjust: 100%;
   }
   body {
     background: var(--color-ink);
     color: var(--color-text);
     font-family: var(--font-sans);
+    font-optical-sizing: auto;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    letter-spacing: -0.006em;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
   }
+  /* Film grain: a barely-there texture that keeps flat black from feeling digital. */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  h1, h2, h3, h4 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
   ::selection {
-    background: rgb(232 178 92 / 0.28);
+    background: rgb(255 178 87 / 0.3);
+    color: #fff;
   }
   :focus-visible {
-    outline: 2px solid var(--color-accent);
+    outline: 2px solid rgb(255 178 87 / 0.7);
     outline-offset: 2px;
-    border-radius: 6px;
+    border-radius: 8px;
   }
   input,
   textarea,
   select {
     color-scheme: dark;
   }
+  code, kbd, pre, samp {
+    font-feature-settings: normal;
+    letter-spacing: 0;
+  }
 }
 
-/* Small-caps section label */
+/* ——— Type ——— */
+
+/* Display headings: Inter's display optical size, set tight. */
+@utility heading {
+  font-family: var(--font-sans);
+  font-weight: 590;
+  letter-spacing: -0.032em;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11', 'ss03';
+}
+
+/* Light falls from the top of a headline and fades towards the baseline. */
+@utility text-gradient {
+  background-image: linear-gradient(180deg, #ffffff 25%, rgb(255 255 255 / 0.62) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+@utility text-ember {
+  background-image: linear-gradient(100deg, #ffe0b5 0%, #ffb257 45%, #ff8a3d 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Small labels for fields and panels. */
 @utility label {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  line-height: 1;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--color-faint);
+  font-size: 12.5px;
+  line-height: 1.2;
+  font-weight: 500;
+  letter-spacing: -0.003em;
+  color: var(--color-muted);
 }
 
-@utility card {
-  border: 1px solid var(--color-line);
-  background: var(--color-panel);
-  border-radius: 16px;
+/* Marketing eyebrow: a quiet chip above section titles. */
+@utility eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-muted);
 }
+
+/* ——— Surfaces ——— */
+
+/* The base surface: a hairline ring, a whisper of gradient and a lit top edge. */
+@utility card {
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0.032), rgb(255 255 255 / 0.012)),
+    var(--color-panel);
+  box-shadow:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.045),
+    0 0 0 1px rgb(255 255 255 / 0.07),
+    0 1px 2px 0 rgb(0 0 0 / 0.5),
+    0 12px 32px -16px rgb(0 0 0 / 0.7);
+}
+
+/* Glass for floating chrome. */
+@utility glass {
+  background: rgb(12 13 16 / 0.72);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  box-shadow:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.05),
+    0 0 0 1px rgb(255 255 255 / 0.07),
+    0 16px 40px -12px rgb(0 0 0 / 0.8);
+}
+
+/* A cursor-following light inside a surface. Pair with <PointerLight/>. */
+@utility spotlight {
+  position: relative;
+  isolation: isolate;
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 300ms ease;
+    background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 0%), rgb(255 255 255 / 0.055), transparent 60%);
+  }
+  &:hover::before {
+    opacity: 1;
+  }
+}
+
+@utility hairline {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.1) 20%, rgb(255 255 255 / 0.1) 80%, transparent);
+}
+
+/* Fade content into the canvas at the edges. */
+@utility mask-fade-x {
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+@utility mask-fade-b {
+  mask-image: linear-gradient(180deg, #000 60%, transparent);
+}
+
+/* A faint dotted grid, for technical backdrops. */
+@utility dot-grid {
+  background-image: radial-gradient(rgb(255 255 255 / 0.08) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* ——— Controls ——— */
 
 @utility field {
   width: 100%;
   border-radius: 10px;
-  border: 1px solid var(--color-line-strong);
-  background: var(--color-ink);
-  padding: 0.6rem 0.8rem;
+  background: rgb(255 255 255 / 0.025);
+  padding: 0.62rem 0.85rem;
   font-size: 0.875rem;
+  line-height: 1.35;
   color: var(--color-text);
-  transition: border-color 120ms ease;
+  box-shadow:
+    inset 0 1px 2px 0 rgb(0 0 0 / 0.35),
+    0 0 0 1px rgb(255 255 255 / 0.09);
+  transition: box-shadow 160ms ease, background-color 160ms ease;
   &::placeholder {
     color: var(--color-faint);
   }
+  &:hover {
+    box-shadow:
+      inset 0 1px 2px 0 rgb(0 0 0 / 0.35),
+      0 0 0 1px rgb(255 255 255 / 0.14);
+  }
   &:focus {
     outline: none;
-    border-color: var(--color-accent);
+    background: rgb(255 255 255 / 0.035);
+    box-shadow:
+      inset 0 1px 2px 0 rgb(0 0 0 / 0.35),
+      0 0 0 1px rgb(255 178 87 / 0.55),
+      0 0 0 4px rgb(255 178 87 / 0.12);
   }
 }
 
-/* A faint observatory glow behind hero sections */
-@utility glow {
-  background-image:
-    radial-gradient(60rem 28rem at 15% -10%, rgb(232 178 92 / 0.09), transparent 60%),
-    radial-gradient(40rem 24rem at 95% 0%, rgb(141 180 255 / 0.05), transparent 60%);
+@utility kbd {
+  display: inline-flex;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  padding: 0 0.3rem;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-muted);
+  background: rgb(255 255 255 / 0.05);
+  box-shadow: inset 0 -1px 0 0 rgb(0 0 0 / 0.4), 0 0 0 1px rgb(255 255 255 / 0.08);
 }
 
+/* Buttons. Light primary with real depth; glass secondary; text-only ghost. */
+@utility btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+  font-weight: 550;
+  letter-spacing: -0.012em;
+  user-select: none;
+  transition:
+    background-color 160ms ease,
+    box-shadow 160ms ease,
+    color 160ms ease,
+    transform 120ms ease,
+    filter 160ms ease;
+  &:active:not(:disabled) {
+    transform: translateY(0.5px) scale(0.985);
+  }
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+}
+@utility btn-primary {
+  color: #08090b;
+  background: linear-gradient(180deg, #ffffff, #e6e7ea);
+  box-shadow:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.9),
+    inset 0 -1px 0 0 rgb(0 0 0 / 0.14),
+    0 0 0 1px rgb(0 0 0 / 0.65),
+    0 1px 2px 0 rgb(0 0 0 / 0.5),
+    0 4px 18px -4px rgb(255 255 255 / 0.18);
+  &:hover:not(:disabled) {
+    background: linear-gradient(180deg, #ffffff, #f1f2f4);
+    box-shadow:
+      inset 0 1px 0 0 rgb(255 255 255 / 0.9),
+      inset 0 -1px 0 0 rgb(0 0 0 / 0.14),
+      0 0 0 1px rgb(0 0 0 / 0.65),
+      0 1px 2px 0 rgb(0 0 0 / 0.5),
+      0 6px 26px -4px rgb(255 255 255 / 0.32);
+  }
+}
+@utility btn-ember {
+  color: var(--color-accent-ink);
+  background: linear-gradient(180deg, #ffcf8f, #ff9f43);
+  box-shadow:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.55),
+    inset 0 -1px 0 0 rgb(120 50 0 / 0.25),
+    0 0 0 1px rgb(80 35 0 / 0.7),
+    0 6px 28px -6px rgb(255 159 67 / 0.65);
+  &:hover:not(:disabled) {
+    filter: brightness(1.06) saturate(1.05);
+    box-shadow:
+      inset 0 1px 0 0 rgb(255 255 255 / 0.55),
+      inset 0 -1px 0 0 rgb(120 50 0 / 0.25),
+      0 0 0 1px rgb(80 35 0 / 0.7),
+      0 8px 36px -6px rgb(255 159 67 / 0.85);
+  }
+}
+@utility btn-secondary {
+  color: var(--color-text);
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.075), rgb(255 255 255 / 0.035));
+  box-shadow:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.07),
+    0 0 0 1px rgb(255 255 255 / 0.09),
+    0 1px 2px 0 rgb(0 0 0 / 0.45);
+  &:hover:not(:disabled) {
+    background: linear-gradient(180deg, rgb(255 255 255 / 0.1), rgb(255 255 255 / 0.055));
+    box-shadow:
+      inset 0 1px 0 0 rgb(255 255 255 / 0.09),
+      0 0 0 1px rgb(255 255 255 / 0.14),
+      0 1px 2px 0 rgb(0 0 0 / 0.45);
+  }
+}
+@utility btn-ghost {
+  color: var(--color-muted);
+  &:hover:not(:disabled) {
+    color: var(--color-text);
+    background: rgb(255 255 255 / 0.05);
+  }
+}
+@utility btn-danger {
+  color: #ff8a8a;
+  background: rgb(255 107 107 / 0.08);
+  box-shadow: 0 0 0 1px rgb(255 107 107 / 0.22);
+  &:hover:not(:disabled) {
+    background: rgb(255 107 107 / 0.13);
+    box-shadow: 0 0 0 1px rgb(255 107 107 / 0.35);
+  }
+}
+
+/* ——— Motion ——— */
+
+.live-dot {
+  animation: pulse-ring 2.4s ease-out infinite;
+}
+
+/* Elements fade up once they enter the viewport (see <Reveal/>). */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(18px);
+  filter: blur(4px);
+  transition:
+    opacity 900ms var(--ease-out-expo),
+    transform 900ms var(--ease-out-expo),
+    filter 900ms var(--ease-out-expo);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+[data-reveal='in'] {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+/* ——— Content ——— */
+
 .prose-posterity {
-  --tw-prose-body: var(--color-text);
+  --tw-prose-body: #c9ccd2;
   --tw-prose-headings: var(--color-text);
   --tw-prose-links: var(--color-accent);
   --tw-prose-bold: var(--color-text);
@@ -105,43 +416,97 @@
   --tw-prose-quote-borders: var(--color-line-strong);
   --tw-prose-code: var(--color-text);
   --tw-prose-pre-code: var(--color-text);
-  --tw-prose-pre-bg: var(--color-ink);
+  --tw-prose-pre-bg: rgb(255 255 255 / 0.025);
   --tw-prose-th-borders: var(--color-line-strong);
   --tw-prose-td-borders: var(--color-line);
+}
+.prose-posterity :where(h1, h2, h3, h4) {
+  letter-spacing: -0.022em;
+  font-weight: 600;
 }
 .prose-posterity :where(code):not(:where(pre *)) {
   background: rgb(255 255 255 / 0.06);
   border-radius: 5px;
-  padding: 0.1em 0.35em;
+  padding: 0.12em 0.38em;
   font-weight: 450;
+  font-size: 0.86em;
 }
 .prose-posterity :where(code):not(:where(pre *))::before,
 .prose-posterity :where(code):not(:where(pre *))::after {
   content: none;
 }
 .prose-posterity :where(pre) {
-  border: 1px solid var(--color-line);
-}
-
-@keyframes pulse-ring {
-  0% { box-shadow: 0 0 0 0 rgb(127 209 168 / 0.5); }
-  70% { box-shadow: 0 0 0 6px rgb(127 209 168 / 0); }
-  100% { box-shadow: 0 0 0 0 rgb(127 209 168 / 0); }
-}
-.live-dot {
-  animation: pulse-ring 2.4s ease-out infinite;
-}
-@media (prefers-reduced-motion: reduce) {
-  .live-dot {
-    animation: none;
-  }
+  border-radius: 12px;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.07);
 }
 
 /* Task graph nodes */
 .task-node .node-rect {
-  transition: fill 120ms ease;
+  transition: fill 160ms ease, stroke-opacity 160ms ease;
 }
 a:hover > .task-node .node-rect,
 a:focus-visible > .task-node .node-rect {
-  fill: #18181c;
+  fill: #16171b;
+}
+
+@keyframes tg-flow {
+  to { stroke-dashoffset: -22; }
+}
+.tg-flow {
+  animation: tg-flow 1.3s linear infinite;
+}
+.tg-active {
+  animation: tg-flow 2.4s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tg-flow,
+  .tg-active {
+    animation: none;
+  }
+}
+
+/* Landing visuals */
+@keyframes lease {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: 226.2; }
+}
+@keyframes verdict {
+  0%, 6% { opacity: 0; transform: translateY(6px); }
+  14%, 86% { opacity: 1; transform: none; }
+  96%, 100% { opacity: 0; transform: translateY(-2px); }
+}
+@keyframes marquee-y {
+  to { transform: translateY(-50%); }
+}
+@keyframes draw {
+  from { stroke-dashoffset: 260; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes ping-soft {
+  0% { box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.9), 0 0 0 1px rgb(0 0 0 / 0.65), 0 0 0 0 rgb(255 255 255 / 0.4); }
+  100% { box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.9), 0 0 0 1px rgb(0 0 0 / 0.65), 0 0 0 10px rgb(255 255 255 / 0); }
+}
+@keyframes drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(2%, -3%, 0) scale(1.05); }
+}
+
+/* Kinetic headline */
+@keyframes char-in {
+  from { opacity: 0; transform: translateY(0.32em) rotate(4deg); filter: blur(14px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@keyframes char-out {
+  to { opacity: 0; transform: translateY(-0.22em); filter: blur(10px); }
+}
+
+/* The island: the header as one floating, morphing object */
+@keyframes island-ping {
+  0% { box-shadow: 0 0 0 0 rgb(255 178 87 / 0.7); }
+  100% { box-shadow: 0 0 0 7px rgb(255 178 87 / 0); }
+}
+@keyframes ember-flare {
+  0% { transform: scale(1); }
+  28% { transform: scale(1.55); filter: drop-shadow(0 0 3px rgb(255 178 87 / 0.95)); }
+  100% { transform: scale(1); filter: none; }
 }

@@ -8,6 +8,10 @@ delete from public.missions
 delete from public.activity
  where agent_id in (select id from public.agents where handle like 'e2e-%');
 
+-- Memory contributed outside a mission would otherwise outlive its author.
+delete from public.knowledge
+ where agent_id in (select id from public.agents where handle like 'e2e-%');
+
 delete from public.agents
  where handle like 'e2e-%';
 

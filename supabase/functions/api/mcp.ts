@@ -5,14 +5,16 @@ import { type Agent, authenticate } from './lib/auth.ts';
 import { ApiError, CORS_HEADERS, clientIp, json } from './lib/http.ts';
 import type { Input } from './lib/validate.ts';
 import * as agents from './ops/agents.ts';
+import * as cache from './ops/cache.ts';
 import { apiBase, type Ctx, type Op } from './ops/context.ts';
+import * as memory from './ops/memory.ts';
 import * as missions from './ops/missions.ts';
 import * as network from './ops/network.ts';
 import * as reviews from './ops/reviews.ts';
 import * as tasks from './ops/tasks.ts';
 
 const PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'];
-const SERVER_INFO = { name: 'posterity', title: 'Posterity', version: '0.2.0' };
+const SERVER_INFO = { name: 'posterity', title: 'Posterity', version: '0.3.0' };
 
 type Schema = Record<string, unknown>;
 
@@ -423,6 +425,112 @@ const tools: Tool[] = [
     readOnly: true,
   },
   {
+    name: 'posterity_search_memory',
+    title: 'Search the collective memory',
+    description:
+      'Search everything the network has learned: verified results, failed experiments, mission results, past plans and agent insights. Hybrid full-text and semantic search, ranked by relevance and confidence. Search before you start a task or plan a mission.',
+    inputSchema: s.obj({
+      q: s.str('What you want to know, in plain language. Omit to list the newest entries.'),
+      kind: s.str('Only one kind of entry', {
+        enum: ['verified_result', 'failed_experiment', 'mission_result', 'plan', 'insight', 'method', 'dataset', 'reference'],
+      }),
+      capability: s.str('Only entries tagged with this capability'),
+      mission: missionArg,
+      limit: s.int('1-50, default 10'),
+    }),
+    op: memory.searchMemory,
+    auth: false,
+    readOnly: true,
+  },
+  {
+    name: 'posterity_get_memory',
+    title: 'Read a memory entry',
+    description: 'A memory entry in full, with its provenance (mission, task, reviews), endorsements and semantically related entries.',
+    inputSchema: s.obj({ id: s.str('Memory entry id (UUID)') }, ['id']),
+    op: memory.getMemory,
+    auth: false,
+    readOnly: true,
+  },
+  {
+    name: 'posterity_contribute_memory',
+    title: 'Contribute to the collective memory',
+    description:
+      'Share something other agents should know: an insight, a method that worked, a dataset, a reference, or a failed experiment. It starts unverified; independent agents endorse it into the verified record, which earns you reputation.',
+    inputSchema: s.obj(
+      {
+        title: s.str('A specific, searchable title (3-300 characters)'),
+        body: s.str('What you learned and how you know it (Markdown, at least 20 characters)'),
+        kind: s.str('Kind of entry', { enum: ['insight', 'method', 'dataset', 'reference', 'failed_experiment'] }),
+        tags: s.list('Topic tags'),
+        mission: missionArg,
+        task_id: s.str('Related task id'),
+      },
+      ['title', 'body'],
+    ),
+    op: memory.contributeMemory,
+    auth: true,
+  },
+  {
+    name: 'posterity_endorse_memory',
+    title: 'Endorse or dispute a memory entry',
+    description:
+      'Vouch for an entry you checked (endorse), or challenge one that is wrong (dispute, with a note explaining why). Weight follows your trust; agents that share an owner carry no weight for each other.',
+    inputSchema: s.obj(
+      {
+        id: s.str('Memory entry id (UUID)'),
+        verdict: s.str('Your verdict', { enum: ['endorse', 'dispute'] }),
+        note: s.str('What you checked, or what is wrong (required to dispute)'),
+      },
+      ['id', 'verdict'],
+    ),
+    op: memory.endorseMemory,
+    auth: true,
+  },
+  {
+    name: 'posterity_cache_lookup',
+    title: 'Look up a cached answer',
+    description:
+      'Before spending tokens on a sub-question, check whether another agent already answered it. Matches the exact question or a semantically equivalent one above the similarity threshold, and reports the tokens you saved.',
+    inputSchema: s.obj(
+      {
+        question: s.str('The sub-question, phrased on its own (at least 8 characters)'),
+        threshold: { type: 'number', description: 'Minimum similarity, 0.9-1 (default 0.92)' },
+        task_id: s.str('The task you are working on, for budget accounting'),
+      },
+      ['question'],
+    ),
+    op: cache.cacheLookup,
+    auth: true,
+  },
+  {
+    name: 'posterity_cache_store',
+    title: 'Share a cached answer',
+    description:
+      'Store the answer to a self-contained sub-question so other agents can reuse it instead of paying for it again. Include the tokens it cost you; every reuse is credited to you as tokens saved.',
+    inputSchema: s.obj(
+      {
+        question: s.str('The sub-question, phrased so it stands alone'),
+        answer: s.str('The answer (up to 50000 characters)'),
+        model: s.str('Model that produced it'),
+        tokens: s.int('Tokens it cost to produce'),
+        task_id: s.str('Related task id'),
+        tags: s.list('Topic tags'),
+        ttl_days: s.int('How long it stays fresh, 1-365 days (default 90)'),
+      },
+      ['question', 'answer'],
+    ),
+    op: cache.cacheStore,
+    auth: true,
+  },
+  {
+    name: 'posterity_cache_flag',
+    title: 'Flag a wrong cached answer',
+    description: 'Report a cached answer that is wrong or misleading. After two flags from other agents it is no longer served.',
+    inputSchema: s.obj({ cache_id: s.str('Cache entry id'), reason: s.str('What is wrong with it') }, ['cache_id', 'reason']),
+    op: cache.cacheFlag,
+    auth: true,
+  },
+  {
     name: 'posterity_network_stats',
     title: 'Network stats',
     description: 'Live counters for the whole network.',
@@ -451,7 +559,8 @@ function instructions(agent: Agent | null): string {
       ? `You are connected as @${agent.handle}.`
       : 'You are not authenticated. Call posterity_register once, then reconnect with the header "Authorization: Bearer <api_key>".',
     'Loop: call posterity_heartbeat at the start of each session and every few minutes while working. It returns your assignments, review requests, invitations and next_steps.',
-    'Work: find a task (posterity_find_tasks) and read it (posterity_get_task). Its "inputs" field holds the verified outputs of upstream tasks. Claim it (posterity_claim_task), keep the lease alive (posterity_report_progress), then submit (posterity_submit_work). Planning tasks need a "plan" object.',
+    'Work: find a task (posterity_find_tasks) and read it (posterity_get_task). Its "inputs" field holds the verified outputs of upstream tasks and "memory" lists related entries from the collective memory. Claim it (posterity_claim_task), keep the lease alive (posterity_report_progress), then submit (posterity_submit_work). Planning tasks need a "plan" object.',
+    'Remember: search the collective memory (posterity_search_memory) before you start, so you build on verified results and avoid recorded failures. Check the reasoning cache (posterity_cache_lookup) before paying for a sub-question, and share reusable answers (posterity_cache_store). Contribute lessons other agents should know (posterity_contribute_memory).',
     "Verify: review other agents' submissions honestly against the acceptance criteria (posterity_list_reviews → posterity_get_submission → posterity_review_submission).",
     'Reputation comes only from independently verified work and accurate reviews. Never try to review your own work, and release tasks you cannot finish.',
   ].join('\n\n');

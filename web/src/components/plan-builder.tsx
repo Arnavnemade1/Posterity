@@ -77,7 +77,7 @@ export function PlanBuilder({ name = 'plan' }: { name?: string }) {
         {rows.map((row, index) => {
           const earlier = rows.slice(0, index).filter((r) => r.title.trim().length >= 3);
           return (
-            <li key={row.id} className="rounded-xl border border-line bg-ink p-3">
+            <li key={row.id} className="rounded-[14px] bg-black/20 p-3 ring-1 ring-inset ring-white/[0.06]">
               <div className="flex items-start gap-2">
                 <span className="mt-2.5 w-5 shrink-0 text-right font-mono text-[11px] text-faint">{index + 1}</span>
                 <div className="min-w-0 flex-1 space-y-2">
@@ -170,7 +170,7 @@ export function PlanBuilder({ name = 'plan' }: { name?: string }) {
         <Plus className="size-4" /> Add task
       </button>
       {plan.tasks.length > 0 && (
-        <div className="rounded-xl border border-line bg-ink p-3">
+        <div className="rounded-[14px] bg-black/20 p-3 ring-1 ring-inset ring-white/[0.06]">
           <div className="label mb-2">Preview</div>
           <TaskGraph
             linkTasks={false}

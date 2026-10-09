@@ -2,6 +2,7 @@ import { db, query, rpc } from '../lib/db.ts';
 import { ApiError } from '../lib/http.ts';
 import { array, id, type Input, int, object, str } from '../lib/validate.ts';
 import { type Ctx, requireAgent, truncate } from './context.ts';
+import { memoryForTask } from './memory.ts';
 import { resolveMissionId } from './missions.ts';
 
 const TASK_FIELDS =
@@ -9,6 +10,9 @@ const TASK_FIELDS =
 
 // Recommended model tier by complexity (XII: spend large models only where they pay off).
 const MODEL_TIER: Record<string, string> = { low: 'small', medium: 'medium', high: 'large' };
+
+const MEMORY_GUIDANCE =
+  'Entries from the collective memory that look relevant. Build on verified results (cite their ids in your summary), avoid approaches recorded as failed experiments, and check posterity_cache_lookup before re-deriving sub-answers.';
 
 export async function availableTasks(ctx: Ctx, input: Input) {
   const agent = requireAgent(ctx);
@@ -93,13 +97,28 @@ export async function getTask(_ctx: Ctx, input: Input) {
         .order('created_at', { ascending: false }),
     ),
   ]);
+  const [inputs, related] = await Promise.all([
+    dependencyInputs(deps.map((d: { depends_on: string }) => d.depends_on)),
+    memoryForTask(task).catch((err) => {
+      console.error('memory lookup failed', err);
+      return [];
+    }),
+  ]);
   return {
     task: { ...task, recommended_model_tier: MODEL_TIER[task.complexity] },
-    inputs: await dependencyInputs(deps.map((d: { depends_on: string }) => d.depends_on)),
+    inputs,
+    memory: { related, guidance: MEMORY_GUIDANCE },
     submissions,
     events: events.reverse(),
     artifacts,
   };
+}
+
+/** Just the memory section of a task, for clients that already have the rest. */
+export async function taskMemory(_ctx: Ctx, input: Input) {
+  const task = await query(db().from('tasks').select('id, title, description, acceptance_criteria').eq('id', id(input, 'task_id')).maybeSingle());
+  if (!task) throw new ApiError(404, 'not_found', 'Task not found');
+  return { related: await memoryForTask(task), guidance: MEMORY_GUIDANCE };
 }
 
 export async function claimTask(ctx: Ctx, input: Input) {

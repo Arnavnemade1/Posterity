@@ -3,8 +3,9 @@ import { type Input, int, str } from '../lib/validate.ts';
 import type { Ctx } from './context.ts';
 import { resolveMissionId } from './missions.ts';
 
-export function stats() {
-  return rpc('network_stats');
+export async function stats() {
+  const [network, memory] = await Promise.all([rpc<Record<string, unknown>>('network_stats'), rpc('memory_stats')]);
+  return { ...network, memory };
 }
 
 export async function activity(_ctx: Ctx, input: Input) {

@@ -1,14 +1,14 @@
-import { KeyRound, Plus } from 'lucide-react';
-import { requestTime } from '@/lib/request-time';
+import { ArrowRight, Bell, KeyRound, Plug, Plus } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { AgentAvatar } from '@/components/agent-avatar';
 import { SubmitButton } from '@/components/client-ui';
 import { LiveRefresh } from '@/components/live';
-import { ButtonLink, buttonClass, Chip, Container, Progress, StatusPill } from '@/components/ui';
+import { ButtonLink, buttonClass, Chip, Container, cx, Eyebrow, PageHeader, Progress, StatusIcon, StatusPill } from '@/components/ui';
 import { getDashboard } from '@/lib/data';
 import { compact, onlineSince, percent, timeAgo } from '@/lib/format';
+import { requestTime } from '@/lib/request-time';
 import { MISSION_STATUS } from '@/lib/status';
 import { getUser } from '@/lib/supabase/server';
 import { goToClaim, markAllRead } from './actions';
@@ -22,6 +22,16 @@ function notificationHref(data: Record<string, unknown>): string | null {
   return null;
 }
 
+function PanelTitle({ children, count, action }: { children: React.ReactNode; count?: number; action?: React.ReactNode }) {
+  return (
+    <header className="flex items-center gap-2 border-b border-white/[0.06] px-5 py-3.5">
+      <h2 className="text-[13.5px] font-semibold tracking-[-0.01em] text-text">{children}</h2>
+      {count !== undefined && <span className="rounded-full bg-white/[0.06] px-1.5 text-[11px] tabular-nums text-muted">{count}</span>}
+      {action && <div className="ml-auto">{action}</div>}
+    </header>
+  );
+}
+
 export default async function DashboardPage() {
   const user = await getUser();
   if (!user) redirect('/login?next=/dashboard');
@@ -29,190 +39,240 @@ export default async function DashboardPage() {
   const api = process.env.NEXT_PUBLIC_POSTERITY_API ?? '';
   const now = requestTime();
   const unread = notifications.filter((n) => !n.read_at).length;
+  const name = profile?.display_name || profile?.username || 'there';
 
   return (
-    <Container className="py-12">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <div className="label">Dashboard</div>
-          <h1 className="mt-3 font-serif text-5xl text-text">{profile?.display_name || profile?.username || 'Welcome'}</h1>
-          <p className="mt-2 text-sm text-muted">
-            Your agents, your missions, and the decisions waiting on you.{' '}
+    <>
+      <PageHeader
+        eyebrow={<Eyebrow>Dashboard</Eyebrow>}
+        title={`Welcome back, ${name}.`}
+        description={
+          <>
+            Your agents, your missions, and the decisions waiting on you.
             <LiveRefresh
               channel={`dashboard:${user.id}`}
               watch={[{ table: 'notifications', filter: `user_id=eq.${user.id}` }, { table: 'approvals' }]}
               showBadge={false}
             />
-          </p>
-        </div>
-        <ButtonLink href="/missions/new">
-          <Plus className="size-4" /> Launch a mission
-        </ButtonLink>
-      </div>
-
-      {approvals.length > 0 && (
-        <section className="mt-10 rounded-2xl border border-accent/30 bg-accent/[0.04] p-6">
-          <h2 className="label text-accent">Needs your decision · {approvals.length}</h2>
-          <ul className="mt-4 divide-y divide-line">
-            {approvals.map((a) => (
-              <li key={a.id} className="flex flex-wrap items-center gap-3 py-3">
-                <span className="label">{a.kind.replace('_', ' ')}</span>
-                <span className="min-w-0 flex-1 text-sm text-text">{a.title}</span>
-                <span className="text-xs text-faint">{a.mission_title}</span>
-                <ButtonLink href={`/missions/${a.mission_slug}`} size="sm" variant="secondary">
-                  Review
-                </ButtonLink>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <div className="mt-10 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="min-w-0 space-y-6">
-          <section className="card p-6">
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className="label">Your agents · {agents.length}</h2>
-              <Link href="/connect" className="text-xs text-faint hover:text-text">
-                How agents connect →
-              </Link>
+          </>
+        }
+        actions={
+          <ButtonLink href="/missions/new" size="lg">
+            <Plus className="size-4" /> Launch a mission
+          </ButtonLink>
+        }
+      >
+        <dl className="card grid grid-cols-2 lg:grid-cols-4 lg:divide-x lg:divide-white/[0.06]">
+          {[
+            ['Agents', agents.length, `${agents.filter((a) => onlineSince(a.last_seen_at, now)).length} online`],
+            ['Missions', missions.length, `${missions.filter((m) => m.status === 'active').length} active`],
+            ['Decisions', approvals.length, approvals.length ? 'waiting on you' : 'all clear'],
+            ['Notifications', unread, unread ? 'unread' : 'caught up'],
+          ].map(([label, value, hint], i) => (
+            <div key={label as string} className={cx('px-5 py-4', i >= 2 && 'max-lg:border-t max-lg:border-white/[0.06]', i % 2 === 1 && 'max-lg:border-l max-lg:border-white/[0.06]')}>
+              <dt className="text-[12px] text-faint">{label}</dt>
+              <dd className="heading mt-1.5 text-[26px] leading-none tabular-nums text-text">{value}</dd>
+              <dd className="mt-1.5 text-[12px] text-faint">{hint}</dd>
             </div>
-            {agents.length > 0 && (
-              <ul className="mb-6 space-y-3">
+          ))}
+        </dl>
+      </PageHeader>
+
+      <Container className="space-y-6">
+        {approvals.length > 0 && (
+          <section className="card relative overflow-hidden">
+            <div aria-hidden className="pointer-events-none absolute inset-0 rounded-[16px] ring-1 ring-inset ring-review/30" />
+            <div aria-hidden className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-review/15 blur-3xl" />
+            <header className="relative flex items-center gap-2 border-b border-white/[0.06] px-5 py-3.5">
+              <StatusIcon glyph="pause" tone="review" />
+              <h2 className="text-[13.5px] font-semibold tracking-[-0.01em] text-text">Needs your decision</h2>
+              <span className="rounded-full bg-review/15 px-1.5 text-[11px] tabular-nums text-review">{approvals.length}</span>
+            </header>
+            <ul className="relative divide-y divide-white/[0.05]">
+              {approvals.map((a) => (
+                <li key={a.id}>
+                  <Link href={`/missions/${a.mission_slug}`} className="group flex flex-wrap items-center gap-3 px-5 py-3.5 transition-colors hover:bg-white/[0.025]">
+                    <span className="rounded-full bg-white/[0.05] px-2 py-0.5 text-[11.5px] capitalize text-muted ring-1 ring-inset ring-white/[0.07]">
+                      {a.kind.replace('_', ' ')}
+                    </span>
+                    <span className="min-w-0 flex-1 text-[14px] text-text">{a.title}</span>
+                    <span className="text-[12.5px] text-faint">{a.mission_title}</span>
+                    <span className={cx(buttonClass('secondary', 'sm'))}>
+                      Review <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="min-w-0 space-y-6">
+            <section className="card overflow-hidden">
+              <PanelTitle
+                count={agents.length}
+                action={
+                  <Link href="/connect" className="inline-flex items-center gap-1 text-[12.5px] text-faint transition-colors hover:text-text">
+                    <Plug className="size-3.5" /> How agents connect
+                  </Link>
+                }
+              >
+                Your agents
+              </PanelTitle>
+              <div className="space-y-3 p-5">
                 {agents.map((a) => {
                   const agentKeys = keys.filter((k) => k.agent_id === a.id);
+                  const online = onlineSince(a.last_seen_at, now);
                   return (
-                    <li key={a.id} className="rounded-xl border border-line bg-ink p-4">
+                    <div key={a.id} className="rounded-[14px] bg-black/20 p-4 ring-1 ring-inset ring-white/[0.06]">
                       <div className="flex flex-wrap items-center gap-3">
                         <span className="relative">
-                          <AgentAvatar handle={a.handle} size={36} />
-                          {onlineSince(a.last_seen_at, now) && (
-                            <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-ink bg-done" />
-                          )}
+                          <AgentAvatar handle={a.handle} size={40} />
+                          {online && <span className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-done ring-[2.5px] ring-[#0b0c0f]" />}
                         </span>
                         <div className="min-w-0 flex-1">
-                          <Link href={`/agents/${a.handle}`} className="font-mono text-sm text-text hover:underline">
-                            @{a.handle}
+                          <Link href={`/agents/${a.handle}`} className="text-[14.5px] font-semibold tracking-[-0.015em] text-text hover:underline">
+                            {a.display_name || a.handle}
                           </Link>
-                          <div className="text-xs text-faint">
-                            {a.last_seen_at ? `seen ${timeAgo(a.last_seen_at, now)}` : 'never connected'} · rep {compact(a.stats?.reputation ?? 0)} · trust{' '}
-                            {percent(a.stats?.trust ?? 0.5)}
+                          <div className="truncate text-[12px] text-faint">
+                            <span className="font-mono">@{a.handle}</span> · {a.last_seen_at ? `seen ${timeAgo(a.last_seen_at, now)}` : 'never connected'}
                           </div>
                         </div>
-                        <div className="flex flex-wrap gap-1">
-                          {a.capabilities.slice(0, 3).map((c) => (
+                        <div className="flex gap-4 text-right">
+                          <div>
+                            <div className="text-[10.5px] text-faint">Reputation</div>
+                            <div className="text-[14px] font-semibold tabular-nums text-text">{compact(a.stats?.reputation ?? 0)}</div>
+                          </div>
+                          <div>
+                            <div className="text-[10.5px] text-faint">Trust</div>
+                            <div className="text-[14px] font-semibold tabular-nums text-text">{percent(a.stats?.trust ?? 0.5)}</div>
+                          </div>
+                        </div>
+                      </div>
+                      {a.capabilities.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-1">
+                          {a.capabilities.slice(0, 5).map((c) => (
                             <Chip key={c}>{c}</Chip>
                           ))}
                         </div>
-                      </div>
-                      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line pt-3 text-xs text-faint">
+                      )}
+                      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-white/[0.06] pt-4">
                         {agentKeys.map((k) => (
-                          <span key={k.prefix} className="inline-flex items-center gap-1.5">
+                          <span key={k.prefix} className="inline-flex items-center gap-1.5 text-[12px] text-faint">
                             <KeyRound className="size-3.5" />
                             <span className="font-mono text-muted">{k.prefix}…</span>
                             {k.last_used_at ? `used ${timeAgo(k.last_used_at, now)}` : 'unused'}
                           </span>
                         ))}
+                        <div className="ml-auto">
+                          <RotateKeyForm agentId={a.id} handle={a.handle} api={api} />
+                        </div>
                       </div>
-                      <div className="mt-3">
-                        <RotateKeyForm agentId={a.id} handle={a.handle} api={api} />
-                      </div>
-                    </li>
+                    </div>
                   );
                 })}
-              </ul>
-            )}
-            <details open={agents.length === 0} className="rounded-xl border border-line p-4">
-              <summary className="cursor-pointer text-sm text-text">Create an agent</summary>
-              <div className="mt-4">
-                <CreateAgentForm api={api} />
-              </div>
-            </details>
-            <form action={goToClaim} className="mt-4 flex flex-wrap items-center gap-2">
-              <input name="token" className="field min-w-0 flex-1 font-mono" placeholder="Claim a self-registered agent: paste its claim token or link" aria-label="Claim token" />
-              <SubmitButton size="sm" variant="secondary">
-                Claim
-              </SubmitButton>
-            </form>
-          </section>
-
-          <section className="card p-6">
-            <h2 className="label mb-5">Your missions · {missions.length}</h2>
-            {missions.length ? (
-              <ul className="-mx-2 divide-y divide-line">
-                {missions.map((m) => (
-                  <li key={m.id}>
-                    <Link href={`/missions/${m.slug}`} className="flex flex-wrap items-center gap-3 rounded-lg px-2 py-3 hover:bg-white/[0.02]">
-                      <StatusPill map={MISSION_STATUS} status={m.status} />
-                      <span className="min-w-0 flex-1 text-sm text-text">{m.title}</span>
-                      {m.pending_approvals > 0 && <span className="text-xs text-accent">{m.pending_approvals} to approve</span>}
-                      <Progress className="w-full sm:w-40" done={m.task_done} total={m.task_total} />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-faint">
-                You have not launched a mission yet.{' '}
-                <Link href="/missions/new" className="text-accent hover:underline">
-                  Launch one
-                </Link>
-                .
-              </p>
-            )}
-          </section>
-        </div>
-
-        <aside className="space-y-6">
-          <section id="notifications" className="card p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="label">Notifications{unread ? ` · ${unread} new` : ''}</h2>
-              {unread > 0 && (
-                <form action={markAllRead}>
-                  <button type="submit" className={buttonClass('ghost', 'sm')}>
-                    Mark all read
-                  </button>
+                <CreateAgentForm api={api} startOpen={agents.length === 0} />
+                <form action={goToClaim} className="flex flex-wrap items-center gap-2 pt-1">
+                  <input
+                    name="token"
+                    className="field min-w-0 flex-1 font-mono text-[12.5px]"
+                    placeholder="Claim a self-registered agent: paste its claim link or token"
+                    aria-label="Claim token"
+                  />
+                  <SubmitButton variant="secondary">Claim</SubmitButton>
                 </form>
-              )}
-            </div>
-            {notifications.length ? (
-              <ul className="space-y-1">
-                {notifications.map((n) => {
-                  const href = notificationHref(n.data);
-                  const inner = (
-                    <>
-                      <span className={`mt-1.5 size-1.5 shrink-0 rounded-full ${n.read_at ? 'bg-transparent' : 'bg-accent'}`} />
-                      <span className="min-w-0 flex-1">
-                        <span className={`block text-sm ${n.read_at ? 'text-muted' : 'text-text'}`}>{n.title}</span>
-                        {n.body && <span className="block truncate text-xs text-faint">{n.body}</span>}
-                      </span>
-                      <span className="shrink-0 font-mono text-[11px] text-faint">{timeAgo(n.created_at, now)}</span>
-                    </>
-                  );
-                  return (
-                    <li key={n.id}>
-                      {href ? (
-                        <Link href={href} className="flex gap-3 rounded-lg px-2 py-2 hover:bg-white/[0.03]">
-                          {inner}
-                        </Link>
-                      ) : (
-                        <div className="flex gap-3 px-2 py-2">{inner}</div>
-                      )}
+              </div>
+            </section>
+
+            <section className="card overflow-hidden">
+              <PanelTitle count={missions.length}>Your missions</PanelTitle>
+              {missions.length ? (
+                <ul className="divide-y divide-white/[0.05]">
+                  {missions.map((m) => (
+                    <li key={m.id}>
+                      <Link href={`/missions/${m.slug}`} className="flex flex-wrap items-center gap-3 px-5 py-3.5 transition-colors hover:bg-white/[0.025]">
+                        <StatusPill map={MISSION_STATUS} status={m.status} />
+                        <span className="min-w-0 flex-1 text-[14px] text-text">{m.title}</span>
+                        {m.pending_approvals > 0 && <span className="text-[12px] font-medium text-review">{m.pending_approvals} to approve</span>}
+                        <Progress className="w-full sm:w-40" done={m.task_done} total={m.task_total} />
+                      </Link>
                     </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              <p className="text-sm text-faint">Approval requests and mission results show up here.</p>
-            )}
-          </section>
-          <section className="card p-5">
-            <h2 className="label mb-4">Profile</h2>
-            {profile && <ProfileForm username={profile.username} displayName={profile.display_name} />}
-            <p className="mt-4 text-xs text-faint">Signed in as {user.email}</p>
-          </section>
-        </aside>
-      </div>
-    </Container>
+                  ))}
+                </ul>
+              ) : (
+                <div className="px-5 py-10 text-center">
+                  <p className="text-[14px] text-muted">You haven’t launched a mission yet.</p>
+                  <ButtonLink href="/missions/new" size="sm" className="mt-4">
+                    <Plus className="size-3.5" /> Launch your first mission
+                  </ButtonLink>
+                </div>
+              )}
+            </section>
+          </div>
+
+          <aside className="space-y-6">
+            <section id="notifications" className="card scroll-mt-24 overflow-hidden">
+              <PanelTitle
+                count={unread || undefined}
+                action={
+                  unread > 0 ? (
+                    <form action={markAllRead}>
+                      <button type="submit" className={buttonClass('ghost', 'sm')}>
+                        Mark all read
+                      </button>
+                    </form>
+                  ) : undefined
+                }
+              >
+                Notifications
+              </PanelTitle>
+              {notifications.length ? (
+                <ul className="p-2">
+                  {notifications.map((n) => {
+                    const href = notificationHref(n.data);
+                    const inner = (
+                      <>
+                        <span className={cx('mt-[7px] size-1.5 shrink-0 rounded-full', n.read_at ? 'bg-transparent' : 'bg-accent shadow-[0_0_8px_rgb(255_178_87/0.8)]')} />
+                        <span className="min-w-0 flex-1">
+                          <span className={cx('block text-[13.5px]', n.read_at ? 'text-muted' : 'text-text')}>{n.title}</span>
+                          {n.body && <span className="block truncate text-[12px] text-faint">{n.body}</span>}
+                        </span>
+                        <span className="shrink-0 pt-0.5 text-[11px] text-faint">{timeAgo(n.created_at, now)}</span>
+                      </>
+                    );
+                    return (
+                      <li key={n.id}>
+                        {href ? (
+                          <Link href={href} className="flex gap-3 rounded-[10px] px-3 py-2.5 transition-colors hover:bg-white/[0.03]">
+                            {inner}
+                          </Link>
+                        ) : (
+                          <div className="flex gap-3 px-3 py-2.5">{inner}</div>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <div className="flex flex-col items-center px-5 py-10 text-center">
+                  <span className="flex size-10 items-center justify-center rounded-full bg-white/[0.04] ring-1 ring-white/[0.08]">
+                    <Bell className="size-4 text-faint" />
+                  </span>
+                  <p className="mt-3 text-[13px] text-faint">Approval requests and mission results show up here.</p>
+                </div>
+              )}
+            </section>
+            <section className="card overflow-hidden">
+              <PanelTitle>Profile</PanelTitle>
+              <div className="p-5">
+                {profile && <ProfileForm username={profile.username} displayName={profile.display_name} />}
+                <p className="mt-4 text-[12px] text-faint">Signed in as {user.email}</p>
+              </div>
+            </section>
+          </aside>
+        </div>
+      </Container>
+    </>
   );
 }

@@ -207,6 +207,11 @@ function nextSteps(h: Heartbeat): string[] {
   } else if (!h.assignments.length && h.recommended_tasks.length) {
     steps.push(`No invitations right now, but ${h.recommended_tasks.length} open task(s) could use you (recommended_tasks).`);
   }
+  if (h.assignments.length) {
+    steps.push(
+      'Before re-deriving anything, search the collective memory (posterity_search_memory) and the reasoning cache (posterity_cache_lookup). Share reusable answers with posterity_cache_store.',
+    );
+  }
   if (!steps.length) {
     steps.push('Nothing needs you right now. Check back in a few minutes, or launch a mission (posterity_launch_mission).');
   }

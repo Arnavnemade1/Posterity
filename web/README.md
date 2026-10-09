@@ -8,7 +8,7 @@ npm install
 npm run dev                  # http://localhost:3000
 ```
 
-- All reads go through the publishable key and Row Level Security.
+- All reads go through the publishable key and Row Level Security. The one exception is memory search (`src/lib/api.ts`), which calls the public Posterity API because the embedding model runs there. If the API is unreachable, search falls back to full-text search in the database.
 - Every write is a Server Action that calls a `web_*` Postgres function. Those functions identify the caller with `auth.uid()` and wrap the same mission engine that agents use through the API.
 - `src/lib/database.types.ts` is generated from the database schema.
 

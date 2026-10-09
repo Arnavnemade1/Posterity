@@ -188,6 +188,10 @@ export type Database = {
       agent_stats: {
         Row: {
           agent_id: string
+          cache_entries: number
+          cache_hits_served: number
+          knowledge_contributed: number
+          knowledge_verified: number
           missions_completed: number
           missions_joined: number
           reputation: number
@@ -203,11 +207,16 @@ export type Database = {
           tasks_claimed: number
           tasks_completed: number
           tokens_reported: number
+          tokens_saved: number
           trust: number
           updated_at: string
         }
         Insert: {
           agent_id: string
+          cache_entries?: number
+          cache_hits_served?: number
+          knowledge_contributed?: number
+          knowledge_verified?: number
           missions_completed?: number
           missions_joined?: number
           reputation?: number
@@ -223,11 +232,16 @@ export type Database = {
           tasks_claimed?: number
           tasks_completed?: number
           tokens_reported?: number
+          tokens_saved?: number
           trust?: number
           updated_at?: string
         }
         Update: {
           agent_id?: string
+          cache_entries?: number
+          cache_hits_served?: number
+          knowledge_contributed?: number
+          knowledge_verified?: number
           missions_completed?: number
           missions_joined?: number
           reputation?: number
@@ -243,6 +257,7 @@ export type Database = {
           tasks_claimed?: number
           tasks_completed?: number
           tokens_reported?: number
+          tokens_saved?: number
           trust?: number
           updated_at?: string
         }
@@ -513,6 +528,275 @@ export type Database = {
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cache_flags: {
+        Row: {
+          agent_id: string
+          cache_id: string
+          created_at: string
+          reason: string
+        }
+        Insert: {
+          agent_id: string
+          cache_id: string
+          created_at?: string
+          reason: string
+        }
+        Update: {
+          agent_id?: string
+          cache_id?: string
+          created_at?: string
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cache_flags_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cache_flags_cache_id_fkey"
+            columns: ["cache_id"]
+            isOneToOne: false
+            referencedRelation: "reasoning_cache"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cache_hits: {
+        Row: {
+          agent_id: string
+          cache_id: string
+          created_at: string
+          id: number
+          mission_id: string | null
+          similarity: number
+          task_id: string | null
+          tokens_saved: number
+        }
+        Insert: {
+          agent_id: string
+          cache_id: string
+          created_at?: string
+          id?: never
+          mission_id?: string | null
+          similarity: number
+          task_id?: string | null
+          tokens_saved?: number
+        }
+        Update: {
+          agent_id?: string
+          cache_id?: string
+          created_at?: string
+          id?: never
+          mission_id?: string | null
+          similarity?: number
+          task_id?: string | null
+          tokens_saved?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cache_hits_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cache_hits_cache_id_fkey"
+            columns: ["cache_id"]
+            isOneToOne: false
+            referencedRelation: "reasoning_cache"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cache_hits_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cache_hits_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge: {
+        Row: {
+          agent_id: string | null
+          base_confidence: number
+          body: string
+          capabilities: string[]
+          citations: number
+          confidence: number
+          created_at: string
+          dispute_weight: number
+          disputes: number
+          embed_attempts: number
+          embed_claimed_at: string | null
+          embedded_at: string | null
+          embedding: string | null
+          endorse_weight: number
+          endorsements: number
+          id: string
+          is_public: boolean
+          kind: string
+          mission_id: string | null
+          search: unknown
+          source: string
+          status: string
+          submission_id: string | null
+          tags: string[]
+          task_id: string | null
+          title: string
+          updated_at: string
+          verified_at: string | null
+          snippet: string | null
+        }
+        Insert: {
+          agent_id?: string | null
+          base_confidence?: number
+          body?: string
+          capabilities?: string[]
+          citations?: number
+          confidence?: number
+          created_at?: string
+          dispute_weight?: number
+          disputes?: number
+          embed_attempts?: number
+          embed_claimed_at?: string | null
+          embedded_at?: string | null
+          embedding?: string | null
+          endorse_weight?: number
+          endorsements?: number
+          id?: string
+          is_public?: boolean
+          kind: string
+          mission_id?: string | null
+          search?: unknown
+          source?: string
+          status?: string
+          submission_id?: string | null
+          tags?: string[]
+          task_id?: string | null
+          title: string
+          updated_at?: string
+          verified_at?: string | null
+        }
+        Update: {
+          agent_id?: string | null
+          base_confidence?: number
+          body?: string
+          capabilities?: string[]
+          citations?: number
+          confidence?: number
+          created_at?: string
+          dispute_weight?: number
+          disputes?: number
+          embed_attempts?: number
+          embed_claimed_at?: string | null
+          embedded_at?: string | null
+          embedding?: string | null
+          endorse_weight?: number
+          endorsements?: number
+          id?: string
+          is_public?: boolean
+          kind?: string
+          mission_id?: string | null
+          search?: unknown
+          source?: string
+          status?: string
+          submission_id?: string | null
+          tags?: string[]
+          task_id?: string | null
+          title?: string
+          updated_at?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: true
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_endorsements: {
+        Row: {
+          agent_id: string
+          created_at: string
+          independent: boolean
+          knowledge_id: string
+          note: string | null
+          updated_at: string
+          verdict: string
+          weight: number
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          independent?: boolean
+          knowledge_id: string
+          note?: string | null
+          updated_at?: string
+          verdict: string
+          weight?: number
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          independent?: boolean
+          knowledge_id?: string
+          note?: string | null
+          updated_at?: string
+          verdict?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_endorsements_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_endorsements_knowledge_id_fkey"
+            columns: ["knowledge_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge"
             referencedColumns: ["id"]
           },
         ]
@@ -829,6 +1113,91 @@ export type Database = {
           window_start?: string
         }
         Relationships: []
+      }
+      reasoning_cache: {
+        Row: {
+          agent_id: string
+          answer: string
+          created_at: string
+          embedding: string
+          expires_at: string
+          flags: number
+          hits: number
+          id: string
+          last_hit_at: string | null
+          mission_id: string | null
+          model: string | null
+          question: string
+          question_hash: string
+          tags: string[]
+          task_id: string | null
+          tokens: number
+          tokens_saved: number
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          answer: string
+          created_at?: string
+          embedding: string
+          expires_at?: string
+          flags?: number
+          hits?: number
+          id?: string
+          last_hit_at?: string | null
+          mission_id?: string | null
+          model?: string | null
+          question: string
+          question_hash: string
+          tags?: string[]
+          task_id?: string | null
+          tokens?: number
+          tokens_saved?: number
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          answer?: string
+          created_at?: string
+          embedding?: string
+          expires_at?: string
+          flags?: number
+          hits?: number
+          id?: string
+          last_hit_at?: string | null
+          mission_id?: string | null
+          model?: string | null
+          question?: string
+          question_hash?: string
+          tags?: string[]
+          task_id?: string | null
+          tokens?: number
+          tokens_saved?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reasoning_cache_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reasoning_cache_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reasoning_cache_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reputation_events: {
         Row: {
@@ -1450,6 +1819,35 @@ export type Database = {
         }
         Returns: undefined
       }
+      cache_flag: {
+        Args: { p_agent: string; p_cache: string; p_reason: string }
+        Returns: Json
+      }
+      cache_lookup: {
+        Args: {
+          p_agent: string
+          p_embedding: string
+          p_question: string
+          p_task?: string
+          p_threshold?: number
+        }
+        Returns: Json
+      }
+      cache_question_hash: { Args: { p_question: string }; Returns: string }
+      cache_store: {
+        Args: {
+          p_agent: string
+          p_answer: string
+          p_embedding: string
+          p_model?: string
+          p_question: string
+          p_tags?: string[]
+          p_task?: string
+          p_tokens?: number
+          p_ttl_days?: number
+        }
+        Returns: Json
+      }
       can_manage_mission: {
         Args: { p_agent: string; p_mission: string; p_user: string }
         Returns: boolean
@@ -1477,12 +1875,31 @@ export type Database = {
         Returns: undefined
       }
       claim_agent: { Args: { p_token: string; p_user: string }; Returns: Json }
+      claim_embedding_batch: {
+        Args: { p_limit?: number }
+        Returns: {
+          content: string
+          id: string
+        }[]
+      }
       claim_preview: { Args: { p_token: string }; Returns: Json }
       claim_task: {
         Args: { p_agent: string; p_lease_minutes?: number; p_task: string }
         Returns: Json
       }
       complete_mission: { Args: { p_mission: string }; Returns: undefined }
+      contribute_knowledge: {
+        Args: {
+          p_agent: string
+          p_body: string
+          p_kind?: string
+          p_mission?: string
+          p_tags?: string[]
+          p_task?: string
+          p_title: string
+        }
+        Returns: Json
+      }
       create_mission: {
         Args: {
           p_agent: string
@@ -1508,6 +1925,15 @@ export type Database = {
           p_approve: boolean
           p_note?: string
           p_user: string
+        }
+        Returns: Json
+      }
+      endorse_knowledge: {
+        Args: {
+          p_agent: string
+          p_knowledge: string
+          p_note?: string
+          p_verdict: string
         }
         Returns: Json
       }
@@ -1547,6 +1973,7 @@ export type Database = {
         Args: { p_agent: string; p_mission: string; p_role?: string }
         Returns: Json
       }
+      kick_embedder: { Args: never; Returns: undefined }
       log_activity: {
         Args: {
           p_agent?: string
@@ -1572,6 +1999,12 @@ export type Database = {
         Args: { p_decisive_verdict?: string; p_submission: string }
         Returns: string
       }
+      memory_overlap: {
+        Args: { p_search: unknown; p_text: string }
+        Returns: number
+      }
+      memory_query: { Args: { p_text: string }; Returns: unknown }
+      memory_stats: { Args: never; Returns: Json }
       mission_owner: { Args: { p_mission: string }; Returns: string }
       network_stats: { Args: never; Returns: Json }
       normalize_tags: { Args: { p: string[] }; Returns: string[] }
@@ -1611,6 +2044,10 @@ export type Database = {
         }
         Returns: Json
       }
+      read_knowledge: {
+        Args: { p_agent?: string; p_id: string }
+        Returns: Json
+      }
       recompute_trust: { Args: { p_agent: string }; Returns: undefined }
       record_usage: {
         Args: {
@@ -1641,6 +2078,16 @@ export type Database = {
           p_tools?: string[]
         }
         Returns: Json
+      }
+      related_knowledge: {
+        Args: { p_id: string; p_limit?: number }
+        Returns: {
+          id: string
+          kind: string
+          similarity: number
+          status: string
+          title: string
+        }[]
       }
       release_task: {
         Args: { p_agent: string; p_reason?: string; p_task: string }
@@ -1677,7 +2124,49 @@ export type Database = {
         Args: { p_agent: string; p_label?: string }
         Returns: string
       }
+      search_knowledge: {
+        Args: {
+          p_capability?: string
+          p_embedding?: string
+          p_exclude_task?: string
+          p_kind?: string
+          p_limit?: number
+          p_min_similarity?: number
+          p_mission?: string
+          p_query: string
+        }
+        Returns: {
+          agent_handle: string
+          citations: number
+          confidence: number
+          created_at: string
+          endorsements: number
+          id: string
+          kind: string
+          matched: string
+          mission_slug: string
+          mission_title: string
+          score: number
+          similarity: number
+          snippet: string
+          status: string
+          tags: string[]
+          task_id: string
+          title: string
+        }[]
+      }
       slugify: { Args: { p: string }; Returns: string }
+      snippet: {
+        Args: { "": Database["public"]["Tables"]["knowledge"]["Row"] }
+        Returns: {
+          error: true
+        } & "the function public.snippet with parameter or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache"
+      }
+      specific_terms: { Args: { p_text: string }; Returns: string[] }
+      store_knowledge_embedding: {
+        Args: { p_embedding: string; p_id: string }
+        Returns: undefined
+      }
       submit_work: {
         Args: {
           p_agent: string
@@ -1692,6 +2181,7 @@ export type Database = {
         }
         Returns: Json
       }
+      sweep_embeddings: { Args: never; Returns: undefined }
       tags_to_text: { Args: { p: string[] }; Returns: string }
       task_progress: {
         Args: {
@@ -1706,6 +2196,7 @@ export type Database = {
         }
         Returns: Json
       }
+      terms_conflict: { Args: { p_a: string; p_b: string }; Returns: boolean }
       unblock_dependents: { Args: { p_task: string }; Returns: undefined }
       update_agent: {
         Args: {
