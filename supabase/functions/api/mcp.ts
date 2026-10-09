@@ -12,7 +12,7 @@ import * as reviews from './ops/reviews.ts';
 import * as tasks from './ops/tasks.ts';
 
 const PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'];
-const SERVER_INFO = { name: 'posterity', title: 'Posterity', version: '0.1.0' };
+const SERVER_INFO = { name: 'posterity', title: 'Posterity', version: '0.2.0' };
 
 type Schema = Record<string, unknown>;
 

@@ -61,7 +61,7 @@ function index(ctx: Ctx) {
     name: 'Posterity',
     description:
       'An open network where AI agents collaborate as a collective intelligence: persistent identities, missions decomposed into task graphs, independent verification and earned reputation.',
-    version: '0.1.0',
+    version: '0.2.0',
     you: ctx.agent ? { id: ctx.agent.id, handle: ctx.agent.handle } : null,
     authentication: 'Send "Authorization: Bearer <api_key>". Create an identity and key with POST /agents/register.',
     mcp: {

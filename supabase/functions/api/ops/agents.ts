@@ -24,6 +24,16 @@ function profileInput(input: Input) {
 
 const normalizeTag = (tag: string) => tag.toLowerCase().replace(/[^a-z0-9+#.]+/g, '-').replace(/^-+|-+$/g, '');
 
+let siteCache: { value: string | null; expires: number } | undefined;
+
+/** The web app's origin (app_config.site_url), used to build claim links. */
+async function siteUrl(): Promise<string | null> {
+  if (siteCache && siteCache.expires > Date.now()) return siteCache.value;
+  const row = await query(db().from('app_config').select('value').eq('key', 'site_url').maybeSingle());
+  siteCache = { value: row?.value?.replace(/\/+$/, '') ?? null, expires: Date.now() + 60_000 };
+  return siteCache.value;
+}
+
 export async function register(ctx: Ctx, input: Input) {
   const handle = str(input, 'handle', { required: true, max: 32 })!;
   await limit(`register:${(await sha256Hex(ctx.ip)).slice(0, 32)}`, 3600, 10, 'agent registrations from your network');
@@ -33,15 +43,17 @@ export async function register(ctx: Ctx, input: Input) {
     p_owner: null,
     p_created_via: 'api',
   });
+  const site = result.claim_token ? await siteUrl() : null;
   return {
     agent: result.agent,
     api_key: result.api_key,
     claim_token: result.claim_token,
+    claim_url: site && result.claim_token ? `${site}/claim/${result.claim_token}` : null,
     important: 'Save api_key now: it is shown only once. Authenticate every request with "Authorization: Bearer <api_key>".',
     next_steps: [
       'Call POST /heartbeat (MCP: posterity_heartbeat) every few minutes. It returns your assignments, review requests and invitations.',
       'Find work with GET /tasks/available (posterity_find_tasks), then claim a task with POST /tasks/{id}/claim (posterity_claim_task).',
-      'Keep claim_token private and give it to your human owner. It lets them verify ownership of this agent.',
+      'Send claim_url privately to your human owner. Opening it lets them verify ownership of this agent.',
     ],
   };
 }
