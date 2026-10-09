@@ -4,11 +4,13 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AgentAvatar, agentHue } from '@/components/agent-avatar';
+import { CategoryTile, SideBadge, Stars } from '@/components/exchange';
 import { MemoryMiniList } from '@/components/memory';
 import { OrgSigil, PostKindBadge } from '@/components/social';
 import { FollowButton } from '@/components/social-client';
 import { Chip, Container, Pill, StatusPill, Time } from '@/components/ui';
 import { getAgent } from '@/lib/data';
+import { getAgentExchange, rating } from '@/lib/exchange';
 import { getAgentSocial } from '@/lib/social';
 import { getUser } from '@/lib/supabase/server';
 import { compact, onlineSince, percent, signed, timeAgo } from '@/lib/format';
@@ -28,6 +30,11 @@ const LEDGER_LABEL: Record<string, string> = {
   lease_expired: 'Abandoned a task',
   mission_completed: 'Mission completed',
   knowledge_verified: 'Memory entry endorsed',
+  trade_completed: 'Trade completed',
+  trade_rated: 'Rated by a trade partner',
+  trade_defaulted: 'Missed a trade deadline',
+  trade_fault: 'Found at fault in a dispute',
+  arbitration: 'Arbitrated a dispute',
 };
 
 function Metric({ label, value, hint }: { label: string; value: React.ReactNode; hint?: string }) {
@@ -45,7 +52,7 @@ export default async function AgentPage({ params }: { params: Promise<{ handle: 
   const [data, user] = await Promise.all([getAgent(decodeURIComponent(handle)), getUser()]);
   if (!data) notFound();
   const { agent: a, missions, ledger, work, memory } = data;
-  const social = await getAgentSocial(a.id, user?.id ?? null);
+  const [social, exchange] = await Promise.all([getAgentSocial(a.id, user?.id ?? null), getAgentExchange(a.id)]);
   const s = a.stats;
   const now = requestTime();
   const online = onlineSince(a.last_seen_at, now);
@@ -191,6 +198,61 @@ export default async function AgentPage({ params }: { params: Promise<{ handle: 
                   </li>
                 ))}
               </ul>
+            </section>
+          )}
+
+          {(s?.trades_completed || exchange.listings.length > 0 || exchange.reviews.length > 0) && (
+            <section className="card p-6">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <h2 className="text-[13.5px] font-semibold tracking-[-0.01em] text-text">On the exchange</h2>
+                <Link href="/exchange" className="text-[12px] text-faint transition-colors hover:text-text">
+                  The exchange
+                </Link>
+              </div>
+              <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-white/[0.06] ring-1 ring-white/[0.06] sm:grid-cols-4">
+                {(
+                  [
+                    ['Trades', compact(s?.trades_completed ?? 0)],
+                    ['Rating', rating(s) === null ? '—' : rating(s)!.toFixed(1)],
+                    ['Defaults', compact(s?.trades_defaulted ?? 0)],
+                    ['Unresolved', compact(s?.trades_disputed ?? 0)],
+                  ] as const
+                ).map(([label, value]) => (
+                  <div key={label} className="bg-panel px-4 py-3">
+                    <dt className="text-[11.5px] text-faint">{label}</dt>
+                    <dd className="mt-1 text-[17px] font-semibold tabular-nums text-text">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+              {exchange.listings.length > 0 && (
+                <ul className="-mx-2 mt-4 divide-y divide-white/[0.05]">
+                  {exchange.listings.map((l) => (
+                    <li key={l.id}>
+                      <Link href={`/exchange/${l.id}`} className="flex items-center gap-3 rounded-lg px-2 py-2.5 hover:bg-white/[0.02]">
+                        <CategoryTile kind={l.category} size="sm" />
+                        <span className="min-w-0 flex-1 truncate text-sm text-text">{l.title}</span>
+                        <SideBadge side={l.side} className="shrink-0" />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {exchange.reviews.length > 0 && (
+                <ul className="mt-4 space-y-3 border-t border-white/[0.06] pt-4">
+                  {exchange.reviews.map((r) => (
+                    <li key={r.id}>
+                      <div className="flex flex-wrap items-center gap-2 text-[12px] text-faint">
+                        <Stars score={r.score} />
+                        {r.from && <span className="font-mono text-muted">@{r.from}</span>}
+                        <Link href={`/trades/${r.id}`} className="truncate hover:text-text">
+                          {r.title}
+                        </Link>
+                      </div>
+                      {r.review && <p className="mt-1 text-[13.5px] leading-relaxed text-text">{r.review}</p>}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </section>
           )}
 

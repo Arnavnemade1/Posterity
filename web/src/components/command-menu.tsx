@@ -1,9 +1,10 @@
 'use client';
 
-import { ArrowRight, Bot, CornerDownLeft, LayoutDashboard, Library, MessagesSquare, Orbit, Plug, Plus, Rocket, Search, Target } from 'lucide-react';
+import { ArrowLeftRight, ArrowRight, Bot, CornerDownLeft, LayoutDashboard, Library, MessagesSquare, Orbit, Plug, Plus, Rocket, Search, Target } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AgentAvatar } from '@/components/agent-avatar';
+import { category } from '@/components/exchange-kinds';
 import { KIND_ICON, kindMeta } from '@/components/memory-kinds';
 import { postKind } from '@/components/social-kinds';
 import { cx, StatusIcon } from '@/components/ui';
@@ -18,6 +19,9 @@ const PAGES: Item[] = [
   { id: 'p-commons', group: 'Go to', label: 'The commons', href: '/commons', icon: <MessagesSquare className="size-4" /> },
   { id: 'p-orgs', group: 'Go to', label: 'Organizations', href: '/orgs', icon: <Orbit className="size-4" /> },
   { id: 'p-new-org', group: 'Go to', label: 'Found an organization', href: '/orgs/new', icon: <Plus className="size-4" /> },
+  { id: 'p-exchange', group: 'Go to', label: 'The exchange', href: '/exchange', icon: <ArrowLeftRight className="size-4" /> },
+  { id: 'p-new-listing', group: 'Go to', label: 'List on the exchange', href: '/exchange/new', icon: <Plus className="size-4" /> },
+  { id: 'p-trades', group: 'Go to', label: 'Your trades', href: '/trades', icon: <ArrowLeftRight className="size-4" /> },
   { id: 'p-agents', group: 'Go to', label: 'Agents', href: '/agents', icon: <Bot className="size-4" /> },
   { id: 'p-memory', group: 'Go to', label: 'Collective memory', href: '/memory', icon: <Library className="size-4" /> },
   { id: 'p-dashboard', group: 'Go to', label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="size-4" /> },
@@ -66,7 +70,7 @@ export function CommandMenu() {
     };
   }, [open]);
 
-  // Live search across public missions, organizations, agents, threads and memory titles.
+  // Live search across public missions, organizations, listings, agents, threads and memory titles.
   useEffect(() => {
     const q = query.trim();
     if (!open || q.length < 2) {
@@ -77,12 +81,13 @@ export function CommandMenu() {
     const timer = setTimeout(async () => {
       const supabase = createClient();
       const like = `%${q.replace(/[%_\\]/g, '')}%`;
-      const [missions, agents, memory, orgs, posts] = await Promise.all([
+      const [missions, agents, memory, orgs, posts, listings] = await Promise.all([
         supabase.from('missions').select('slug, title, status').eq('visibility', 'public').ilike('title', like).limit(5),
         supabase.from('agents').select('handle, display_name').eq('status', 'active').or(`handle.ilike.${like},display_name.ilike.${like}`).limit(5),
         supabase.from('knowledge').select('id, title, kind').ilike('title', like).order('confidence', { ascending: false }).limit(4),
         supabase.from('organizations').select('slug, name').ilike('name', like).order('member_count', { ascending: false }).limit(4),
         supabase.from('posts').select('id, title, kind').ilike('title', like).order('score', { ascending: false }).limit(4),
+        supabase.from('listings').select('id, title, side, category').eq('status', 'open').ilike('title', like).order('created_at', { ascending: false }).limit(4),
       ]);
       if (cancelled) return;
       setResults([
@@ -105,6 +110,18 @@ export function CommandMenu() {
           href: `/orgs/${o.slug}`,
           icon: <Orbit className="size-4" />,
         })),
+        ...(listings.data ?? []).map((l) => {
+          const meta = category(l.category);
+          const Icon = meta.icon;
+          return {
+            id: `l-${l.id}`,
+            group: 'Exchange',
+            label: l.title,
+            hint: `${l.side === 'offer' ? 'Offering' : 'Seeking'} · ${meta.label}`,
+            href: `/exchange/${l.id}`,
+            icon: <Icon className="size-4" style={{ color: meta.hex }} />,
+          };
+        }),
         ...(posts.data ?? []).map((p) => {
           const Icon = postKind(p.kind).icon;
           return {
@@ -205,7 +222,7 @@ export function CommandMenu() {
                 go(items[active]);
               }
             }}
-            placeholder="Search missions, organizations, agents, threads and memory…"
+            placeholder="Search missions, organizations, the exchange, agents and memory…"
             className="h-14 flex-1 bg-transparent text-[15px] text-text outline-none placeholder:text-faint"
             aria-label="Search"
           />

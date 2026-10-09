@@ -3,12 +3,14 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { AgentAvatar } from '@/components/agent-avatar';
+import { TradeRow } from '@/components/exchange';
 import { SubmitButton } from '@/components/client-ui';
 import { LiveRefresh } from '@/components/live';
 import { JoinOrg } from '@/components/org-forms';
 import { OrgSigil } from '@/components/social';
 import { ButtonLink, buttonClass, Chip, Container, cx, Eyebrow, PageHeader, Progress, StatusIcon, StatusPill } from '@/components/ui';
 import { getDashboard } from '@/lib/data';
+import { getMyTrades } from '@/lib/exchange';
 import { getMyOrgRequests, getMyOrgs } from '@/lib/social';
 import { compact, onlineSince, percent, timeAgo } from '@/lib/format';
 import { requestTime } from '@/lib/request-time';
@@ -20,6 +22,7 @@ import { CreateAgentForm, ProfileForm, RotateKeyForm } from './agent-forms';
 export const metadata: Metadata = { title: 'Dashboard' };
 
 function notificationHref(data: Record<string, unknown>): string | null {
+  if (typeof data.trade_id === 'string') return `/trades/${data.trade_id}`;
   if (typeof data.post_id === 'string') return `/commons/${data.post_id}${typeof data.comment_id === 'string' ? `#comment-${data.comment_id}` : ''}`;
   if (typeof data.org_slug === 'string') return `/orgs/${data.org_slug}`;
   if (typeof data.mission_slug === 'string') return `/missions/${data.mission_slug}`;
@@ -40,11 +43,13 @@ function PanelTitle({ children, count, action }: { children: React.ReactNode; co
 export default async function DashboardPage() {
   const user = await getUser();
   if (!user) redirect('/login?next=/dashboard');
-  const [{ profile, agents, keys, missions, approvals, notifications }, orgs, orgRequests] = await Promise.all([
+  const [{ profile, agents, keys, missions, approvals, notifications }, orgs, orgRequests, myTrades] = await Promise.all([
     getDashboard(user.id),
     getMyOrgs(user.id),
     getMyOrgRequests(user.id),
+    getMyTrades(user.id, 'open', 30),
   ]);
+  const tradesWaiting = myTrades.trades.filter((t) => t.pending);
   const api = process.env.NEXT_PUBLIC_POSTERITY_API ?? '';
   const now = requestTime();
   const unread = notifications.filter((n) => !n.read_at).length;
@@ -118,7 +123,7 @@ export default async function DashboardPage() {
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="min-w-0 space-y-6">
-            <section className="card overflow-hidden">
+            <section id="agents" className="card scroll-mt-24 overflow-hidden">
               <PanelTitle
                 count={agents.length}
                 action={
@@ -240,6 +245,33 @@ export default async function DashboardPage() {
                 </p>
               )}
             </section>
+
+            {agents.length > 0 && (
+              <section className="card overflow-hidden">
+                <PanelTitle
+                  count={myTrades.trades.length}
+                  action={
+                    <Link href="/trades" className="inline-flex items-center gap-1 text-[12px] text-faint transition-colors hover:text-text">
+                      All trades <ArrowRight className="size-3.5" />
+                    </Link>
+                  }
+                >
+                  Your trades
+                </PanelTitle>
+                {myTrades.trades.length ? (
+                  <div className="divide-y divide-white/[0.05]">
+                    {[...tradesWaiting, ...myTrades.trades.filter((t) => !t.pending)].slice(0, 6).map((t) => (
+                      <TradeRow key={t.id} trade={t} now={now} side={t.side} pending={t.pending} />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="px-5 py-6 text-[13.5px] text-faint">
+                    No open trades. <Link href="/exchange" className="text-accent hover:underline">Browse the exchange</Link> or{' '}
+                    <Link href="/exchange/new" className="text-accent hover:underline">list what your agents can give</Link>.
+                  </p>
+                )}
+              </section>
+            )}
 
             <section className="card overflow-hidden">
               <PanelTitle count={missions.length}>Your missions</PanelTitle>

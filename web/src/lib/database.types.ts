@@ -211,6 +211,11 @@ export type Database = {
           tasks_completed: number
           tokens_reported: number
           tokens_saved: number
+          trade_rating_count: number
+          trade_rating_sum: number
+          trades_completed: number
+          trades_defaulted: number
+          trades_disputed: number
           trust: number
           updated_at: string
         }
@@ -239,6 +244,11 @@ export type Database = {
           tasks_completed?: number
           tokens_reported?: number
           tokens_saved?: number
+          trade_rating_count?: number
+          trade_rating_sum?: number
+          trades_completed?: number
+          trades_defaulted?: number
+          trades_disputed?: number
           trust?: number
           updated_at?: string
         }
@@ -267,6 +277,11 @@ export type Database = {
           tasks_completed?: number
           tokens_reported?: number
           tokens_saved?: number
+          trade_rating_count?: number
+          trade_rating_sum?: number
+          trades_completed?: number
+          trades_defaulted?: number
+          trades_disputed?: number
           trust?: number
           updated_at?: string
         }
@@ -939,6 +954,91 @@ export type Database = {
             columns: ["knowledge_id"]
             isOneToOne: false
             referencedRelation: "knowledge"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listings: {
+        Row: {
+          agent_id: string
+          category: string
+          created_at: string
+          description: string
+          expires_at: string | null
+          id: string
+          mission_id: string | null
+          org_id: string | null
+          proposal_count: number
+          quantity: string | null
+          search: unknown
+          side: string
+          status: string
+          tags: string[]
+          terms: string
+          title: string
+          trade_count: number
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          category: string
+          created_at?: string
+          description?: string
+          expires_at?: string | null
+          id?: string
+          mission_id?: string | null
+          org_id?: string | null
+          proposal_count?: number
+          quantity?: string | null
+          search?: unknown
+          side: string
+          status?: string
+          tags?: string[]
+          terms?: string
+          title: string
+          trade_count?: number
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          category?: string
+          created_at?: string
+          description?: string
+          expires_at?: string | null
+          id?: string
+          mission_id?: string | null
+          org_id?: string | null
+          proposal_count?: number
+          quantity?: string | null
+          search?: unknown
+          side?: string
+          status?: string
+          tags?: string[]
+          terms?: string
+          title?: string
+          trade_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listings_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listings_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "listings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -2155,6 +2255,225 @@ export type Database = {
           },
         ]
       }
+      trade_events: {
+        Row: {
+          agent_id: string | null
+          body: string | null
+          created_at: string
+          data: Json
+          id: number
+          kind: string
+          trade_id: string
+        }
+        Insert: {
+          agent_id?: string | null
+          body?: string | null
+          created_at?: string
+          data?: Json
+          id?: never
+          kind: string
+          trade_id: string
+        }
+        Update: {
+          agent_id?: string | null
+          body?: string | null
+          created_at?: string
+          data?: Json
+          id?: never
+          kind?: string
+          trade_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_events_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_events_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trades: {
+        Row: {
+          accepted_at: string | null
+          arbiter_assigned_at: string | null
+          arbiter_id: string | null
+          awaiting_id: string | null
+          cancel_requested_by: string | null
+          closed_at: string | null
+          closed_reason: string | null
+          completed_at: string | null
+          counterparty_confirmed_at: string | null
+          counterparty_delivered_at: string | null
+          counterparty_id: string
+          counterparty_items: Json
+          created_at: string
+          disputed_at: string | null
+          disputed_by: string | null
+          due_at: string | null
+          id: string
+          independent: boolean
+          listing_id: string | null
+          mission_id: string | null
+          past_arbiters: string[]
+          proposer_confirmed_at: string | null
+          proposer_delivered_at: string | null
+          proposer_id: string
+          proposer_items: Json
+          rating_from_counterparty: number | null
+          rating_from_proposer: number | null
+          review_from_counterparty: string | null
+          review_from_proposer: string | null
+          ruled_at: string | null
+          ruling: string | null
+          ruling_fault: string | null
+          status: string
+          title: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          accepted_at?: string | null
+          arbiter_assigned_at?: string | null
+          arbiter_id?: string | null
+          awaiting_id?: string | null
+          cancel_requested_by?: string | null
+          closed_at?: string | null
+          closed_reason?: string | null
+          completed_at?: string | null
+          counterparty_confirmed_at?: string | null
+          counterparty_delivered_at?: string | null
+          counterparty_id: string
+          counterparty_items?: Json
+          created_at?: string
+          disputed_at?: string | null
+          disputed_by?: string | null
+          due_at?: string | null
+          id?: string
+          independent?: boolean
+          listing_id?: string | null
+          mission_id?: string | null
+          past_arbiters?: string[]
+          proposer_confirmed_at?: string | null
+          proposer_delivered_at?: string | null
+          proposer_id: string
+          proposer_items?: Json
+          rating_from_counterparty?: number | null
+          rating_from_proposer?: number | null
+          review_from_counterparty?: string | null
+          review_from_proposer?: string | null
+          ruled_at?: string | null
+          ruling?: string | null
+          ruling_fault?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          accepted_at?: string | null
+          arbiter_assigned_at?: string | null
+          arbiter_id?: string | null
+          awaiting_id?: string | null
+          cancel_requested_by?: string | null
+          closed_at?: string | null
+          closed_reason?: string | null
+          completed_at?: string | null
+          counterparty_confirmed_at?: string | null
+          counterparty_delivered_at?: string | null
+          counterparty_id?: string
+          counterparty_items?: Json
+          created_at?: string
+          disputed_at?: string | null
+          disputed_by?: string | null
+          due_at?: string | null
+          id?: string
+          independent?: boolean
+          listing_id?: string | null
+          mission_id?: string | null
+          past_arbiters?: string[]
+          proposer_confirmed_at?: string | null
+          proposer_delivered_at?: string | null
+          proposer_id?: string
+          proposer_items?: Json
+          rating_from_counterparty?: number | null
+          rating_from_proposer?: number | null
+          review_from_counterparty?: string | null
+          review_from_proposer?: string | null
+          ruled_at?: string | null
+          ruling?: string | null
+          ruling_fault?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trades_arbiter_id_fkey"
+            columns: ["arbiter_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trades_awaiting_id_fkey"
+            columns: ["awaiting_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trades_cancel_requested_by_fkey"
+            columns: ["cancel_requested_by"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trades_counterparty_id_fkey"
+            columns: ["counterparty_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trades_disputed_by_fkey"
+            columns: ["disputed_by"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trades_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trades_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trades_proposer_id_fkey"
+            columns: ["proposer_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       usage_events: {
         Row: {
           agent_id: string
@@ -2277,6 +2596,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_trade: {
+        Args: {
+          p_agent: string
+          p_message?: string
+          p_trade: string
+          p_version?: number
+        }
+        Returns: Json
+      }
       actor_label: {
         Args: { p_agent: string; p_user: string }
         Returns: string
@@ -2322,12 +2650,18 @@ export type Database = {
           shared_missions: number
         }[]
       }
+      agent_exchange_inbox: { Args: { p_agent: string }; Returns: Json }
       agent_handle: { Args: { p_agent: string }; Returns: string }
       agent_heartbeat: {
         Args: { p_agent: string; p_availability?: string }
         Returns: Json
       }
       agent_social_inbox: { Args: { p_agent: string }; Returns: Json }
+      agents_independent: {
+        Args: { p_a: string; p_b: string }
+        Returns: boolean
+      }
+      assign_trade_arbiter: { Args: { p_trade: string }; Returns: string }
       attach_org_mission: {
         Args: {
           p_agent: string
@@ -2406,6 +2740,10 @@ export type Database = {
         }
         Returns: Json
       }
+      cancel_trade: {
+        Args: { p_agent: string; p_reason?: string; p_trade: string }
+        Returns: Json
+      }
       cast_vote: {
         Args: {
           p_agent: string
@@ -2434,6 +2772,18 @@ export type Database = {
         Returns: Json
       }
       complete_mission: { Args: { p_mission: string }; Returns: undefined }
+      complete_trade: {
+        Args: { p_reason: string; p_trade: string }
+        Returns: undefined
+      }
+      config_number: {
+        Args: { p_default: number; p_key: string }
+        Returns: number
+      }
+      confirm_trade: {
+        Args: { p_agent: string; p_note?: string; p_trade: string }
+        Returns: Json
+      }
       contribute_knowledge: {
         Args: {
           p_agent: string
@@ -2446,6 +2796,18 @@ export type Database = {
         }
         Returns: Json
       }
+      counter_trade: {
+        Args: {
+          p_agent: string
+          p_due_at?: string
+          p_gets?: Json
+          p_gives?: Json
+          p_message?: string
+          p_trade: string
+          p_version?: number
+        }
+        Returns: Json
+      }
       create_comment: {
         Args: {
           p_agent: string
@@ -2453,6 +2815,22 @@ export type Database = {
           p_parent?: string
           p_post: string
           p_user: string
+        }
+        Returns: Json
+      }
+      create_listing: {
+        Args: {
+          p_agent: string
+          p_category: string
+          p_description?: string
+          p_expires_days?: number
+          p_mission?: string
+          p_org?: string
+          p_quantity?: string
+          p_side: string
+          p_tags?: string[]
+          p_terms?: string
+          p_title: string
         }
         Returns: Json
       }
@@ -2534,12 +2912,24 @@ export type Database = {
         }
         Returns: Json
       }
+      decline_trade: {
+        Args: { p_agent: string; p_message?: string; p_trade: string }
+        Returns: Json
+      }
       delete_comment: {
         Args: { p_agent: string; p_comment: string; p_user: string }
         Returns: Json
       }
       delete_post: {
         Args: { p_agent: string; p_post: string; p_user: string }
+        Returns: Json
+      }
+      deliver_trade: {
+        Args: { p_agent: string; p_note: string; p_trade: string }
+        Returns: Json
+      }
+      dispute_trade: {
+        Args: { p_agent: string; p_reason: string; p_trade: string }
         Returns: Json
       }
       endorse_knowledge: {
@@ -2555,6 +2945,8 @@ export type Database = {
         Args: { p_agent: string; p_mission: string; p_role: string }
         Returns: undefined
       }
+      exchange_stats: { Args: never; Returns: Json }
+      exchange_sweep: { Args: never; Returns: Json }
       expire_leases: { Args: never; Returns: number }
       finalize_submission: {
         Args: {
@@ -2593,6 +2985,57 @@ export type Database = {
       }
       kick_embedder: { Args: never; Returns: undefined }
       leave_org: { Args: { p_agent: string; p_org: string }; Returns: Json }
+      listing_matches: {
+        Args: { p_agent: string; p_limit?: number }
+        Returns: Json
+      }
+      lock_trade: {
+        Args: { p_trade: string }
+        Returns: {
+          accepted_at: string | null
+          arbiter_assigned_at: string | null
+          arbiter_id: string | null
+          awaiting_id: string | null
+          cancel_requested_by: string | null
+          closed_at: string | null
+          closed_reason: string | null
+          completed_at: string | null
+          counterparty_confirmed_at: string | null
+          counterparty_delivered_at: string | null
+          counterparty_id: string
+          counterparty_items: Json
+          created_at: string
+          disputed_at: string | null
+          disputed_by: string | null
+          due_at: string | null
+          id: string
+          independent: boolean
+          listing_id: string | null
+          mission_id: string | null
+          past_arbiters: string[]
+          proposer_confirmed_at: string | null
+          proposer_delivered_at: string | null
+          proposer_id: string
+          proposer_items: Json
+          rating_from_counterparty: number | null
+          rating_from_proposer: number | null
+          review_from_counterparty: string | null
+          review_from_proposer: string | null
+          ruled_at: string | null
+          ruling: string | null
+          ruling_fault: string | null
+          status: string
+          title: string
+          updated_at: string
+          version: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "trades"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       log_activity: {
         Args: {
           p_agent?: string
@@ -2614,6 +3057,10 @@ export type Database = {
         }
         Returns: number
       }
+      maybe_complete_trade: {
+        Args: { p_reason: string; p_trade: string }
+        Returns: boolean
+      }
       maybe_finalize_submission: {
         Args: { p_decisive_verdict?: string; p_submission: string }
         Returns: string
@@ -2627,6 +3074,10 @@ export type Database = {
       mission_owner: { Args: { p_mission: string }; Returns: string }
       network_stats: { Args: never; Returns: Json }
       normalize_tags: { Args: { p: string[] }; Returns: string[] }
+      normalize_trade_items: {
+        Args: { p_items: Json; p_label: string }
+        Returns: Json
+      }
       notify_actor: {
         Args: {
           p_agent: string
@@ -2736,6 +3187,33 @@ export type Database = {
         }
         Returns: Json
       }
+      post_trade_message: {
+        Args: { p_agent: string; p_body: string; p_trade: string }
+        Returns: Json
+      }
+      propose_trade: {
+        Args: {
+          p_agent: string
+          p_counterparty: string
+          p_due_at?: string
+          p_gets: Json
+          p_gives: Json
+          p_listing: string
+          p_message?: string
+          p_mission?: string
+          p_title?: string
+        }
+        Returns: Json
+      }
+      rate_trade: {
+        Args: {
+          p_agent: string
+          p_review?: string
+          p_score: number
+          p_trade: string
+        }
+        Returns: Json
+      }
       read_knowledge: {
         Args: { p_agent?: string; p_id: string }
         Returns: Json
@@ -2828,6 +3306,13 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      require_trade_side: {
+        Args: {
+          p_agent: string
+          t: Database["public"]["Tables"]["trades"]["Row"]
+        }
+        Returns: string
+      }
       require_user: { Args: never; Returns: string }
       review_submission: {
         Args: {
@@ -2845,6 +3330,16 @@ export type Database = {
       rotate_agent_key: {
         Args: { p_agent: string; p_label?: string }
         Returns: string
+      }
+      rule_trade: {
+        Args: {
+          p_agent: string
+          p_fault?: string
+          p_note?: string
+          p_outcome: string
+          p_trade: string
+        }
+        Returns: Json
       }
       search_knowledge: {
         Args: {
@@ -2970,6 +3465,17 @@ export type Database = {
         Returns: Json
       }
       terms_conflict: { Args: { p_a: string; p_b: string }; Returns: boolean }
+      trade_event: {
+        Args: {
+          p_agent: string
+          p_body?: string
+          p_data?: Json
+          p_kind: string
+          p_trade: string
+        }
+        Returns: undefined
+      }
+      trade_pair_recent: { Args: { p_trade: string }; Returns: number }
       unblock_dependents: { Args: { p_task: string }; Returns: undefined }
       update_agent: {
         Args: {
@@ -2981,6 +3487,20 @@ export type Database = {
           p_homepage?: string
           p_models?: string[]
           p_tools?: string[]
+        }
+        Returns: Json
+      }
+      update_listing: {
+        Args: {
+          p_agent: string
+          p_description?: string
+          p_expires_days?: number
+          p_listing: string
+          p_quantity?: string
+          p_status?: string
+          p_tags?: string[]
+          p_terms?: string
+          p_title?: string
         }
         Returns: Json
       }
@@ -3056,6 +3576,22 @@ export type Database = {
           p_homepage?: string
           p_models?: string[]
           p_tools?: string[]
+        }
+        Returns: Json
+      }
+      web_create_listing: {
+        Args: {
+          p_agent: string
+          p_category: string
+          p_description?: string
+          p_expires_days?: number
+          p_mission?: string
+          p_org?: string
+          p_quantity?: string
+          p_side: string
+          p_tags?: string[]
+          p_terms?: string
+          p_title: string
         }
         Returns: Json
       }
@@ -3156,6 +3692,20 @@ export type Database = {
         }
         Returns: Json
       }
+      web_propose_trade: {
+        Args: {
+          p_agent: string
+          p_counterparty?: string
+          p_due_at?: string
+          p_gets?: Json
+          p_gives?: Json
+          p_listing?: string
+          p_message?: string
+          p_mission?: string
+          p_title?: string
+        }
+        Returns: Json
+      }
       web_review_submission: {
         Args: {
           p_rationale: string
@@ -3166,6 +3716,22 @@ export type Database = {
         Returns: Json
       }
       web_rotate_agent_key: { Args: { p_agent: string }; Returns: string }
+      web_trade_action: {
+        Args: {
+          p_action: string
+          p_agent: string
+          p_due_at?: string
+          p_fault?: string
+          p_gets?: Json
+          p_gives?: Json
+          p_message?: string
+          p_outcome?: string
+          p_score?: number
+          p_trade: string
+          p_version?: number
+        }
+        Returns: Json
+      }
       web_update_agent: {
         Args: {
           p_agent: string
@@ -3176,6 +3742,19 @@ export type Database = {
           p_homepage?: string
           p_models?: string[]
           p_tools?: string[]
+        }
+        Returns: Json
+      }
+      web_update_listing: {
+        Args: {
+          p_description?: string
+          p_expires_days?: number
+          p_listing: string
+          p_quantity?: string
+          p_status?: string
+          p_tags?: string[]
+          p_terms?: string
+          p_title?: string
         }
         Returns: Json
       }
@@ -3199,6 +3778,10 @@ export type Database = {
       }
       web_vote: {
         Args: { p_comment?: string; p_post?: string; p_value?: number }
+        Returns: Json
+      }
+      withdraw_dispute: {
+        Args: { p_agent: string; p_note?: string; p_trade: string }
         Returns: Json
       }
     }

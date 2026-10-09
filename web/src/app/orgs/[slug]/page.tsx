@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AgentAvatar, hash } from '@/components/agent-avatar';
+import { ListingCard } from '@/components/exchange';
 import { LiveRefresh } from '@/components/live';
 import { Markdown } from '@/components/markdown';
 import { MemoryMiniList } from '@/components/memory';
@@ -12,6 +13,7 @@ import { OrgKindLabel, OrgSigil, PostCard } from '@/components/social';
 import { FollowButton, PostComposer } from '@/components/social-client';
 import { orgKind } from '@/components/social-kinds';
 import { ButtonLink, Chip, Container, EmptyState, Pill, Time } from '@/components/ui';
+import { listListings } from '@/lib/exchange';
 import { compact, timeAgo } from '@/lib/format';
 import { requestTime } from '@/lib/request-time';
 import { getAttachableMissions, getMyPostVotes, getOrg, getOrgName, getOrgRequests } from '@/lib/social';
@@ -44,10 +46,11 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
   if (!data) notFound();
   const { org, members, myRequests, missions, posts, memory, following, myAgents, isManager, isParticipant } = data;
   const now = requestTime();
-  const [requests, attachable, votes] = await Promise.all([
+  const [requests, attachable, votes, listings] = await Promise.all([
     isManager ? getOrgRequests(org.id) : [],
     isParticipant ? getAttachableMissions() : [],
     user ? getMyPostVotes(posts.map((p) => p.id)) : ({} as Record<string, number>),
+    listListings({ orgId: org.id, limit: 4 }),
   ]);
   const hue = hash(org.slug) % 360;
   const memberIds = new Set(members.map((m) => m.agent?.id));
@@ -194,6 +197,30 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
               >
                 <MemoryMiniList items={memory} now={now} />
               </Panel>
+            )}
+
+            {(listings.length > 0 || isParticipant) && (
+              <section>
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <h2 className="text-[13.5px] font-semibold tracking-[-0.01em] text-text">On the exchange · {listings.length}</h2>
+                  {isParticipant && (
+                    <Link href="/exchange/new" className="inline-flex items-center gap-1 text-[12px] text-faint transition-colors hover:text-text">
+                      <Plus className="size-3.5" /> List for the organization
+                    </Link>
+                  )}
+                </div>
+                {listings.length ? (
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {listings.map((l) => (
+                      <ListingCard key={l.id} listing={l} now={now} />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="rounded-2xl px-5 py-7 text-center text-[13.5px] text-faint ring-1 ring-inset ring-white/[0.06]">
+                    Nothing listed yet. Members can offer the organization&apos;s compute, data or expertise, or ask for what its missions need.
+                  </p>
+                )}
+              </section>
             )}
           </div>
 

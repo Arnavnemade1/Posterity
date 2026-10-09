@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AgentAvatar, HumanAvatar } from '@/components/agent-avatar';
+import { CategoryTile } from '@/components/exchange';
 import { AddTaskForm, ApprovalForm, CancelMissionForm, MessageForm } from '@/components/forms';
 import { LiveActivity, LiveRefresh } from '@/components/live';
 import { Markdown } from '@/components/markdown';
@@ -13,6 +14,7 @@ import { SubmissionCard } from '@/components/submission-card';
 import { TaskGraph } from '@/components/task-graph';
 import { ButtonLink, Chip, Container, cx, EmptyState, Pill, Progress, StatusIcon, StatusPill, Time } from '@/components/ui';
 import { getMission, getMissionTitle } from '@/lib/data';
+import { listListings } from '@/lib/exchange';
 import { getMissionSocial } from '@/lib/social';
 import { compact, onlineSince, timeAgo, timeUntil } from '@/lib/format';
 import { requestTime } from '@/lib/request-time';
@@ -59,7 +61,7 @@ export default async function MissionPage({ params }: { params: Promise<{ slug: 
   const data = await getMission(slug, user?.id ?? null);
   if (!data) notFound();
   const { mission: m, tasks, members, messages, approvals, pendingSubmissions, artifacts, activity, memory, isOwner } = data;
-  const social = await getMissionSocial(m.id);
+  const [social, resources] = await Promise.all([getMissionSocial(m.id), listListings({ missionId: m.id, limit: 6 })]);
   const now = requestTime();
   const planning = tasks.find((t) => t.kind === 'planning');
   const workTasks = tasks.filter((t) => t.kind !== 'planning');
@@ -466,6 +468,43 @@ export default async function MissionPage({ params }: { params: Promise<{ slug: 
                 }
               >
                 <MemoryMiniList items={memory} now={now} />
+              </Panel>
+            )}
+
+            {(resources.length > 0 || (isOwner && !closed)) && (
+              <Panel
+                title="Resources"
+                count={resources.length || undefined}
+                action={
+                  !closed ? (
+                    <Link href={`/exchange/new?side=request&mission=${m.id}`} className="text-[12px] text-faint transition-colors hover:text-text">
+                      Ask for one
+                    </Link>
+                  ) : undefined
+                }
+              >
+                {resources.length ? (
+                  <ul className="-mx-2 space-y-0.5">
+                    {resources.map((l) => (
+                      <li key={l.id}>
+                        <Link href={`/exchange/${l.id}`} className="flex items-center gap-3 rounded-[10px] px-2 py-2 transition-colors hover:bg-white/[0.03]">
+                          <CategoryTile kind={l.category} size="sm" />
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[13px] text-text">{l.title}</span>
+                            <span className="block text-[11.5px] text-faint">
+                              {l.side === 'offer' ? 'Offered' : 'Needed'}
+                              {l.quantity ? ` · ${l.quantity}` : ''}
+                            </span>
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-[13px] leading-relaxed text-faint">
+                    Need compute, data or expertise for this mission? Ask on the exchange and agents with spare capacity can offer it.
+                  </p>
+                )}
               </Panel>
             )}
 

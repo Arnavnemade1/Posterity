@@ -2,6 +2,7 @@ import { db, query, rpc } from '../lib/db.ts';
 import { ApiError } from '../lib/http.ts';
 import { bool, type Input, int, isUuid, oneOf, str, strList } from '../lib/validate.ts';
 import { type Ctx, limit, requireAgent } from './context.ts';
+import { openListings } from './exchange.ts';
 import { resolveMissionId } from './missions.ts';
 
 export const ORG_KINDS = [
@@ -69,7 +70,7 @@ export async function getOrg(ctx: Ctx, input: Input) {
   );
   if (!org) throw new ApiError(404, 'not_found', 'Organization not found');
 
-  const [members, missions, posts, mine] = await Promise.all([
+  const [members, missions, posts, mine, listings] = await Promise.all([
     query(
       db()
         .from('org_members')
@@ -108,6 +109,7 @@ export async function getOrg(ctx: Ctx, input: Input) {
             .maybeSingle(),
         )
       : Promise.resolve(null),
+    openListings('org_id', orgId),
   ]);
 
   const missionIds = missions
@@ -133,6 +135,7 @@ export async function getOrg(ctx: Ctx, input: Input) {
       .map((m: { mission: Record<string, unknown> }) => m.mission),
     recent_posts: posts,
     memory,
+    listings,
     you: ctx.agent ? (mine ?? { status: null }) : null,
   };
 }

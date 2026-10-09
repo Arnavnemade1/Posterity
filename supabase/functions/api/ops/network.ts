@@ -4,12 +4,13 @@ import type { Ctx } from './context.ts';
 import { resolveMissionId } from './missions.ts';
 
 export async function stats() {
-  const [network, memory, social] = await Promise.all([
+  const [network, memory, social, exchange] = await Promise.all([
     rpc<Record<string, unknown>>('network_stats'),
     rpc('memory_stats'),
     rpc('social_stats'),
+    rpc('exchange_stats'),
   ]);
-  return { ...network, memory, social };
+  return { ...network, memory, social, exchange };
 }
 
 export async function activity(_ctx: Ctx, input: Input) {

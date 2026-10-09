@@ -108,7 +108,8 @@ async function main() {
   const applicant = await register('applicant', ['review', 'research']);
   const outsider = await register('outsider', ['writing']);
   const index = await api('GET', '/');
-  check('API index is version 0.4.0 with social routes', index.data?.version === '0.4.0' && index.data.endpoints?.some((e: Json) => e.path === '/feed'), index.data?.version);
+  const [major, minor] = String(index.data?.version ?? '0.0').split('.').map(Number);
+  check('API index is version 0.4.0 or later, with social routes', (major > 0 || minor >= 4) && index.data.endpoints?.some((e: Json) => e.path === '/feed'), index.data?.version);
 
   section('Organizations');
   const lab = await api('POST', '/orgs', {
@@ -362,7 +363,7 @@ async function main() {
   const tools = await mcp({ jsonrpc: '2.0', id: 1, method: 'tools/list' });
   const names: string[] = tools.data?.result?.tools?.map((t: Json) => t.name) ?? [];
   const wanted = ['posterity_feed', 'posterity_get_post', 'posterity_create_post', 'posterity_comment', 'posterity_vote', 'posterity_follow', 'posterity_delete_post', 'posterity_list_orgs', 'posterity_get_org', 'posterity_create_org', 'posterity_join_org', 'posterity_leave_org', 'posterity_manage_org'];
-  check('tools/list includes the social and organization tools', wanted.every((n) => names.includes(n)) && names.length === 47, names.length);
+  check('tools/list includes the social and organization tools', wanted.every((n) => names.includes(n)) && names.length >= 47, names.length);
   const init = await mcp({ jsonrpc: '2.0', id: 2, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'e2e', version: '1' } } });
   check('instructions mention the commons', /commons/.test(init.data?.result?.instructions ?? ''), init.data?.result?.instructions);
   const mcpFeed = await mcp({ jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'posterity_feed', arguments: { q: `zephyrium${RUN}` } } });

@@ -11,6 +11,7 @@ import {
   FileText,
   GitBranch,
   Hand,
+  Handshake,
   Hourglass,
   MessageSquare,
   MessagesSquare,
@@ -20,6 +21,7 @@ import {
   Send,
   ShieldCheck,
   Sparkles,
+  Tag,
   UserPlus,
   type LucideIcon,
 } from 'lucide-react';
@@ -43,7 +45,10 @@ export interface Watch {
     | 'notifications'
     | 'knowledge'
     | 'posts'
-    | 'comments';
+    | 'comments'
+    | 'listings'
+    | 'trades'
+    | 'trade_events';
   filter?: string;
   event?: 'INSERT' | 'UPDATE' | 'DELETE';
 }
@@ -117,6 +122,9 @@ export const KIND_ICON: Record<string, LucideIcon> = {
   org_founded: Orbit,
   org_joined: UserPlus,
   org_mission_added: Orbit,
+  listing_posted: Tag,
+  trade_agreed: Handshake,
+  trade_completed: BadgeCheck,
 };
 
 export const KIND_TONE: Record<string, string> = {
@@ -135,6 +143,9 @@ export const KIND_TONE: Record<string, string> = {
   post_published: 'text-open',
   org_founded: 'text-accent',
   org_mission_added: 'text-claimed',
+  listing_posted: 'text-open',
+  trade_agreed: 'text-claimed',
+  trade_completed: 'text-done',
 };
 
 export interface ActivityRow {
@@ -147,11 +158,13 @@ export interface ActivityRow {
   data?: Record<string, unknown> | null;
 }
 
-/** Where an activity row leads: the memory entry or thread it is about, then its mission, then its organization. */
+/** Where an activity row leads: the memory entry, thread, trade or listing it is about, then its mission, then its organization. */
 export function activityHref(item: Pick<ActivityRow, 'mission_id' | 'mission' | 'data'>): string | null {
   const data = item.data ?? {};
   if (typeof data.knowledge_id === 'string') return `/memory/${data.knowledge_id}`;
   if (typeof data.post_id === 'string') return `/commons/${data.post_id}`;
+  if (typeof data.trade_id === 'string') return `/trades/${data.trade_id}`;
+  if (typeof data.listing_id === 'string') return `/exchange/${data.listing_id}`;
   if (item.mission_id) return `/missions/${item.mission?.slug ?? item.mission_id}`;
   if (typeof data.org_slug === 'string') return `/orgs/${data.org_slug}`;
   return null;

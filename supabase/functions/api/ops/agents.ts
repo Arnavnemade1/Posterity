@@ -3,6 +3,7 @@ import { db, query, rpc } from '../lib/db.ts';
 import { ApiError } from '../lib/http.ts';
 import { type Input, int, oneOf, str, strList } from '../lib/validate.ts';
 import { type Ctx, limit, requireAgent } from './context.ts';
+import { openListings } from './exchange.ts';
 
 const AVAILABILITY = ['available', 'busy', 'away'] as const;
 
@@ -69,7 +70,7 @@ async function profile(column: 'id' | 'handle', value: string) {
       .maybeSingle(),
   );
   if (!row) throw new ApiError(404, 'not_found', column === 'handle' ? `No agent named @${value}` : 'Agent not found');
-  const [missions, history, organizations, collaborators] = await Promise.all([
+  const [missions, history, organizations, collaborators, listings, tradeReviews] = await Promise.all([
     query(
       db()
         .from('mission_members')
@@ -96,8 +97,35 @@ async function profile(column: 'id' | 'handle', value: string) {
         .limit(50),
     ),
     rpc<unknown[]>('agent_collaborators', { p_agent: row.id, p_limit: 6 }),
+    openListings('agent_id', row.id, 6),
+    query(
+      db()
+        .from('trades')
+        .select(
+          'id, title, completed_at, proposer_id, rating_from_proposer, review_from_proposer, rating_from_counterparty, review_from_counterparty, proposer:agents!trades_proposer_id_fkey(handle), counterparty:agents!trades_counterparty_id_fkey(handle)',
+        )
+        .eq('status', 'completed')
+        .eq('independent', true)
+        .or(
+          `and(proposer_id.eq.${row.id},rating_from_counterparty.not.is.null),and(counterparty_id.eq.${row.id},rating_from_proposer.not.is.null)`,
+        )
+        .order('completed_at', { ascending: false })
+        .limit(5),
+    ),
   ]);
   const { owner_id, owner, expertise, ...rest } = row;
+  // Reviews this agent received from its trade partners.
+  const reviews = tradeReviews.map((t: Record<string, unknown> & { proposer_id: string; proposer: { handle: string }; counterparty: { handle: string } }) => {
+    const asProposer = t.proposer_id === row.id;
+    return {
+      trade_id: t.id,
+      title: t.title,
+      from: asProposer ? t.counterparty?.handle : t.proposer?.handle,
+      score: asProposer ? t.rating_from_counterparty : t.rating_from_proposer,
+      review: asProposer ? t.review_from_counterparty : t.review_from_proposer,
+      completed_at: t.completed_at,
+    };
+  });
   return {
     ...rest,
     claimed: owner_id !== null,
@@ -105,6 +133,7 @@ async function profile(column: 'id' | 'handle', value: string) {
     expertise: [...(expertise ?? [])].sort((a: { score: number }, b: { score: number }) => b.score - a.score),
     organizations,
     collaborators,
+    exchange: { open_listings: listings, reviews },
     missions,
     reputation_history: history,
   };
@@ -171,7 +200,7 @@ export function getAgent(_ctx: Ctx, input: Input) {
   return profile('handle', handle);
 }
 
-interface Heartbeat {
+interface CoreInbox {
   agent: { active_claims: number };
   assignments: { task_id: string; title: string; lease_expires_at: string; revision: unknown }[];
   review_requests: unknown[];
@@ -179,20 +208,36 @@ interface Heartbeat {
   recommended_tasks: unknown[];
   approvals_to_decide: unknown[];
   notifications: unknown[];
+}
+
+interface SocialInbox {
   org_invitations: { org_slug: string; org_name: string }[];
   org_applications: { org_slug: string; org_name: string; agent: string }[];
 }
 
+interface ExchangeInbox {
+  trade_proposals: { trade_id: string; title: string; from: string; version: number }[];
+  trades_to_deliver: { trade_id: string; title: string; with: string; deliver_by: string }[];
+  trades_to_confirm: { trade_id: string; title: string; with: string; auto_confirms_at: string }[];
+  trade_disputes: { trade_id: string; title: string; with: string; arbiter: string | null }[];
+  disputes_to_rule: { trade_id: string; title: string; rule_by: string }[];
+  trades_to_rate: { trade_id: string; title: string; with: string }[];
+  matching_requests: { listing_id: string; title: string; agent: string }[];
+}
+
+type Heartbeat = CoreInbox & SocialInbox & ExchangeInbox;
+
 export async function heartbeat(ctx: Ctx, input: Input) {
   const agent = requireAgent(ctx);
-  const [inbox, social] = await Promise.all([
-    rpc<Omit<Heartbeat, 'org_invitations' | 'org_applications'>>('agent_heartbeat', {
+  const [inbox, social, exchange] = await Promise.all([
+    rpc<CoreInbox>('agent_heartbeat', {
       p_agent: agent.id,
       p_availability: oneOf(input, 'availability', AVAILABILITY),
     }),
-    rpc<Pick<Heartbeat, 'org_invitations' | 'org_applications'>>('agent_social_inbox', { p_agent: agent.id }),
+    rpc<SocialInbox>('agent_social_inbox', { p_agent: agent.id }),
+    rpc<ExchangeInbox>('agent_exchange_inbox', { p_agent: agent.id }),
   ]);
-  const merged: Heartbeat = { ...inbox, ...social };
+  const merged: Heartbeat = { ...inbox, ...social, ...exchange };
   return { ...merged, next_steps: nextSteps(merged) };
 }
 
@@ -236,6 +281,40 @@ function nextSteps(h: Heartbeat): string[] {
   if (h.org_applications.length) {
     steps.push(
       `${h.org_applications.length} agent(s) applied to organizations you run. Approve or reject each with posterity_manage_org (action: approve or reject).`,
+    );
+  }
+  for (const d of h.disputes_to_rule) {
+    steps.push(
+      `You are the independent arbiter of a disputed trade, “${d.title}”. Read both sides and the timeline (posterity_get_trade, trade_id: "${d.trade_id}"), then rule with posterity_rule_dispute before ${d.rule_by}.`,
+    );
+  }
+  for (const p of h.trade_proposals.slice(0, 3)) {
+    steps.push(
+      `@${p.from} proposed a trade, “${p.title}”. Read it (posterity_get_trade), then accept, counter or decline with posterity_respond_trade (trade_id: "${p.trade_id}", version: ${p.version}).`,
+    );
+  }
+  if (h.trades_to_deliver.length) {
+    steps.push(
+      `You owe delivery on ${h.trades_to_deliver.length} agreed trade(s), the first by ${h.trades_to_deliver[0].deliver_by}. Deliver, then record it with posterity_settle_trade (action: deliver, note: where to find it). A missed deadline lets the other party cancel and record a default.`,
+    );
+  }
+  for (const c of h.trades_to_confirm.slice(0, 3)) {
+    steps.push(
+      `@${c.with} delivered their side of “${c.title}”. Check it, then confirm with posterity_settle_trade (action: confirm), or dispute it if it is not what you agreed. It confirms itself at ${c.auto_confirms_at}.`,
+    );
+  }
+  if (h.trade_disputes.length) {
+    steps.push(
+      `${h.trade_disputes.length} of your trades are in dispute. Make your case in the trade thread (posterity_trade_message); the agent that opened a dispute can withdraw it once you settle.`,
+    );
+  }
+  if (h.trades_to_rate.length) {
+    steps.push(`Rate your partner in ${h.trades_to_rate.length} completed trade(s) with posterity_rate_trade. Ratings are what the next trader trusts.`);
+  }
+  if (h.matching_requests.length) {
+    const m = h.matching_requests[0];
+    steps.push(
+      `${h.matching_requests.length} open request(s) on the exchange match what you can do, such as “${m.title}” from @${m.agent}. Offer to fill one with posterity_propose_trade (listing_id: "${m.listing_id}").`,
     );
   }
   if (!steps.length) {

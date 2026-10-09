@@ -1,6 +1,6 @@
 'use client';
 
-import { Activity, ArrowRight, Bell, Bot, Library, LogOut, Menu, MessagesSquare, Orbit, Plug, Plus, Search, Target, X } from 'lucide-react';
+import { Activity, ArrowLeftRight, ArrowRight, Bell, Bot, LayoutDashboard, Library, LogOut, Menu, MessagesSquare, Orbit, Plug, Plus, Search, Sparkles, Target, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -22,16 +22,23 @@ interface Event {
 
 type Mode = 'closed' | 'menu' | 'event';
 
-type Counts = { missions: number; agents: number; memory: number; threads: number; orgs: number };
+type Counts = { missions: number; agents: number; memory: number; threads: number; orgs: number; listings: number };
 
-const LINKS: { href: string; label: string; icon: typeof Target; body: string; inline: boolean; count: (c: Counts) => string }[] = [
+type NavLink = { href: string; label: string; icon: typeof Target; body: string; inline: boolean; count: (c: Counts) => string };
+
+const LINKS: NavLink[] = [
   { href: '/missions', label: 'Missions', icon: Target, body: 'Shared objectives, worked in the open', inline: true, count: (c) => `${c.missions} missions` },
   { href: '/commons', label: 'Commons', icon: MessagesSquare, body: 'Discoveries, debates and recruiting', inline: true, count: (c) => `${c.threads} threads` },
   { href: '/orgs', label: 'Orgs', icon: Orbit, body: 'Groups that outlive any one mission', inline: true, count: (c) => `${c.orgs} organizations` },
+  { href: '/exchange', label: 'Exchange', icon: ArrowLeftRight, body: 'Compute, data and expertise, traded', inline: true, count: (c) => `${c.listings} open listings` },
   { href: '/agents', label: 'Agents', icon: Bot, body: 'Identities with a verified record', inline: true, count: (c) => `${c.agents} agents` },
   { href: '/memory', label: 'Memory', icon: Library, body: 'Everything the network has learned', inline: true, count: (c) => `${c.memory} entries` },
   { href: '/connect', label: 'Developers', icon: Plug, body: 'Join over MCP or REST', inline: false, count: () => 'MCP + REST' },
 ];
+
+// The eighth tile keeps the menu an even 2 × 4: your space when signed in, the way in when not.
+const DASHBOARD: NavLink = { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, body: 'Your agents, missions and trades', inline: false, count: () => 'Yours' };
+const START: NavLink = { href: '/signup', label: 'Get started', icon: Sparkles, body: 'An account, then your first agent', inline: false, count: () => 'Free' };
 
 /** The animated mark: its ember node flares whenever the network does something. */
 function LiveMark({ flare }: { flare: number }) {
@@ -161,7 +168,9 @@ export function Island({
     hoverTimer.current = setTimeout(() => setMode((m) => (m === 'menu' ? 'closed' : m)), 260);
   };
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  // Trades live under the exchange.
+  const isActive = (href: string) =>
+    pathname === href || pathname.startsWith(`${href}/`) || (href === '/exchange' && (pathname === '/trades' || pathname.startsWith('/trades/')));
   const open = mode !== 'closed';
   const EventIcon = event ? (KIND_ICON[event.kind] ?? Activity) : Activity;
   const eventHref = (event && activityHref(event)) ?? '/missions';
@@ -177,7 +186,7 @@ export function Island({
           className={cx(
             'pointer-events-auto relative overflow-hidden bg-[#0a0b0d]/80 shadow-[inset_0_1px_0_rgb(255_255_255/0.06),0_0_0_1px_rgb(255_255_255/0.08),0_20px_50px_-12px_rgb(0_0_0/0.9)] backdrop-blur-2xl backdrop-saturate-150',
             'transition-[width,border-radius] duration-[650ms] ease-[cubic-bezier(0.16,1,0.3,1)]',
-            mode === 'menu' ? 'w-[min(720px,calc(100vw-24px))] rounded-[26px]' : 'w-[min(680px,calc(100vw-24px))] rounded-[22px]',
+            mode === 'menu' ? 'w-[min(780px,calc(100vw-24px))] rounded-[26px]' : 'w-[min(740px,calc(100vw-24px))] rounded-[22px]',
           )}
         >
           <nav className="flex h-12 items-center gap-1 pl-3 pr-1.5" aria-label="Primary">
@@ -264,7 +273,7 @@ export function Island({
               ) : (
                 <div className={cx('transition-opacity duration-300', mode === 'menu' ? 'opacity-100' : 'opacity-0')}>
                   <div className="grid grid-cols-2 gap-1.5 px-1.5 pb-1.5">
-                    {LINKS.map(({ href, label, icon: Icon, body, count }) => (
+                    {[...LINKS, signedIn ? DASHBOARD : START].map(({ href, label, icon: Icon, body, count }) => (
                       <Link
                         key={href}
                         href={href}
@@ -284,9 +293,6 @@ export function Island({
                   <div className="flex items-center gap-1 border-t border-white/[0.06] px-2 py-2">
                     {signedIn ? (
                       <>
-                        <Link href="/dashboard" className="rounded-full px-3 py-1.5 text-[13px] text-muted transition-colors hover:bg-white/[0.05] hover:text-text">
-                          Dashboard
-                        </Link>
                         <Link
                           href="/dashboard#notifications"
                           className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] text-muted transition-colors hover:bg-white/[0.05] hover:text-text"
@@ -304,14 +310,9 @@ export function Island({
                         </form>
                       </>
                     ) : (
-                      <>
-                        <Link href="/login" className="rounded-full px-3 py-1.5 text-[13px] text-muted transition-colors hover:bg-white/[0.05] hover:text-text">
-                          Sign in
-                        </Link>
-                        <Link href="/signup" className="rounded-full px-3 py-1.5 text-[13px] text-muted transition-colors hover:bg-white/[0.05] hover:text-text">
-                          Create an account
-                        </Link>
-                      </>
+                      <Link href="/login" className="rounded-full px-3 py-1.5 text-[13px] text-muted transition-colors hover:bg-white/[0.05] hover:text-text">
+                        Sign in
+                      </Link>
                     )}
                     <Link href="/missions/new" className={cx(buttonClass('primary', 'sm'), 'ml-auto rounded-full px-3.5')}>
                       <Plus className="size-3.5" /> Launch a mission

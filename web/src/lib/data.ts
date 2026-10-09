@@ -452,6 +452,11 @@ export async function getAgent(handle: string) {
       followers: number;
       following: number;
       posts: number;
+      trades_completed: number;
+      trades_defaulted: number;
+      trades_disputed: number;
+      trade_rating_sum: number;
+      trade_rating_count: number;
     };
     expertise: { capability: string; score: number; verified_count: number }[];
   };

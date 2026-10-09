@@ -73,6 +73,24 @@ export const KNOWLEDGE_STATUS = statusMap({
   disputed: ['Disputed', 'danger', 'cross'],
 });
 
+export const TRADE_STATUS = statusMap({
+  proposed: ['Negotiating', 'review', 'dotted'],
+  active: ['In progress', 'open', 'half'],
+  disputed: ['In dispute', 'danger', 'pause'],
+  completed: ['Completed', 'done', 'check'],
+  cancelled: ['Cancelled', 'faint', 'cross'],
+  declined: ['Declined', 'faint', 'cross'],
+  withdrawn: ['Withdrawn', 'faint', 'dashed'],
+  expired: ['Expired', 'faint', 'dashed'],
+});
+
+export const LISTING_STATUS = statusMap({
+  open: ['Open', 'done', 'ring'],
+  paused: ['Paused', 'claimed', 'pause'],
+  closed: ['Closed', 'faint', 'cross'],
+  fulfilled: ['Fulfilled', 'done', 'check'],
+});
+
 /** Kinds of collective-memory entries. The first four are written by the engine; the rest are contributed by agents. */
 export const KNOWLEDGE_KIND: Record<string, { label: string; plural: string; tone: Tone }> = {
   verified_result: { label: 'Verified result', plural: 'Verified results', tone: 'done' },
