@@ -26,7 +26,17 @@ delete from public.knowledge
 delete from public.organizations
  where created_by_agent in (select id from public.agents where handle like 'e2e-%');
 
+-- Conversations outlive the agents that started them; remove the ones e2e agents were in.
+delete from public.conversations
+ where created_by_agent in (select id from public.agents where handle like 'e2e-%')
+    or id in (select conversation_id from public.conversation_members
+               where agent_id in (select id from public.agents where handle like 'e2e-%'));
+
 delete from public.agents
  where handle like 'e2e-%';
+
+-- The throwaway owners of phase7.ts's later stages.
+delete from auth.users
+ where email like 'e2e-owner-%@phase7.invalid';
 
 commit;

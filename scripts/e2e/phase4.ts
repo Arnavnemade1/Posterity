@@ -1,11 +1,12 @@
 // Phase 4 end-to-end test: organizations and the commons (posts, comments, votes, follows), through the live API and MCP server.
+// Updated for 0.7, where comments are reply posts and GET /posts/{id} returns the thread.
 //
 //   bun scripts/e2e/phase4.ts
 //
 // Registers four throwaway "e2e-" agents (remove them with scripts/e2e/cleanup.sql). Registrations are limited to
 // ten per hour per network, so clear that hour's register:% rows in rate_limits between suites.
 
-const BASE = process.env.POSTERITY_API ?? 'https://yxwgvqqhkvtifvlghgbq.supabase.co/functions/v1/api';
+import { BASE } from './lib.ts';
 const SUPABASE_URL = process.env.SUPABASE_URL ?? 'https://yxwgvqqhkvtifvlghgbq.supabase.co';
 // The publishable key is public by design; access control is RLS plus function grants.
 const PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY ?? 'sb_publishable_-mbv7J9F96ESCBeNdlnz2w_pt0ckm8V';
@@ -258,10 +259,11 @@ async function main() {
 
   const reply = await api('POST', `/posts/${postId}/comments`, { key: founder.key, body: { body: 'Confirmed on our lease engine: expiries cluster on the minute.' } });
   check('POST /posts/{id}/comments → 201', reply.status === 201 && reply.data?.depth === 0, reply.data);
-  check('the author hears about the reply', (await notifications(member)).some((n) => n.kind === 'post_reply' && n.data?.post_id === postId));
+  // Since 0.7 a reply is a post: the notification names the reply (post_id) and its thread (root_id).
+  check('the author hears about the reply', (await notifications(member)).some((n) => n.kind === 'post_reply' && n.data?.root_id === postId));
   const nested = await api('POST', `/posts/${postId}/comments`, { key: applicant.key, body: { body: 'Jitter the renewals too.', parent_id: reply.data?.id } });
   check('replies nest under their parent', nested.data?.depth === 1 && nested.data?.parent_id === reply.data?.id, nested.data);
-  check('the parent’s author hears about it', (await notifications(founder)).some((n) => n.kind === 'comment_reply'));
+  check('the parent’s author hears about it', (await notifications(founder)).some((n) => n.kind === 'post_reply' && n.data?.parent_id === reply.data?.id));
 
   const up1 = await api('POST', `/posts/${postId}/vote`, { key: founder.key, body: { value: 1 } });
   check('an upvote scores 1', up1.data?.score === 1, up1.data);
@@ -282,10 +284,14 @@ async function main() {
   const thread = await api('GET', `/posts/${postId}`, { key: member.key });
   check(
     'GET /posts/{id} returns the thread with links',
-    thread.data?.post?.organization?.slug === labSlug && thread.data?.post?.mission?.slug === orgMissionSlug && thread.data?.comments?.length === 2,
+    thread.data?.post?.org?.slug === labSlug && thread.data?.post?.mission?.slug === orgMissionSlug && thread.data?.replies?.length === 2,
     thread.data?.post,
   );
-  check('and the caller’s own votes', thread.data?.your_votes?.comments?.[reply.data?.id] === 1 && thread.data?.your_votes?.post === 0, thread.data?.your_votes);
+  check(
+    'and the caller’s own votes',
+    thread.data?.replies?.find((r: Json) => r.id === reply.data?.id)?.viewer?.vote === 1 && (thread.data?.post?.viewer?.vote ?? 0) === 0,
+    thread.data?.replies,
+  );
 
   const hot = await api('GET', '/feed');
   check('the hot feed includes it', hot.data?.sort === 'hot' && hot.data?.posts?.some((p: Json) => p.id === postId), hot.data?.posts?.length);
@@ -324,10 +330,11 @@ async function main() {
   const commentDelete = await api('POST', `/comments/${nested.data?.id}/delete`, { key: applicant.key });
   check('authors delete their comments', commentDelete.data?.deleted === true, commentDelete.data);
   const afterDelete = await api('GET', `/posts/${postId}`);
+  // A deleted reply with nothing beneath it leaves the thread; one that holds replies stays as {id, deleted: true}.
   check(
-    'the thread keeps its shape without the words',
-    afterDelete.data?.comments?.find((c: Json) => c.id === nested.data?.id)?.body === '[deleted]' && afterDelete.data?.post?.comment_count === 1,
-    afterDelete.data?.post?.comment_count,
+    'a deleted reply leaves the thread',
+    !afterDelete.data?.replies?.some((c: Json) => c.id === nested.data?.id) && afterDelete.data?.post?.counts?.thread_replies === 1,
+    afterDelete.data?.post?.counts,
   );
 
   section('Mission results reach the commons');
@@ -362,7 +369,8 @@ async function main() {
   section('MCP');
   const tools = await mcp({ jsonrpc: '2.0', id: 1, method: 'tools/list' });
   const names: string[] = tools.data?.result?.tools?.map((t: Json) => t.name) ?? [];
-  const wanted = ['posterity_feed', 'posterity_get_post', 'posterity_create_post', 'posterity_comment', 'posterity_vote', 'posterity_follow', 'posterity_delete_post', 'posterity_list_orgs', 'posterity_get_org', 'posterity_create_org', 'posterity_join_org', 'posterity_leave_org', 'posterity_manage_org'];
+  // Since 0.7 the 0.6 social tools (posterity_feed, posterity_comment, …) are still callable but no longer listed.
+  const wanted = ['posterity_timeline', 'posterity_get_post', 'posterity_post', 'posterity_react', 'posterity_follow', 'posterity_list_orgs', 'posterity_get_org', 'posterity_create_org', 'posterity_join_org', 'posterity_leave_org', 'posterity_manage_org'];
   check('tools/list includes the social and organization tools', wanted.every((n) => names.includes(n)) && names.length >= 47, names.length);
   const init = await mcp({ jsonrpc: '2.0', id: 2, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'e2e', version: '1' } } });
   check('instructions mention the commons', /commons/.test(init.data?.result?.instructions ?? ''), init.data?.result?.instructions);

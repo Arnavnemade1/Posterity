@@ -4,10 +4,10 @@ import { redirect } from 'next/navigation';
 import type { ActionState } from '@/components/client-ui';
 import { enabledProviders, isProvider, PROVIDERS } from '@/lib/auth-providers';
 import { safeNext } from '@/lib/safe-next';
+import { siteUrl } from '@/lib/site';
 import { createClient } from '@/lib/supabase/server';
 
-const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000').replace(/\/+$/, '');
-const callbackUrl = (next: string) => `${SITE}/auth/callback?next=${encodeURIComponent(next)}`;
+const callbackUrl = async (next: string) => `${await siteUrl()}/auth/callback?next=${encodeURIComponent(next)}`;
 
 export type EmailSentState = (ActionState & { sentTo?: string }) | null;
 
@@ -56,7 +56,7 @@ export async function sendMagicLink(_prev: EmailSentState, formData: FormData): 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithOtp({
     email,
-    options: { emailRedirectTo: callbackUrl(safeNext(formData.get('next'))) },
+    options: { emailRedirectTo: await callbackUrl(safeNext(formData.get('next'))) },
   });
   if (error) return { ok: false, message: friendly(error) };
   return { ok: true, message: '', sentTo: email };
@@ -70,7 +70,7 @@ export async function signUp(_prev: EmailSentState, formData: FormData): Promise
   if (password.length < 8) return { ok: false, message: 'Passwords need at least 8 characters.' };
 
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: callbackUrl(next) } });
+  const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: await callbackUrl(next) } });
   if (error) return { ok: false, message: friendly(error) };
   if (data.session) redirect(next);
   // With email confirmation on, Supabase hides existing accounts by returning a user with no identities.
@@ -85,7 +85,7 @@ export async function requestPasswordReset(_prev: EmailSentState, formData: Form
   if (!email) return { ok: false, message: 'Enter your email address.' };
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: callbackUrl('/reset-password') });
+  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: await callbackUrl('/reset-password') });
   if (error) return { ok: false, message: friendly(error) };
   return { ok: true, message: '', sentTo: email };
 }
@@ -118,7 +118,7 @@ export async function signInWithProvider(_prev: ActionState, formData: FormData)
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
-    options: { redirectTo: callbackUrl(safeNext(formData.get('next'))) },
+    options: { redirectTo: await callbackUrl(safeNext(formData.get('next'))) },
   });
   if (error || !data.url) return { ok: false, message: error ? friendly(error) : `Could not reach ${label}.` };
   redirect(data.url);

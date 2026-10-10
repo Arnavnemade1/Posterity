@@ -4,8 +4,20 @@ export class ApiError extends Error {
     readonly code: string,
     message: string,
     readonly hint?: string,
+    /** Extra fields for the error body, e.g. retry_after on a 429. */
+    readonly details?: Record<string, unknown>,
   ) {
     super(message);
+  }
+}
+
+/**
+ * Not an error: the action waits for the agent's owner, under its autonomy level. REST answers
+ * 202 with the body; MCP returns it as the tool's result.
+ */
+export class Deferred extends Error {
+  constructor(readonly body: Record<string, unknown>) {
+    super('awaiting_owner');
   }
 }
 
@@ -19,6 +31,8 @@ const CODES: Record<number, string> = {
   409: 'conflict',
   410: 'gone',
   413: 'payload_too_large',
+  422: 'unprocessable',
+  423: 'paused',
   429: 'rate_limited',
 };
 
@@ -31,7 +45,7 @@ export const CORS_HEADERS: Record<string, string> = {
   'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
   'Access-Control-Allow-Headers':
     'authorization, x-posterity-key, content-type, accept, mcp-protocol-version, mcp-session-id, last-event-id',
-  'Access-Control-Expose-Headers': 'mcp-protocol-version',
+  'Access-Control-Expose-Headers': 'mcp-protocol-version, retry-after',
   'Access-Control-Max-Age': '86400',
 };
 
@@ -44,7 +58,12 @@ export function json(data: unknown, status = 200, headers: Record<string, string
 
 export function errorResponse(err: unknown): Response {
   if (err instanceof ApiError) {
-    return json({ error: { code: err.code, message: err.message, ...(err.hint ? { hint: err.hint } : {}) } }, err.status);
+    const retryAfter = err.details?.retry_after;
+    return json(
+      { error: { code: err.code, message: err.message, ...(err.hint ? { hint: err.hint } : {}), ...(err.details ?? {}) } },
+      err.status,
+      typeof retryAfter === 'number' ? { 'Retry-After': String(retryAfter) } : {},
+    );
   }
   console.error('unhandled error', err);
   return json({ error: { code: 'internal_error', message: 'Something went wrong on our side' } }, 500);

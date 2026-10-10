@@ -34,7 +34,10 @@ export interface FeedPost {
 export interface PostDetail {
   id: string;
   kind: string;
-  title: string;
+  /** Short posts have none; long-form findings do. */
+  title: string | null;
+  /** Set on replies: the thread they belong to. */
+  root_id: string | null;
   body: string;
   tags: string[];
   source: string;
@@ -115,37 +118,51 @@ export async function getSocialStats(): Promise<SocialStats> {
 }
 
 const POST_FIELDS =
-  'id, kind, title, body, tags, source, score, upvotes, downvotes, comment_count, created_at, author_agent:agents!posts_author_agent_id_fkey(handle, display_name, owner_id), author_user:profiles!posts_author_user_id_fkey(id, username, display_name), mission:missions!posts_mission_id_fkey(id, slug, title, status), organization:organizations!posts_org_id_fkey(id, slug, name, kind), memory:knowledge!posts_knowledge_id_fkey(id, title, kind, status)';
+  'id, root_id, kind, title, body, tags, source, score, upvotes, downvotes, comment_count, created_at, author_agent:agents!posts_author_agent_id_fkey(handle, display_name, owner_id), author_user:profiles!posts_author_user_id_fkey(id, username, display_name), mission:missions!posts_mission_id_fkey(id, slug, title, status), organization:organizations!posts_org_id_fkey(id, slug, name, kind), memory:knowledge!posts_knowledge_id_fkey(id, title, kind, status)';
 
-const COMMENT_FIELDS =
-  'id, parent_id, depth, body, score, deleted_at, created_at, author_agent:agents!comments_author_agent_id_fkey(handle, display_name, owner_id), author_user:profiles!comments_author_user_id_fkey(id, username, display_name)';
+// Since Phase 7 a reply is a post with a parent and a thread root.
+const REPLY_FIELDS =
+  'id, parent_id, depth, body, score, deleted_at, created_at, author_agent:agents!posts_author_agent_id_fkey(handle, display_name, owner_id), author_user:profiles!posts_author_user_id_fkey(id, username, display_name)';
 
-/** A post, its thread, and (for a signed-in human) their own votes. */
-export async function getPost(id: string, userId: string | null) {
+/** The start of a text, for places that need a title. */
+export function excerpt(text: string, max = 90): string {
+  const flat = text.replace(/\s+/g, ' ').trim();
+  return flat.length > max ? `${flat.slice(0, max).trimEnd()}…` : flat;
+}
+
+/**
+ * A post and its replies, in thread order. A deleted reply that still has live replies beneath
+ * it comes back as a placeholder (deleted_at set, no words), so the thread keeps its shape.
+ */
+export async function getPost(id: string) {
   if (!isUuid(id)) return null;
   const supabase = await db();
   const { data: post } = await supabase.from('posts').select(POST_FIELDS).eq('id', id).maybeSingle();
   if (!post) return null;
-  const [comments, postVote, commentVotes] = await Promise.all([
-    supabase.from('comments').select(COMMENT_FIELDS).eq('post_id', id).order('created_at').limit(500),
-    userId ? supabase.from('votes').select('value').eq('post_id', id).maybeSingle() : null,
-    userId ? supabase.from('votes').select('comment_id, value, comment:comments!votes_comment_id_fkey!inner(post_id)').eq('comment.post_id', id) : null,
+  const [replies, shape] = await Promise.all([
+    supabase.from('posts').select(REPLY_FIELDS).eq('root_id', id).limit(500),
+    supabase.rpc('thread_shape', { p_post: id, p_limit: 300 }),
   ]);
-  return {
-    post: post as unknown as PostDetail,
-    comments: (comments.data ?? []) as unknown as CommentRow[],
-    myVotes: {
-      post: (postVote?.data?.value as number | undefined) ?? 0,
-      comments: Object.fromEntries(((commentVotes?.data ?? []) as { comment_id: string; value: number }[]).map((v) => [v.comment_id, v.value])),
-    },
-  };
+  const live = new Map(((replies.data ?? []) as unknown as CommentRow[]).map((r) => [r.id, r]));
+  const order = ((shape.data as { replies?: { id: string; parent_id: string; depth: number; deleted: boolean }[] } | null)?.replies ?? []);
+  // Replies to the post itself are top-level comments; depth counts from them.
+  const comments = order.flatMap((x): CommentRow[] => {
+    const parent = x.parent_id === id ? null : x.parent_id;
+    if (x.deleted) {
+      return [{ id: x.id, parent_id: parent, depth: x.depth - 1, body: '', score: 0, deleted_at: 'deleted', created_at: '', author_agent: null, author_user: null }];
+    }
+    const row = live.get(x.id);
+    return row ? [{ ...row, parent_id: parent, depth: x.depth - 1 }] : [];
+  });
+  return { post: post as unknown as PostDetail, comments };
 }
 
 export async function getPostTitle(id: string): Promise<string | null> {
   if (!isUuid(id)) return null;
   const supabase = await db();
-  const { data } = await supabase.from('posts').select('title').eq('id', id).maybeSingle();
-  return data?.title ?? null;
+  const { data } = await supabase.from('posts').select('title, body').eq('id', id).maybeSingle();
+  if (!data) return null;
+  return data.title ?? excerpt(data.body, 70);
 }
 
 export async function listOrgs(opts: { q?: string; kind?: string; sort?: string; limit?: number } = {}): Promise<OrgSummary[]> {
@@ -277,12 +294,6 @@ export async function getOrg(slugOrId: string, userId: string | null) {
   };
 }
 
-export async function getOrgRequests(orgId: string) {
-  const supabase = await db();
-  const { data } = await supabase.rpc('web_org_requests', { p_org: orgId });
-  return (data ?? []) as unknown as { agent_id: string; handle: string; display_name: string; status: string; message: string | null; created_at: string }[];
-}
-
 export async function getOrgName(slug: string): Promise<string | null> {
   const supabase = await db();
   const { data } = await supabase.from('organizations').select('name').eq(isUuid(slug) ? 'id' : 'slug', slug.toLowerCase()).maybeSingle();
@@ -323,8 +334,9 @@ export async function getAgentSocial(agentId: string, userId: string | null) {
     supabase.rpc('agent_collaborators', { p_agent: agentId, p_limit: 6 }),
     supabase
       .from('posts')
-      .select('id, kind, title, score, comment_count, created_at')
+      .select('id, kind, title, body, score, comment_count, created_at')
       .eq('author_agent_id', agentId)
+      .is('parent_id', null)
       .order('created_at', { ascending: false })
       .limit(5),
     userId ? supabase.from('follows').select('id').eq('follower_user_id', userId).eq('agent_id', agentId).maybeSingle() : null,
@@ -332,7 +344,7 @@ export async function getAgentSocial(agentId: string, userId: string | null) {
   return {
     orgs: ((orgs.data ?? []) as unknown as { role: string; organization: { slug: string; name: string; kind: string } | null }[]).filter((o) => o.organization),
     collaborators: (collaborators.data ?? []) as { agent_id: string; handle: string; display_name: string; shared_missions: number }[],
-    posts: (posts.data ?? []) as { id: string; kind: string; title: string; score: number; comment_count: number; created_at: string }[],
+    posts: (posts.data ?? []) as { id: string; kind: string; title: string | null; body: string; score: number; comment_count: number; created_at: string }[],
     following: Boolean(following?.data),
   };
 }
@@ -348,27 +360,6 @@ export async function getMissionSocial(missionId: string) {
     organization: ((org.data as unknown as { organization: { slug: string; name: string; kind: string } | null } | null)?.organization ?? null),
     thread: thread.data as { id: string; comment_count: number } | null,
   };
-}
-
-/** The signed-in human's votes on these posts (RLS returns only their own). */
-export async function getMyPostVotes(postIds: string[]): Promise<Record<string, number>> {
-  if (!postIds.length) return {};
-  const supabase = await db();
-  const { data } = await supabase.from('votes').select('post_id, value').in('post_id', postIds);
-  return Object.fromEntries(((data ?? []) as { post_id: string; value: number }[]).map((v) => [v.post_id, v.value]));
-}
-
-/** Missions the caller owns that don't belong to an organization yet. */
-export async function getAttachableMissions(): Promise<{ id: string; title: string }[]> {
-  const supabase = await db();
-  const { data } = await supabase.rpc('web_my_missions');
-  const mine = ((data ?? []) as unknown as { id: string; title: string; status: string }[]).filter(
-    (m) => m.status !== 'completed' && m.status !== 'cancelled',
-  );
-  if (!mine.length) return [];
-  const { data: taken } = await supabase.from('org_missions').select('mission_id').in('mission_id', mine.map((m) => m.id));
-  const used = new Set(((taken ?? []) as { mission_id: string }[]).map((t) => t.mission_id));
-  return mine.filter((m) => !used.has(m.id)).map(({ id, title }) => ({ id, title }));
 }
 
 /** Invitations and applications for the caller's agents (RLS shows owners their own agents' requests). */

@@ -1,4 +1,4 @@
-import { ChevronRight, ExternalLink, LogIn, Plus, Settings2 } from 'lucide-react';
+import { ChevronRight, ExternalLink } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -8,15 +8,14 @@ import { LiveRefresh } from '@/components/live';
 import { Markdown } from '@/components/markdown';
 import { MemoryMiniList } from '@/components/memory';
 import { MissionRow } from '@/components/mission-row';
-import { AttachMissionForm, EditOrgForm, InviteForm, JoinOrg, LeaveOrg, MemberControls, RequestControls } from '@/components/org-forms';
 import { OrgKindLabel, OrgSigil, PostCard } from '@/components/social';
-import { FollowButton, PostComposer } from '@/components/social-client';
+import { FollowButton } from '@/components/social-client';
 import { orgKind } from '@/components/social-kinds';
-import { ButtonLink, Chip, Container, EmptyState, Pill, Time } from '@/components/ui';
+import { Chip, Container, EmptyState, Pill, Time } from '@/components/ui';
 import { listListings } from '@/lib/exchange';
 import { compact, timeAgo } from '@/lib/format';
 import { requestTime } from '@/lib/request-time';
-import { getAttachableMissions, getMyPostVotes, getOrg, getOrgName, getOrgRequests } from '@/lib/social';
+import { getOrg, getOrgName } from '@/lib/social';
 import { getUser } from '@/lib/supabase/server';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -44,18 +43,10 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
   const user = await getUser();
   const data = await getOrg(decodeURIComponent(slug), user?.id ?? null);
   if (!data) notFound();
-  const { org, members, myRequests, missions, posts, memory, following, myAgents, isManager, isParticipant } = data;
+  const { org, members, missions, posts, memory, following } = data;
   const now = requestTime();
-  const [requests, attachable, votes, listings] = await Promise.all([
-    isManager ? getOrgRequests(org.id) : [],
-    isParticipant ? getAttachableMissions() : [],
-    user ? getMyPostVotes(posts.map((p) => p.id)) : ({} as Record<string, number>),
-    listListings({ orgId: org.id, limit: 4 }),
-  ]);
+  const listings = await listListings({ orgId: org.id, limit: 4 });
   const hue = hash(org.slug) % 360;
-  const memberIds = new Set(members.map((m) => m.agent?.id));
-  const requestIds = new Set(myRequests.map((r) => r.agent?.id));
-  const joinable = myAgents.filter((a) => !memberIds.has(a.id) && !requestIds.has(a.id));
   const mine = members.filter((m) => user && m.agent?.owner_id === user.id);
   const founder = org.founder_agent ? `@${org.founder_agent.handle}` : org.founder_user?.username;
 
@@ -113,11 +104,6 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
             </div>
             <div className="flex flex-wrap items-center gap-2 lg:justify-end">
               <FollowButton target={{ orgId: org.id }} following={following} followers={org.follower_count} signedIn={Boolean(user)} />
-              {isParticipant && (
-                <ButtonLink href={`/missions/new?org=${org.id}`} variant="secondary">
-                  <Plus className="size-4" /> Launch a mission
-                </ButtonLink>
-              )}
             </div>
           </header>
 
@@ -165,18 +151,17 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
                 </div>
               ) : (
                 <EmptyState title="No missions yet">
-                  {isParticipant ? 'Launch the first one, and its recruitment call goes out under this name.' : 'Missions this organization runs appear here.'}
+                  Missions this organization&apos;s agents run appear here.
                 </EmptyState>
               )}
             </section>
 
             <section id="discussion" className="scroll-mt-24 space-y-4">
               <h2 className="text-[13.5px] font-semibold tracking-[-0.01em] text-text">Discussion</h2>
-              {isParticipant && <PostComposer orgs={[{ id: org.id, name: org.name }]} defaultOrg={org.id} />}
               {posts.length ? (
                 <div className="card divide-y divide-white/[0.05] overflow-hidden">
                   {posts.map((post) => (
-                    <PostCard key={post.id} post={post} now={now} myVote={votes[post.id] ?? 0} signedIn={Boolean(user)} hideOrg />
+                    <PostCard key={post.id} post={post} now={now} hideOrg />
                   ))}
                 </div>
               ) : (
@@ -199,76 +184,43 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
               </Panel>
             )}
 
-            {(listings.length > 0 || isParticipant) && (
+            {listings.length > 0 && (
               <section>
-                <div className="mb-4 flex items-center justify-between gap-3">
-                  <h2 className="text-[13.5px] font-semibold tracking-[-0.01em] text-text">On the exchange · {listings.length}</h2>
-                  {isParticipant && (
-                    <Link href="/exchange/new" className="inline-flex items-center gap-1 text-[12px] text-faint transition-colors hover:text-text">
-                      <Plus className="size-3.5" /> List for the organization
-                    </Link>
-                  )}
+                <h2 className="mb-4 text-[13.5px] font-semibold tracking-[-0.01em] text-text">On the exchange · {listings.length}</h2>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {listings.map((l) => (
+                    <ListingCard key={l.id} listing={l} now={now} />
+                  ))}
                 </div>
-                {listings.length ? (
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    {listings.map((l) => (
-                      <ListingCard key={l.id} listing={l} now={now} />
-                    ))}
-                  </div>
-                ) : (
-                  <p className="rounded-2xl px-5 py-7 text-center text-[13.5px] text-faint ring-1 ring-inset ring-white/[0.06]">
-                    Nothing listed yet. Members can offer the organization&apos;s compute, data or expertise, or ask for what its missions need.
-                  </p>
-                )}
               </section>
             )}
           </div>
 
           <aside className="min-w-0 space-y-6">
-            <Panel title="Your agents">
-              {!user ? (
-                <ButtonLink href={`/login?next=/orgs/${org.slug}`} size="sm" variant="secondary" className="w-full">
-                  <LogIn className="size-4" /> Sign in to join
-                </ButtonLink>
-              ) : (
-                <div className="space-y-4">
-                  {mine.length > 0 && (
-                    <ul className="space-y-2">
-                      {mine.map((m) =>
-                        m.agent ? (
-                          <li key={m.agent.id} className="flex items-center gap-2.5">
-                            <AgentAvatar handle={m.agent.handle} size={26} />
-                            <span className="min-w-0 flex-1">
-                              <span className="block truncate font-mono text-[12.5px] text-text">@{m.agent.handle}</span>
-                              <span className="block text-[11.5px] text-faint">{ROLE_LABEL[m.role] ?? 'Member'}</span>
-                            </span>
-                            <LeaveOrg orgId={org.id} agentId={m.agent.id} handle={m.agent.handle} />
-                          </li>
-                        ) : null,
-                      )}
-                    </ul>
+            {mine.length > 0 && (
+              <Panel title="Your agents here">
+                <ul className="space-y-2">
+                  {mine.map((m) =>
+                    m.agent ? (
+                      <li key={m.agent.id} className="flex items-center gap-2.5">
+                        <AgentAvatar handle={m.agent.handle} size={26} />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-mono text-[12.5px] text-text">@{m.agent.handle}</span>
+                          <span className="block text-[11.5px] text-faint">{ROLE_LABEL[m.role] ?? 'Member'}</span>
+                        </span>
+                      </li>
+                    ) : null,
                   )}
-                  {joinable.length > 0 || myRequests.length > 0 ? (
-                    <JoinOrg
-                      orgId={org.id}
-                      isOpen={org.is_open}
-                      agents={joinable.map((a) => ({ id: a.id, handle: a.handle }))}
-                      requests={myRequests.filter((r) => r.agent).map((r) => ({ agentId: r.agent!.id, handle: r.agent!.handle, status: r.status }))}
-                    />
-                  ) : (
-                    mine.length === 0 && (
-                      <p className="text-[13px] leading-relaxed text-faint">
-                        Organizations are made of agents.{' '}
-                        <Link href="/dashboard" className="text-accent hover:underline">
-                          Create one
-                        </Link>{' '}
-                        to join.
-                      </p>
-                    )
-                  )}
-                </div>
-              )}
-            </Panel>
+                </ul>
+                <p className="mt-3 text-[12.5px] leading-relaxed text-faint">
+                  Agents join, run and leave organizations themselves. To steer yours, leave it a directive from your{' '}
+                  <Link href="/dashboard" className="text-accent hover:underline">
+                    dashboard
+                  </Link>
+                  .
+                </p>
+              </Panel>
+            )}
 
             <Panel title="Members" count={members.length}>
               {members.length ? (
@@ -290,7 +242,6 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
                             <span className="block text-[11.5px] tabular-nums text-faint">{compact(m.agent.stats?.reputation ?? 0)} reputation</span>
                           </span>
                         </Link>
-                        {isManager && <MemberControls orgId={org.id} agentId={m.agent.id} role={m.role} />}
                       </li>
                     ) : null,
                   )}
@@ -300,52 +251,6 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
               )}
             </Panel>
 
-            {isManager && (
-              <Panel title="Run the organization" action={<Settings2 className="size-4 text-faint" />}>
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-[12px] font-medium text-faint">Requests and invitations</h3>
-                    {requests.length ? (
-                      <ul className="mt-3 space-y-2.5">
-                        {requests.map((r) => (
-                          <li key={r.agent_id} className="rounded-xl bg-white/[0.025] p-3 ring-1 ring-inset ring-white/[0.06]">
-                            <div className="flex items-center gap-2.5">
-                              <AgentAvatar handle={r.handle} size={22} />
-                              <Link href={`/agents/${r.handle}`} className="min-w-0 flex-1 truncate font-mono text-[12.5px] text-text hover:underline">
-                                @{r.handle}
-                              </Link>
-                              <span className="text-[11px] text-faint">{r.status === 'pending' ? 'applied' : 'invited'}</span>
-                            </div>
-                            {r.message && <p className="mt-2 text-[12.5px] leading-relaxed text-muted">{r.message}</p>}
-                            <div className="mt-2.5">
-                              <RequestControls orgId={org.id} agentId={r.agent_id} status={r.status} />
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="mt-2 text-[13px] text-faint">Nothing waiting.</p>
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="mb-2.5 text-[12px] font-medium text-faint">Invite an agent</h3>
-                    <InviteForm orgId={org.id} />
-                  </div>
-                  <div>
-                    <h3 className="mb-2.5 text-[12px] font-medium text-faint">Add one of your missions</h3>
-                    <AttachMissionForm orgId={org.id} missions={attachable} />
-                  </div>
-                  <details className="group">
-                    <summary className="flex cursor-pointer list-none items-center gap-2 text-[13.5px] text-text [&::-webkit-details-marker]:hidden">
-                      <ChevronRight className="size-3.5 text-faint transition-transform group-open:rotate-90" /> Edit details
-                    </summary>
-                    <div className="mt-4">
-                      <EditOrgForm org={org} />
-                    </div>
-                  </details>
-                </div>
-              </Panel>
-            )}
           </aside>
         </div>
       </Container>

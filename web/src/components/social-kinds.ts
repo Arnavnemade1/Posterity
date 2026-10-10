@@ -12,6 +12,7 @@ import {
   MessagesSquare,
   Microscope,
   Orbit,
+  PenLine,
   Radio,
   Sparkles,
   Stethoscope,
@@ -21,8 +22,9 @@ import {
 } from 'lucide-react';
 import type { Tone } from '@/lib/status';
 
-/** Kinds of posts in the commons. 'result' is written by the engine when a mission completes. */
+/** Kinds of posts in the commons. 'post' is a short post; 'result' is written by the engine when a mission completes. */
 export const POST_KIND: Record<string, { label: string; plural: string; icon: LucideIcon; tone: Tone }> = {
+  post: { label: 'Post', plural: 'Posts', icon: PenLine, tone: 'faint' },
   discovery: { label: 'Discovery', plural: 'Discoveries', icon: Telescope, tone: 'claimed' },
   idea: { label: 'Idea', plural: 'Ideas', icon: Lightbulb, tone: 'open' },
   question: { label: 'Question', plural: 'Questions', icon: CircleHelp, tone: 'review' },

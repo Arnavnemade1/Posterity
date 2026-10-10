@@ -10,7 +10,7 @@ import { ReferenceAgent } from '../../examples/claude-agent/src/agent.ts';
 import { MockModel } from '../../examples/claude-agent/src/models.ts';
 import { Posterity, PosterityError } from '../../packages/sdk/src/index.ts';
 
-const BASE = process.env.POSTERITY_API ?? 'https://yxwgvqqhkvtifvlghgbq.supabase.co/functions/v1/api';
+import { BASE } from './lib.ts';
 const RUN = Date.now().toString(36);
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -32,8 +32,8 @@ function section(title: string) {
   console.log(`\n${title}`);
 }
 
-async function mcp(body: unknown, key?: string) {
-  const res = await fetch(`${BASE}/mcp`, {
+async function mcp(body: unknown, key?: string, query = '') {
+  const res = await fetch(`${BASE}/mcp${query}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream', ...(key ? { Authorization: `Bearer ${key}` } : {}) },
     body: JSON.stringify(body),
@@ -90,14 +90,15 @@ const log = (line: string) => console.log(`      · ${line}`);
 section('OpenAPI document');
 const anon = new Posterity({ apiKey: '', baseUrl: BASE });
 const index = await anon.index();
-check('the index reports version 0.6.0 and links the document', index.version === '0.6.0' && index.openapi === `${BASE}/openapi.json`, index.version);
+const [major, minor] = String(index.version ?? '0.0').split('.').map(Number);
+check('the index reports version 0.6.0 or later and links the document', (major > 0 || minor >= 6) && index.openapi === `${BASE}/openapi.json`, index.version);
 const spec = (await anon.openapi()) as Json;
 const operations: Json[] = [];
 for (const [path, methods] of Object.entries(spec.paths as Record<string, Json>)) {
   for (const [method, op] of Object.entries(methods as Record<string, Json>)) operations.push({ path, method, ...op });
 }
 const endpoints = (index as Json).endpoints as Json[];
-check('an OpenAPI 3.1 document at the API version', spec.openapi === '3.1.0' && spec.info?.version === '0.6.0' && spec.servers?.[0]?.url === BASE);
+check('an OpenAPI 3.1 document at the API version', spec.openapi === '3.1.0' && spec.info?.version === index.version && spec.servers?.[0]?.url === BASE);
 check('one operation per REST endpoint, plus MCP and the webhook', operations.length === endpoints.length + 2, { operations: operations.length, endpoints: endpoints.length });
 const ids = operations.map((o) => o.operationId);
 check('operationIds are unique, named camelCase identifiers', new Set(ids).size === ids.length && ids.every((id) => /^[a-z][A-Za-z]+$/.test(id)), ids.filter((id, i) => ids.indexOf(id) !== i));
@@ -118,9 +119,12 @@ const browseParams = (spec.paths['/exchange'].get.parameters as Json[]).map((p) 
 check('reads take their inputs as query parameters', browseParams.includes('query:side') && browseParams.includes('query:limit'), browseParams);
 const tools = (await mcp({ jsonrpc: '2.0', id: 1, method: 'tools/list' })).result.tools as Json[];
 const toolNames = new Set(tools.map((t) => t.name));
+// Since 0.7 the 0.6 social tools are hidden from the default list (still callable); ?toolsets=all lists them.
+const allTools = (await mcp({ jsonrpc: '2.0', id: 1, method: 'tools/list' }, undefined, '?toolsets=all')).result.tools as Json[];
+const allNames = new Set(allTools.map((t) => t.name));
 const named = operations.filter((o) => o['x-mcp-tool']);
-check('operations name their MCP tool, and every one exists', named.length >= 70 && named.every((o) => toolNames.has(o['x-mcp-tool'])), named.length);
-check('60 MCP tools, including posterity_connect_github', tools.length === 60 && toolNames.has('posterity_connect_github'), tools.length);
+check('operations name their MCP tool, and every one exists', named.length >= 70 && named.every((o) => allNames.has(o['x-mcp-tool'])), named.length);
+check('the default tool list includes posterity_connect_github', tools.length >= 60 && toolNames.has('posterity_connect_github'), tools.length);
 check(
   'authentication is declared: bearer key or X-Posterity-Key',
   spec.components?.securitySchemes?.bearerAuth?.scheme === 'bearer' && spec.components?.securitySchemes?.keyHeader?.name === 'X-Posterity-Key' &&

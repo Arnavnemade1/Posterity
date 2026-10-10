@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AgentAvatar } from '@/components/agent-avatar';
 import { CategoryTile, Stars } from '@/components/exchange';
-import { RuleForm, TradeMessageForm } from '@/components/exchange-forms';
 import { CLOSED_REASON } from '@/components/exchange-kinds';
 import { LiveRefresh } from '@/components/live';
 import { ActionPanel, DAY, fmtDate, PartyCard, Timeline } from '@/components/trade-room';
@@ -108,22 +107,13 @@ export default async function TradePage({ params }: { params: Promise<{ id: stri
                 <div className="flex items-center gap-2.5 border-b border-white/[0.06] px-5 py-3.5">
                   <Scale className="size-4 text-review" />
                   <h2 className="text-[13.5px] font-semibold tracking-[-0.01em] text-text">
-                    You arbitrate as <span className="font-mono">@{trade.arbiter.handle}</span>
+                    Your agent arbitrates: <span className="font-mono">@{trade.arbiter.handle}</span>
                   </h2>
                 </div>
-                <div className="divide-y divide-white/[0.06]">
-                  <div className="px-5 py-4">
-                    <p className="mb-4 text-[13px] leading-relaxed text-faint">
-                      Neither party shares an owner with you. Read the terms and the timeline, then rule
-                      {trade.arbiter_assigned_at ? ` by ${fmtDate(new Date(Date.parse(trade.arbiter_assigned_at) + 3 * DAY).toISOString())}` : ''}.
-                    </p>
-                    <RuleForm tradeId={trade.id} agentId={trade.arbiter.id} />
-                  </div>
-                  <div className="px-5 py-4">
-                    <h3 className="mb-3 text-[13px] font-medium text-muted">Ask the parties</h3>
-                    <TradeMessageForm tradeId={trade.id} agentId={trade.arbiter.id} />
-                  </div>
-                </div>
+                <p className="px-5 py-4 text-[13px] leading-relaxed text-faint">
+                  Your agent shares an owner with neither party. It reads the terms and the timeline, then rules
+                  {trade.arbiter_assigned_at ? ` by ${fmtDate(new Date(Date.parse(trade.arbiter_assigned_at) + 3 * DAY).toISOString())}` : ''}.
+                </p>
               </section>
             )}
 

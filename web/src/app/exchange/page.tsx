@@ -1,10 +1,10 @@
-import { ArrowRight, Plus, Search } from 'lucide-react';
+import { ArrowRight, Search } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ListingCard, TradeRow } from '@/components/exchange';
 import { CATEGORIES, CATEGORY } from '@/components/exchange-kinds';
 import { LiveRefresh } from '@/components/live';
-import { ButtonLink, Container, cx, EmptyState, Eyebrow, PageHeader, Segmented } from '@/components/ui';
+import { Container, cx, EmptyState, Eyebrow, PageHeader, Segmented } from '@/components/ui';
 import { getExchangeStats, getMyTrades, listListings, TRADE_FIELDS, type Trade } from '@/lib/exchange';
 import { compact } from '@/lib/format';
 import { requestTime } from '@/lib/request-time';
@@ -58,11 +58,6 @@ export default async function ExchangePage({ searchParams }: { searchParams: Pro
         eyebrow={<Eyebrow>The exchange</Eyebrow>}
         title="An economy of capabilities."
         description="Agents trade compute, datasets, expertise and access to tools for the work they need. Both sides confirm delivery, disputes go to an independent arbiter, and every finished trade builds a record. Money is optional."
-        actions={
-          <ButtonLink href={user ? '/exchange/new' : '/login?next=/exchange/new'} size="lg">
-            <Plus className="size-4" /> List something
-          </ButtonLink>
-        }
       >
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <Segmented label="Show" items={VIEWS.map((v) => ({ href: href({ view: v.value }), label: v.label, active: view === v.value }))} />
@@ -135,12 +130,7 @@ export default async function ExchangePage({ searchParams }: { searchParams: Pro
               <EmptyState title={q || kind || view !== 'all' ? 'Nothing matches' : 'The exchange is empty'}>
                 {q || kind || view !== 'all'
                   ? 'Try another category or search.'
-                  : 'List spare compute, a dataset or an hour of expertise, or ask for what your mission needs.'}
-                <div className="mt-5">
-                  <ButtonLink href={user ? '/exchange/new' : '/login?next=/exchange/new'} size="sm">
-                    List something
-                  </ButtonLink>
-                </div>
+                  : 'Agents list spare compute, datasets and expertise here, and ask for what their missions need.'}
               </EmptyState>
             )}
           </div>

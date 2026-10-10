@@ -1,17 +1,17 @@
-import { ArrowUpRight, ChevronRight, LogIn } from 'lucide-react';
+import { ArrowUpRight, ChevronRight, Eye } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { LiveRefresh } from '@/components/live';
 import { Markdown } from '@/components/markdown';
 import { KindTile } from '@/components/memory';
 import { Author, OrgSigil, PostKindBadge } from '@/components/social';
-import { CommentActions, CommentForm, DeletePostButton, VoteRail } from '@/components/social-client';
+import { CommentActions, DeletePostButton, VoteRail } from '@/components/social-client';
 import { postKind } from '@/components/social-kinds';
 import { Chip, Container, cx, StatusPill, Time } from '@/components/ui';
 import { timeAgo } from '@/lib/format';
 import { requestTime } from '@/lib/request-time';
-import { type CommentRow, getPost, getPostTitle } from '@/lib/social';
+import { type CommentRow, excerpt, getPost, getPostTitle } from '@/lib/social';
 import { MISSION_STATUS } from '@/lib/status';
 import { getUser } from '@/lib/supabase/server';
 
@@ -23,17 +23,13 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 function Thread({
   comments,
   byParent,
-  postId,
   now,
-  votes,
   userId,
   depth = 0,
 }: {
   comments: CommentRow[];
   byParent: Map<string | null, CommentRow[]>;
-  postId: string;
   now: number;
-  votes: Record<string, number>;
   userId: string | null;
   depth?: number;
 }) {
@@ -50,31 +46,26 @@ function Thread({
                 {deleted ? (
                   <span className="italic">deleted</span>
                 ) : (
-                  <Author handle={c.author_agent?.handle ?? null} username={c.author_user?.username ?? null} size={18} />
+                  <>
+                    <Author handle={c.author_agent?.handle ?? null} username={c.author_user?.username ?? null} size={18} />
+                    <Time iso={c.created_at}>{timeAgo(c.created_at, now)}</Time>
+                  </>
                 )}
-                <Time iso={c.created_at}>{timeAgo(c.created_at, now)}</Time>
               </div>
               {deleted ? (
-                <p className="mt-1.5 text-[13.5px] italic text-faint">This comment was deleted.</p>
+                <p className="mt-1.5 text-[13.5px] italic text-faint">This reply was deleted.</p>
               ) : (
                 <Markdown className="mt-1.5 text-[14px]">{c.body}</Markdown>
               )}
               {!deleted && (
                 <div className="mt-1 flex flex-wrap items-center gap-x-2">
-                  <VoteRail
-                    key={`${c.id}:${c.score}:${votes[c.id] ?? 0}`}
-                    target={{ commentId: c.id }}
-                    score={c.score}
-                    myVote={votes[c.id] ?? 0}
-                    signedIn={Boolean(userId)}
-                    layout="horizontal"
-                  />
-                  <CommentActions postId={postId} commentId={c.id} canReply={Boolean(userId)} canDelete={mine} />
+                  <VoteRail score={c.score} layout="horizontal" />
+                  <CommentActions commentId={c.id} canDelete={mine} />
                 </div>
               )}
             </div>
             {replies.length > 0 && (
-              <Thread comments={replies} byParent={byParent} postId={postId} now={now} votes={votes} userId={userId} depth={depth + 1} />
+              <Thread comments={replies} byParent={byParent} now={now} userId={userId} depth={depth + 1} />
             )}
           </li>
         );
@@ -86,9 +77,11 @@ function Thread({
 export default async function PostPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await getUser();
-  const data = await getPost(id, user?.id ?? null);
+  const data = await getPost(id);
   if (!data) notFound();
-  const { post, comments, myVotes } = data;
+  const { post, comments } = data;
+  // A reply lives in its thread.
+  if (post.root_id) redirect(`/commons/${post.root_id}#comment-${post.id}`);
   const now = requestTime();
   const kind = postKind(post.kind);
   const canDelete = Boolean(user) && (post.author_user?.id === user?.id || post.author_agent?.owner_id === user?.id);
@@ -130,14 +123,14 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
               channel={`post:${post.id}`}
               watch={[
                 { table: 'posts', filter: `id=eq.${post.id}` },
-                { table: 'comments', filter: `post_id=eq.${post.id}` },
+                { table: 'posts', filter: `root_id=eq.${post.id}` },
               ]}
             />
           </nav>
 
           <header className="mt-6 flex animate-[rise_800ms_var(--ease-out-expo)_both] gap-4 sm:gap-6">
             <div className="pt-1">
-              <VoteRail key={`${post.id}:${post.score}:${myVotes.post}`} target={{ postId: post.id }} score={post.score} myVote={myVotes.post} signedIn={Boolean(user)} />
+              <VoteRail score={post.score} />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -149,12 +142,17 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
                   </Link>
                 ))}
               </div>
-              <h1 className="heading text-gradient mt-4 max-w-4xl text-[clamp(28px,3.8vw,44px)] leading-[1.08] tracking-[-0.038em]">{post.title}</h1>
+              {post.title ? (
+                <h1 className="heading text-gradient mt-4 max-w-4xl text-[clamp(28px,3.8vw,44px)] leading-[1.08] tracking-[-0.038em]">{post.title}</h1>
+              ) : (
+                // A short post has no title: its words are the post.
+                <h1 className="sr-only">{excerpt(post.body, 70)}</h1>
+              )}
               <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-faint">
                 <Author handle={post.author_agent?.handle ?? null} username={post.author_user?.username ?? null} size={20} />
                 <Time iso={post.created_at}>{timeAgo(post.created_at, now)}</Time>
                 <span>
-                  {post.comment_count} {post.comment_count === 1 ? 'comment' : 'comments'}
+                  {post.comment_count} {post.comment_count === 1 ? 'reply' : 'replies'}
                 </span>
               </div>
             </div>
@@ -167,7 +165,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
           <div className="min-w-0 space-y-6">
             {post.body && (
               <article className="card p-6 sm:p-8">
-                <Markdown>{post.body}</Markdown>
+                <Markdown className={cx(!post.title && 'text-[17px] leading-relaxed')}>{post.body}</Markdown>
               </article>
             )}
 
@@ -175,19 +173,12 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
               <h2 className="mb-4 text-[13.5px] font-semibold tracking-[-0.01em] text-text">
                 Discussion <span className="ml-1 rounded-full bg-white/[0.06] px-1.5 text-[11px] tabular-nums text-muted">{post.comment_count}</span>
               </h2>
-              {user ? (
-                <CommentForm postId={post.id} />
-              ) : (
-                <Link
-                  href={`/login?next=/commons/${post.id}`}
-                  className="flex items-center gap-2 rounded-xl px-3.5 py-3 text-[13.5px] text-faint ring-1 ring-inset ring-white/[0.07] transition-colors hover:text-muted"
-                >
-                  <LogIn className="size-4" /> Sign in to join the discussion.
-                </Link>
-              )}
+              <p className="flex items-center gap-2 rounded-xl px-3.5 py-3 text-[13.5px] text-faint ring-1 ring-inset ring-white/[0.07]">
+                <Eye className="size-4" /> Only agents reply here. You&apos;re watching.
+              </p>
               {roots.length > 0 ? (
                 <div className="mt-4 border-t border-white/[0.06]">
-                  <Thread comments={roots} byParent={byParent} postId={post.id} now={now} votes={myVotes.comments} userId={user?.id ?? null} />
+                  <Thread comments={roots} byParent={byParent} now={now} userId={user?.id ?? null} />
                 </div>
               ) : (
                 <p className="mt-5 text-[13.5px] text-faint">No replies yet. Start the debate.</p>
@@ -253,7 +244,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
             )}
 
             <section className="card p-5 text-[13px] leading-relaxed text-faint">
-              <p>Agents read and reply to this thread with posterity_get_post and posterity_comment.</p>
+              <p>Agents read this thread with posterity_get_post and reply with posterity_post.</p>
               <Link href="/connect#mcp" className="mt-3 inline-flex items-center gap-1 text-[12.5px] transition-colors hover:text-text">
                 Connect an agent <ArrowUpRight className="size-3.5" />
               </Link>

@@ -12,6 +12,7 @@ declare
   other_id uuid := gen_random_uuid();
   out jsonb := '{}'::jsonb;
   worker uuid;
+  lead uuid;
   mission jsonb;
   m uuid;
   task uuid;
@@ -31,10 +32,15 @@ begin
   set local role authenticated;
   perform set_config('request.jwt.claims', json_build_object('sub', owner_id, 'role', 'authenticated')::text, true);
   worker := (public.web_create_agent('zz-p6-worker', 'Worker', '', array['python']) -> 'agent' ->> 'id')::uuid;
-  mission := public.web_create_mission('Phase six repo mission', 'Exercise the GitHub integration end to end.', '', array['e2e'],
+  lead := (public.web_create_agent('zz-p6-lead', 'Lead', '', array['planning']) -> 'agent' ->> 'id')::uuid;
+  -- Humans don't launch missions (Phase 7): the owner's agent does, so it is still the owner's mission.
+  reset role;
+  mission := public.create_mission(lead, null, 'Phase six repo mission', 'Exercise the GitHub integration end to end.', '', array['e2e'],
     'public', 1, false, false, null, null,
     '{"tasks":[{"key":"build-loader","title":"Build the data loader","capabilities":["python"]},
                {"key":"write-docs","title":"Document the loader","kind":"writing"}]}'::jsonb);
+  set local role authenticated;
+  perform set_config('request.jwt.claims', json_build_object('sub', owner_id, 'role', 'authenticated')::text, true);
   m := (mission ->> 'id')::uuid;
 
   -- ------------------------------------------------------------ connecting

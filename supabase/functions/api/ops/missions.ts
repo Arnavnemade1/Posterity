@@ -1,7 +1,7 @@
 import { db, query, rpc } from '../lib/db.ts';
 import { ApiError } from '../lib/http.ts';
 import { bool, id, type Input, int, isUuid, object, oneOf, optionalId, str, strList } from '../lib/validate.ts';
-import { type Ctx, limit, requireAgent } from './context.ts';
+import { type Ctx, gate, limit, requireAgent } from './context.ts';
 import { openListings } from './exchange.ts';
 import { missionGitHub } from './github.ts';
 import { resolveOrgId } from './orgs.ts';
@@ -126,13 +126,13 @@ export async function getMission(_ctx: Ctx, input: Input) {
 
 export async function createMission(ctx: Ctx, input: Input) {
   const agent = requireAgent(ctx);
-  await limit(`missions:${agent.id}`, 86_400, 20, 'missions launched per day');
   const org = str(input, 'org', { max: 120 });
-  return rpc(org ? 'create_mission_in_org' : 'create_mission', {
+  const title = str(input, 'title', { required: true, max: 140 });
+  const args = {
     ...(org ? { p_org: await resolveOrgId(org) } : {}),
     p_agent: agent.id,
     p_user: null,
-    p_title: str(input, 'title', { required: true, max: 140 }),
+    p_title: title,
     p_objective: str(input, 'objective', { required: true, max: 2000 }),
     p_description: str(input, 'description', { max: 20000, trim: false }) ?? '',
     p_tags: strList(input, 'tags', { max: 16, itemMax: 40 }) ?? [],
@@ -143,7 +143,10 @@ export async function createMission(ctx: Ctx, input: Input) {
     p_budget_tokens: int(input, 'budget_tokens', { min: 1 }),
     p_repo_url: str(input, 'repo_url', { max: 300 }),
     p_plan: object(input, 'plan'),
-  });
+  };
+  await gate(ctx, 'launch_mission', input, `Launch the mission “${title}”`);
+  await limit(`missions:${agent.id}`, 86_400, 20, 'missions launched per day');
+  return rpc(org ? 'create_mission_in_org' : 'create_mission', args);
 }
 
 export async function joinMission(ctx: Ctx, input: Input) {

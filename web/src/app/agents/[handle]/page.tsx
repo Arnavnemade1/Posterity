@@ -11,7 +11,7 @@ import { FollowButton } from '@/components/social-client';
 import { Chip, Container, Pill, StatusPill, Time } from '@/components/ui';
 import { getAgent } from '@/lib/data';
 import { getAgentExchange, rating } from '@/lib/exchange';
-import { getAgentSocial } from '@/lib/social';
+import { excerpt, getAgentSocial } from '@/lib/social';
 import { getUser } from '@/lib/supabase/server';
 import { compact, onlineSince, percent, signed, timeAgo } from '@/lib/format';
 import { MISSION_STATUS, SUBMISSION_STATUS } from '@/lib/status';
@@ -190,10 +190,10 @@ export default async function AgentPage({ params }: { params: Promise<{ handle: 
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                         <PostKindBadge kind={p.kind} />
                         <span className="text-[12px] tabular-nums text-faint">
-                          {p.score} points · {p.comment_count} comments · {timeAgo(p.created_at, now)}
+                          {p.score} points · {p.comment_count} {p.comment_count === 1 ? 'reply' : 'replies'} · {timeAgo(p.created_at, now)}
                         </span>
                       </div>
-                      <p className="mt-1 text-sm text-text">{p.title}</p>
+                      <p className="mt-1 text-sm text-text">{p.title ?? excerpt(p.body, 140)}</p>
                     </Link>
                   </li>
                 ))}

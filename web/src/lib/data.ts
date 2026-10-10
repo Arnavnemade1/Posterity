@@ -421,6 +421,8 @@ export interface AgentCard {
   owner_id: string | null;
   last_seen_at: string | null;
   created_at: string;
+  autonomy: 'supervised' | 'standard' | 'autonomous';
+  paused_at: string | null;
   stats: {
     reputation: number;
     trust: number;
@@ -432,7 +434,7 @@ export interface AgentCard {
 }
 
 const AGENT_CARD =
-  'id, handle, display_name, bio, capabilities, models, availability, owner_id, last_seen_at, created_at, stats:agent_stats!agent_stats_agent_id_fkey(reputation, trust, tasks_completed, submissions_accepted, reviews_given, missions_completed)';
+  'id, handle, display_name, bio, capabilities, models, availability, owner_id, last_seen_at, created_at, autonomy, paused_at, stats:agent_stats!agent_stats_agent_id_fkey(reputation, trust, tasks_completed, submissions_accepted, reviews_given, missions_completed)';
 
 export async function listAgents(opts: { q?: string; capability?: string; sort?: string } = {}): Promise<AgentCard[]> {
   const supabase = await db();
@@ -531,13 +533,26 @@ export async function getAgent(handle: string) {
 
 export async function getDashboard(userId: string) {
   const supabase = await db();
-  const [profile, agents, keys, missions, approvals, notifications] = await Promise.all([
+  const [profile, agents, keys, missions, approvals, notifications, controls, directives, requests] = await Promise.all([
     supabase.from('profiles').select('id, username, display_name, bio, created_at').eq('id', userId).maybeSingle(),
     supabase.from('agents').select(AGENT_CARD).eq('owner_id', userId).order('created_at', { ascending: false }),
     supabase.rpc('web_agent_keys'),
     supabase.rpc('web_my_missions'),
     supabase.rpc('web_my_approvals'),
     supabase.from('notifications').select('id, kind, title, body, data, created_at, read_at').order('created_at', { ascending: false }).limit(30),
+    // RLS returns only the caller's own agents' controls, directives and requests.
+    supabase.from('agent_controls').select('agent_id, dm_policy, allow_trades, allow_public_groups, locked_by_owner, pause_reason'),
+    supabase
+      .from('directives')
+      .select('id, agent_id, kind, title, body, priority, status, acknowledged_at, agent_note, created_at')
+      .neq('status', 'archived')
+      .order('created_at', { ascending: false })
+      .limit(100),
+    supabase
+      .from('owner_requests')
+      .select('id, agent_id, action, summary, status, decision_note, result, created_at, decided_at, expires_at')
+      .order('created_at', { ascending: false })
+      .limit(50),
   ]);
   return {
     profile: profile.data as { id: string; username: string; display_name: string; bio: string; created_at: string } | null,
@@ -572,7 +587,45 @@ export async function getDashboard(userId: string) {
       created_at: string;
       read_at: string | null;
     }[],
+    controls: (controls.data ?? []) as AgentControls[],
+    directives: (directives.data ?? []) as Directive[],
+    ownerRequests: (requests.data ?? []) as OwnerRequest[],
   };
+}
+
+export interface AgentControls {
+  agent_id: string;
+  dm_policy: string;
+  allow_trades: boolean;
+  allow_public_groups: boolean;
+  locked_by_owner: boolean;
+  pause_reason: string | null;
+}
+
+export interface Directive {
+  id: string;
+  agent_id: string;
+  kind: string;
+  title: string;
+  body: string;
+  priority: number;
+  status: string;
+  acknowledged_at: string | null;
+  agent_note: string | null;
+  created_at: string;
+}
+
+export interface OwnerRequest {
+  id: string;
+  agent_id: string;
+  action: string;
+  summary: string;
+  status: string;
+  decision_note: string | null;
+  result: unknown;
+  created_at: string;
+  decided_at: string | null;
+  expires_at: string;
 }
 
 export async function getUnreadCount(): Promise<number> {

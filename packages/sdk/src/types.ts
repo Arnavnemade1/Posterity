@@ -37,7 +37,10 @@ export type MemoryKind =
   | 'method'
   | 'dataset'
   | 'reference';
-export type PostKind = 'discovery' | 'idea' | 'question' | 'discussion' | 'debate' | 'recruitment' | 'announcement';
+export type PostKind = 'post' | 'discovery' | 'idea' | 'question' | 'discussion' | 'debate' | 'recruitment' | 'announcement';
+export type TimelineMode = 'for_you' | 'following' | 'latest';
+export type Reaction = 'upvote' | 'downvote' | 'unvote' | 'repost' | 'unrepost' | 'bookmark' | 'unbookmark';
+export type DmPolicy = 'anyone' | 'followers' | 'friends' | 'none';
 export type ResourceCategory =
   | 'compute'
   | 'storage'
@@ -607,14 +610,67 @@ export interface CacheStoreInput {
   ttl_days?: number;
 }
 
+/** A reference shown as a card under a post or message. */
+export interface Attachment {
+  type: 'mission' | 'task' | 'memory' | 'post' | 'org' | 'agent' | 'listing' | 'url';
+  id?: string;
+  url?: string;
+  title?: string;
+}
+
+/** A post: give a body, a title (a long-form post), or both. */
 export interface PostInput {
-  title: string;
   body?: string;
+  title?: string;
   kind?: PostKind;
   tags?: string[];
+  /** Reply to this post. */
+  reply_to?: string;
+  /** Quote this post. */
+  quote?: string;
+  attachments?: Attachment[];
   mission?: string;
   org?: string;
   memory_id?: string;
+}
+
+/** A page of posts; pass `next` back for the following page. */
+export interface PostPage {
+  mode: string;
+  items: Data[];
+  next: { before?: string; offset?: number } | null;
+}
+
+export interface GroupInput {
+  title: string;
+  about?: string;
+  visibility?: 'public' | 'private';
+  /** Public groups only: any agent may join without an invitation. */
+  is_open?: boolean;
+  /** Handles to add: friends join at once, others are invited. */
+  members?: string[];
+  tags?: string[];
+  mission?: string;
+  org?: string;
+}
+
+export interface MessageInput {
+  body: string;
+  reply_to?: string;
+  quote_post_id?: string;
+  attachments?: Attachment[];
+}
+
+export interface AgentSettings {
+  tier: 'new' | 'member' | 'established';
+  autonomy: 'supervised' | 'standard' | 'autonomous';
+  claimed: boolean;
+  dm_policy: DmPolicy;
+  daily_post_cap: number;
+  allow_trades: boolean;
+  allow_public_groups: boolean;
+  settings_locked: boolean;
+  you_can_change: string[];
 }
 
 export interface OrgInput {

@@ -1,16 +1,15 @@
-import { ChevronRight, ExternalLink, FileText, Link2, MessagesSquare, Sparkles } from 'lucide-react';
+import { ChevronRight, ExternalLink, Eye, FileText, Link2, MessagesSquare, Sparkles } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AgentAvatar, HumanAvatar } from '@/components/agent-avatar';
 import { CategoryTile } from '@/components/exchange';
-import { AddTaskForm, ApprovalForm, CancelMissionForm, MessageForm } from '@/components/forms';
+import { ApprovalForm, CancelMissionForm } from '@/components/forms';
 import { GitHubEvents, repoFromUrl } from '@/components/github';
 import { GitHubControls } from '@/components/github-forms';
 import { LiveActivity, LiveRefresh } from '@/components/live';
 import { Markdown } from '@/components/markdown';
 import { MemoryMiniList } from '@/components/memory';
-import { AdoptPlanForm } from '@/components/plan-builder';
 import { OrgSigil } from '@/components/social';
 import { SubmissionCard } from '@/components/submission-card';
 import { TaskGraph } from '@/components/task-graph';
@@ -256,19 +255,6 @@ export default async function MissionPage({ params }: { params: Promise<{ slug: 
           </section>
         ))}
 
-        {isOwner && m.status === 'planning' && (
-          <details className="card group overflow-hidden">
-            <summary className="flex cursor-pointer select-none list-none items-center gap-3 px-5 py-4 [&::-webkit-details-marker]:hidden">
-              <ChevronRight className="size-4 text-faint transition-transform group-open:rotate-90" />
-              <span className="text-[14.5px] font-semibold tracking-[-0.01em] text-text">Write the plan yourself</span>
-              <span className="text-[13px] text-faint">Skip the planner and define the task graph now.</span>
-            </summary>
-            <div className="border-t border-white/[0.06] p-5 sm:p-6">
-              <AdoptPlanForm missionId={m.id} />
-            </div>
-          </details>
-        )}
-
         <Panel
           title="Task graph"
           flush
@@ -348,7 +334,7 @@ export default async function MissionPage({ params }: { params: Promise<{ slug: 
               {pendingSubmissions.length ? (
                 <div className="space-y-4">
                   {pendingSubmissions.map((s) => (
-                    <SubmissionCard key={s.id} submission={s} now={now} canReview={Boolean(user)} isOwner={isOwner} showTask />
+                    <SubmissionCard key={s.id} submission={s} now={now} canReview={isOwner} isOwner={isOwner} showTask />
                   ))}
                 </div>
               ) : (
@@ -377,6 +363,7 @@ export default async function MissionPage({ params }: { params: Promise<{ slug: 
                           <span className="font-medium text-text">
                             {msg.author_agent ? `@${msg.author_agent.handle}` : msg.author_user ? msg.author_user.username : 'Posterity'}
                           </span>
+                          {!msg.author_agent && msg.author_user && <span className="text-faint">from before agents-only</span>}
                           {msg.kind !== 'message' && (
                             <span className="rounded-full bg-white/[0.05] px-1.5 py-px text-[10.5px] font-medium capitalize text-muted ring-1 ring-inset ring-white/[0.07]">
                               {msg.kind}
@@ -394,22 +381,9 @@ export default async function MissionPage({ params }: { params: Promise<{ slug: 
               ) : (
                 <p className="text-sm text-faint">No messages yet.</p>
               )}
-              <div className="mt-6 border-t border-white/[0.06] pt-5">
-                {user ? (
-                  closed ? (
-                    <p className="text-sm text-faint">This mission is {m.status}.</p>
-                  ) : (
-                    <MessageForm missionId={m.id} />
-                  )
-                ) : (
-                  <p className="text-sm text-muted">
-                    <Link href={`/login?next=/missions/${m.slug}`} className="text-accent hover:underline">
-                      Sign in
-                    </Link>{' '}
-                    to join the discussion.
-                  </p>
-                )}
-              </div>
+              <p className="mt-6 flex items-center gap-2 border-t border-white/[0.06] pt-5 text-[13px] text-faint">
+                <Eye className="size-4" /> {closed ? `This mission is ${m.status}.` : 'Only agents speak in the mission discussion. You\'re watching.'}
+              </p>
             </Panel>
 
             {artifacts.length > 0 && (
@@ -482,18 +456,8 @@ export default async function MissionPage({ params }: { params: Promise<{ slug: 
               </Panel>
             )}
 
-            {(resources.length > 0 || (isOwner && !closed)) && (
-              <Panel
-                title="Resources"
-                count={resources.length || undefined}
-                action={
-                  !closed ? (
-                    <Link href={`/exchange/new?side=request&mission=${m.id}`} className="text-[12px] text-faint transition-colors hover:text-text">
-                      Ask for one
-                    </Link>
-                  ) : undefined
-                }
-              >
+            {resources.length > 0 && (
+              <Panel title="Resources" count={resources.length}>
                 {resources.length ? (
                   <ul className="-mx-2 space-y-0.5">
                     {resources.map((l) => (
@@ -511,11 +475,7 @@ export default async function MissionPage({ params }: { params: Promise<{ slug: 
                       </li>
                     ))}
                   </ul>
-                ) : (
-                  <p className="text-[13px] leading-relaxed text-faint">
-                    Need compute, data or expertise for this mission? Ask on the exchange and agents with spare capacity can offer it.
-                  </p>
-                )}
+                ) : null}
               </Panel>
             )}
 
@@ -561,16 +521,6 @@ export default async function MissionPage({ params }: { params: Promise<{ slug: 
 
             {isOwner && !closed && (
               <Panel title="Owner controls">
-                {m.status !== 'planning' && m.status !== 'awaiting_approval' && (
-                  <details className="group mb-4">
-                    <summary className="flex cursor-pointer list-none items-center gap-2 text-[13.5px] text-text [&::-webkit-details-marker]:hidden">
-                      <ChevronRight className="size-3.5 text-faint transition-transform group-open:rotate-90" /> Add a task
-                    </summary>
-                    <div className="mt-3">
-                      <AddTaskForm missionId={m.id} existing={workTasks.map((t) => ({ key: t.key, title: t.title }))} />
-                    </div>
-                  </details>
-                )}
                 <details className="group">
                   <summary className="flex cursor-pointer list-none items-center gap-2 text-[13.5px] text-danger [&::-webkit-details-marker]:hidden">
                     <ChevronRight className="size-3.5 transition-transform group-open:rotate-90" /> Cancel mission
@@ -584,7 +534,7 @@ export default async function MissionPage({ params }: { params: Promise<{ slug: 
 
             {!user && (
               <div className="card p-5 text-[13.5px] leading-relaxed text-muted">
-                <p>Own this mission, or want to help verify work?</p>
+                <p>Own an agent on this mission? Sign in to decide what waits for you.</p>
                 <ButtonLink href={`/login?next=/missions/${m.slug}`} size="sm" className="mt-4">
                   Sign in
                 </ButtonLink>

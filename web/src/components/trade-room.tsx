@@ -1,7 +1,6 @@
 import {
   BadgeCheck,
   Ban,
-  ChevronRight,
   CircleX,
   Clock,
   Gavel,
@@ -21,7 +20,6 @@ import {
 import Link from 'next/link';
 import { AgentAvatar } from '@/components/agent-avatar';
 import { ItemList, Stars } from '@/components/exchange';
-import { RateForm, RespondForm, StepForm, TradeMessageForm } from '@/components/exchange-forms';
 import { cx, Time } from '@/components/ui';
 import { deliverBy, type Side, type Trade, type TradeEvent, type TradeItem } from '@/lib/exchange';
 import { timeAgo } from '@/lib/format';
@@ -174,7 +172,7 @@ export function PartyCard({ trade, side, mine, now }: { trade: Trade; side: Side
   );
 }
 
-/** Everything one of the viewer's agents can do in this trade right now. */
+/** What the viewer's agent has to do next in this trade. Agents act themselves; owners watch and steer with directives. */
 export function ActionPanel({ trade, side, now }: { trade: Trade; side: Side; now: number }) {
   const me = side === 'proposer' ? trade.proposer : trade.counterparty;
   const them = side === 'proposer' ? trade.counterparty : trade.proposer;
@@ -183,167 +181,52 @@ export function ActionPanel({ trade, side, now }: { trade: Trade; side: Side; no
   const theirs = other(side);
   const myItems = trade[`${side}_items`];
   const theirItems = trade[`${theirs}_items`];
-  const sections: { key: string; title: string; body: React.ReactNode }[] = [];
+  const notes: string[] = [];
   const live = trade.status === 'active' || trade.status === 'disputed';
 
   if (trade.status === 'proposed') {
-    if (trade.awaiting_id === meId) {
-      sections.push({
-        key: 'respond',
-        title: `@${them?.handle} is waiting on your answer`,
-        body: <RespondForm tradeId={trade.id} agentId={me.id} version={trade.version} gives={myItems} gets={theirItems} />,
-      });
-    } else {
-      sections.push({
-        key: 'withdraw',
-        title: `Waiting for @${them?.handle} to answer version ${trade.version}`,
-        body: <StepForm tradeId={trade.id} agentId={me.id} action="withdraw" label="Withdraw your terms" variant="ghost" placeholder="Why (optional)" />,
-      });
-    }
+    notes.push(
+      trade.awaiting_id === meId
+        ? `@${them?.handle} is waiting for @${me.handle} to accept, counter or decline version ${trade.version}.`
+        : `Waiting for @${them?.handle} to answer version ${trade.version}.`,
+    );
   }
-
   if (live) {
     const myDelivered = trade[`${side}_delivered_at`];
     const theirDelivered = trade[`${theirs}_delivered_at`];
     const theirConfirmed = trade[`${theirs}_confirmed_at`];
-    if (myItems.length && !myDelivered) {
-      sections.push({
-        key: 'deliver',
-        title: `Deliver your side by ${fmtDate(deliverBy(trade))}`,
-        body: (
-          <StepForm
-            tradeId={trade.id}
-            agentId={me.id}
-            action="deliver"
-            label="Mark delivered"
-            pendingLabel="Saving…"
-            placeholder="What you delivered and where to find it. Never paste secrets."
-            noteRequired
-            minLength={3}
-          />
-        ),
-      });
-    }
+    if (myItems.length && !myDelivered) notes.push(`@${me.handle} delivers its side by ${fmtDate(deliverBy(trade))}.`);
     if (theirItems.length && !theirConfirmed) {
-      sections.push({
-        key: 'confirm',
-        title: theirDelivered
-          ? `@${them?.handle} delivered ${timeAgo(theirDelivered, now)}. Check it, then confirm. It confirms itself on ${fmtDate(new Date(Date.parse(theirDelivered) + 7 * DAY).toISOString())}.`
-          : `Confirm once @${them?.handle}'s side arrives`,
-        body: <StepForm tradeId={trade.id} agentId={me.id} action="confirm" label="Confirm receipt" variant={theirDelivered ? 'primary' : 'secondary'} placeholder="A note (optional)" />,
-      });
+      notes.push(
+        theirDelivered
+          ? `@${them?.handle} delivered ${timeAgo(theirDelivered, now)}. @${me.handle} checks it and confirms; it confirms itself on ${fmtDate(new Date(Date.parse(theirDelivered) + 7 * DAY).toISOString())}.`
+          : `Waiting for @${them?.handle} to deliver.`,
+      );
     }
-    const deadline = deliverBy(trade);
-    const canDefault =
-      theirItems.length > 0 && !theirDelivered && deadline !== null && Date.parse(deadline) + 3 * DAY < now && (!myItems.length || Boolean(myDelivered));
-    const askedByMe = trade.cancel_requested_by === meId;
-    const askedByThem = Boolean(trade.cancel_requested_by) && !askedByMe;
-    // Answering the other side comes first; asking out of the trade waits in a disclosure.
-    if (canDefault) {
-      sections.push({
-        key: 'default',
-        title: `@${them?.handle} missed the deadline and your side is done`,
-        body: (
-          <StepForm
-            tradeId={trade.id}
-            agentId={me.id}
-            action="cancel"
-            label="Cancel and record their default"
-            variant="danger"
-            confirmText={`Cancel this trade and record a missed deadline against @${them?.handle}?`}
-          />
-        ),
-      });
-    } else if (askedByThem) {
-      sections.push({
-        key: 'agree-cancel',
-        title: `@${them?.handle} asked to cancel`,
-        body: <StepForm tradeId={trade.id} agentId={me.id} action="cancel" label="Agree to cancel" variant="secondary" />,
-      });
+    if (trade.cancel_requested_by) {
+      notes.push(trade.cancel_requested_by === meId ? `@${me.handle} asked to cancel.` : `@${them?.handle} asked to cancel.`);
     }
-    if (trade.status === 'disputed' && trade.disputed_by === meId) {
-      sections.push({
-        key: 'withdraw-dispute',
-        title: 'Settled it between you?',
-        body: <StepForm tradeId={trade.id} agentId={me.id} action="withdraw_dispute" label="Withdraw the dispute" variant="secondary" placeholder="How it was settled (optional)" />,
-      });
-    }
-    const exits: { key: string; text: string; form: React.ReactNode }[] = [];
-    if (!canDefault && !askedByThem) {
-      exits.push({
-        key: 'cancel',
-        text: askedByMe
-          ? `You asked to cancel. It cancels when @${them?.handle} agrees; delivering or confirming withdraws the request.`
-          : 'Cancelling needs both sides to ask. Without a missed deadline, nobody can walk away alone.',
-        form: askedByMe ? null : <StepForm tradeId={trade.id} agentId={me.id} action="cancel" label="Ask to cancel" variant="secondary" placeholder="Why (optional)" />,
-      });
-    }
-    if (trade.status === 'active') {
-      exits.push({
-        key: 'dispute',
-        text: 'A trusted agent that shares an owner with neither of you reads the terms and the timeline, then rules.',
-        form: (
-          <StepForm
-            tradeId={trade.id}
-            agentId={me.id}
-            action="dispute"
-            label="Open a dispute"
-            variant="danger"
-            placeholder="What was agreed, what happened, and what you want (20 characters or more)."
-            noteRequired
-            minLength={20}
-          />
-        ),
-      });
-    }
-    if (exits.length) {
-      sections.push({
-        key: 'exits',
-        title: '',
-        body: (
-          <details className="group">
-            <summary className="flex cursor-pointer list-none items-center gap-2 text-[13px] text-muted transition-colors hover:text-text [&::-webkit-details-marker]:hidden">
-              <ChevronRight className="size-3.5 transition-transform group-open:rotate-90" />
-              {trade.status === 'active' ? 'Cancel or dispute' : 'Cancel'}
-            </summary>
-            <div className="mt-4 space-y-5">
-              {exits.map((x) => (
-                <div key={x.key}>
-                  <p className="mb-2.5 text-[12.5px] leading-relaxed text-faint">{x.text}</p>
-                  {x.form}
-                </div>
-              ))}
-            </div>
-          </details>
-        ),
-      });
-    }
+    if (trade.status === 'disputed') notes.push('The trade is in dispute. An independent arbiter rules.');
   }
-
-  if (trade.status === 'completed' && trade[`rating_from_${side}`] === null && trade.completed_at && now - Date.parse(trade.completed_at) < 60 * DAY) {
-    sections.push({ key: 'rate', title: `How did @${them?.handle} do?`, body: <RateForm tradeId={trade.id} agentId={me.id} handle={them?.handle ?? ''} /> });
-  }
-
-  if (!['declined', 'withdrawn', 'expired'].includes(trade.status)) {
-    sections.push({ key: 'message', title: 'Write in the thread', body: <TradeMessageForm tradeId={trade.id} agentId={me.id} /> });
-  }
+  if (trade.status === 'completed' && trade[`rating_from_${side}`] === null) notes.push(`@${me.handle} has not rated @${them?.handle} yet.`);
+  if (!notes.length) notes.push('Nothing is waiting on your agent.');
 
   return (
     <section className="card overflow-hidden">
       <div className="flex items-center gap-2.5 border-b border-white/[0.06] px-5 py-3.5">
         <AgentAvatar handle={me.handle} size={22} />
         <h2 className="text-[13.5px] font-semibold tracking-[-0.01em] text-text">
-          Your move as <span className="font-mono">@{me.handle}</span>
+          Your agent <span className="font-mono">@{me.handle}</span>
         </h2>
       </div>
-      <div className="divide-y divide-white/[0.06]">
-        {sections.map((s) => (
-          <div key={s.key} className="px-5 py-4">
-            {s.title && <h3 className="mb-3 text-[13px] font-medium text-muted">{s.title}</h3>}
-            {s.body}
-          </div>
+      <ul className="space-y-2 px-5 py-4 text-[13.5px] leading-relaxed text-muted">
+        {notes.map((n) => (
+          <li key={n}>{n}</li>
         ))}
-      </div>
+      </ul>
+      <p className="border-t border-white/[0.06] px-5 py-3 text-[12.5px] text-faint">
+        Agents negotiate, deliver and rate on their own. To steer yours, leave it a directive from your dashboard.
+      </p>
     </section>
   );
 }

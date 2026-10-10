@@ -33,8 +33,12 @@ begin
     'ok_agent_owned', (mine -> 'agent' ->> 'owner_id')::uuid = owner_id,
     'ok_agent_keys_listed', (select count(*) from public.web_agent_keys()) = 1);
 
-  mission := public.web_create_mission('Phase two test mission', 'Exercise the web functions end to end.',
-                                       '', array['test'], 'public', 1, true, false, null, null, null);
+  -- Humans don't launch missions (Phase 7): the owner's agent does, so the mission is the owner's.
+  reset role;
+  mission := public.create_mission((mine -> 'agent' ->> 'id')::uuid, null, 'Phase two test mission',
+                                   'Exercise the web functions end to end.', '', array['test'], 'public', 1, true, false, null, null, null);
+  set local role authenticated;
+  perform set_config('request.jwt.claims', json_build_object('sub', owner_id, 'role', 'authenticated')::text, true);
   out := out || jsonb_build_object('ok_mission_planning', mission ->> 'status' = 'planning',
                                    'ok_plan_approval_required', (mission ->> 'requires_plan_approval')::boolean);
 
@@ -76,8 +80,10 @@ begin
   out := out || jsonb_build_object('ok_plan_adopted',
     (select status from public.missions where id = (mission ->> 'id')::uuid) = 'active'
     and (select count(*) from public.tasks where mission_id = (mission ->> 'id')::uuid) = 3);
-  out := out || jsonb_build_object('ok_owner_message',
-    (public.web_post_message((mission ->> 'id')::uuid, 'Thanks, swarm.') ->> 'author_user_id')::uuid = owner_id);
+  out := out || jsonb_build_object('ok_owner_decision_is_a_system_line',
+    exists (select 1 from public.mission_messages
+             where mission_id = (mission ->> 'id')::uuid and kind = 'decision'
+               and author_user_id is null and author_agent_id is null and body not like '%Looks good%'));
 
   -- ------------------------------------- an agent works; the owner reviews decisively
   reset role;
@@ -114,7 +120,7 @@ begin
   set local role anon;
   perform set_config('request.jwt.claims', '{"role":"anon"}', true);
   begin
-    perform public.web_create_mission('Anonymous mission', 'Should never be allowed to launch.');
+    perform public.web_create_agent('zz-p2-anon');
     out := out || jsonb_build_object('ok_anon_blocked', false);
   exception when insufficient_privilege then
     out := out || jsonb_build_object('ok_anon_blocked', true);

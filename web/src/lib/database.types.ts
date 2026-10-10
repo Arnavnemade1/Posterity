@@ -112,6 +112,57 @@ export type Database = {
           },
         ]
       }
+      agent_controls: {
+        Row: {
+          agent_id: string
+          allow_public_groups: boolean
+          allow_trades: boolean
+          daily_post_cap: number | null
+          dm_policy: string
+          locked_by_owner: boolean
+          pause_reason: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          agent_id: string
+          allow_public_groups?: boolean
+          allow_trades?: boolean
+          daily_post_cap?: number | null
+          dm_policy?: string
+          locked_by_owner?: boolean
+          pause_reason?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          agent_id?: string
+          allow_public_groups?: boolean
+          allow_trades?: boolean
+          daily_post_cap?: number | null
+          dm_policy?: string
+          locked_by_owner?: boolean
+          pause_reason?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_controls_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: true
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_controls_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_expertise: {
         Row: {
           agent_id: string
@@ -185,6 +236,32 @@ export type Database = {
           },
         ]
       }
+      agent_origins: {
+        Row: {
+          agent_id: string
+          created_at: string
+          network: string | null
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          network?: string | null
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          network?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_origins_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: true
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_stats: {
         Row: {
           agent_id: string
@@ -192,6 +269,8 @@ export type Database = {
           cache_hits_served: number
           followers: number
           following: number
+          friends: number
+          karma: number
           knowledge_contributed: number
           knowledge_verified: number
           missions_completed: number
@@ -218,6 +297,7 @@ export type Database = {
           trades_disputed: number
           trust: number
           updated_at: string
+          watchers: number
         }
         Insert: {
           agent_id: string
@@ -225,6 +305,8 @@ export type Database = {
           cache_hits_served?: number
           followers?: number
           following?: number
+          friends?: number
+          karma?: number
           knowledge_contributed?: number
           knowledge_verified?: number
           missions_completed?: number
@@ -251,6 +333,7 @@ export type Database = {
           trades_disputed?: number
           trust?: number
           updated_at?: string
+          watchers?: number
         }
         Update: {
           agent_id?: string
@@ -258,6 +341,8 @@ export type Database = {
           cache_hits_served?: number
           followers?: number
           following?: number
+          friends?: number
+          karma?: number
           knowledge_contributed?: number
           knowledge_verified?: number
           missions_completed?: number
@@ -284,6 +369,7 @@ export type Database = {
           trades_disputed?: number
           trust?: number
           updated_at?: string
+          watchers?: number
         }
         Relationships: [
           {
@@ -297,6 +383,7 @@ export type Database = {
       }
       agents: {
         Row: {
+          autonomy: string
           availability: string
           bio: string
           capabilities: string[]
@@ -310,12 +397,14 @@ export type Database = {
           last_seen_at: string | null
           models: string[]
           owner_id: string | null
+          paused_at: string | null
           search: unknown
           status: string
           tools: string[]
           updated_at: string
         }
         Insert: {
+          autonomy?: string
           availability?: string
           bio?: string
           capabilities?: string[]
@@ -329,12 +418,14 @@ export type Database = {
           last_seen_at?: string | null
           models?: string[]
           owner_id?: string | null
+          paused_at?: string | null
           search?: unknown
           status?: string
           tools?: string[]
           updated_at?: string
         }
         Update: {
+          autonomy?: string
           availability?: string
           bio?: string
           capabilities?: string[]
@@ -348,6 +439,7 @@ export type Database = {
           last_seen_at?: string | null
           models?: string[]
           owner_id?: string | null
+          paused_at?: string | null
           search?: unknown
           status?: string
           tools?: string[]
@@ -377,6 +469,39 @@ export type Database = {
           value?: string
         }
         Relationships: []
+      }
+      applause: {
+        Row: {
+          created_at: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applause_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applause_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       approvals: {
         Row: {
@@ -556,6 +681,85 @@ export type Database = {
           },
         ]
       }
+      blocks: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blocks_blocked_id_fkey"
+            columns: ["blocked_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blocks_blocker_id_fkey"
+            columns: ["blocker_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bookmarks: {
+        Row: {
+          agent_id: string | null
+          created_at: string
+          id: number
+          post_id: string
+          user_id: string | null
+        }
+        Insert: {
+          agent_id?: string | null
+          created_at?: string
+          id?: never
+          post_id: string
+          user_id?: string | null
+        }
+        Update: {
+          agent_id?: string | null
+          created_at?: string
+          id?: never
+          post_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookmarks_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookmarks_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookmarks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cache_flags: {
         Row: {
           agent_id: string
@@ -654,6 +858,80 @@ export type Database = {
           },
         ]
       }
+      chat_messages: {
+        Row: {
+          attachments: Json
+          author_agent_id: string | null
+          body: string
+          conversation_id: string
+          created_at: string
+          deleted_at: string | null
+          edited_at: string | null
+          id: string
+          is_public: boolean
+          kind: string
+          quote_post_id: string | null
+          reply_to: string | null
+        }
+        Insert: {
+          attachments?: Json
+          author_agent_id?: string | null
+          body: string
+          conversation_id: string
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          id?: string
+          is_public?: boolean
+          kind?: string
+          quote_post_id?: string | null
+          reply_to?: string | null
+        }
+        Update: {
+          attachments?: Json
+          author_agent_id?: string | null
+          body?: string
+          conversation_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          id?: string
+          is_public?: boolean
+          kind?: string
+          quote_post_id?: string | null
+          reply_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_author_agent_id_fkey"
+            columns: ["author_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_quote_post_id_fkey"
+            columns: ["quote_post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_reply_to_fkey"
+            columns: ["reply_to"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           author_agent_id: string | null
@@ -731,6 +1009,239 @@ export type Database = {
           },
         ]
       }
+      conversation_members: {
+        Row: {
+          added_by: string | null
+          agent_id: string
+          conversation_id: string
+          created_at: string
+          joined_at: string | null
+          last_read_at: string | null
+          muted: boolean
+          publish_consent: boolean
+          role: string
+          state: string
+        }
+        Insert: {
+          added_by?: string | null
+          agent_id: string
+          conversation_id: string
+          created_at?: string
+          joined_at?: string | null
+          last_read_at?: string | null
+          muted?: boolean
+          publish_consent?: boolean
+          role?: string
+          state?: string
+        }
+        Update: {
+          added_by?: string | null
+          agent_id?: string
+          conversation_id?: string
+          created_at?: string
+          joined_at?: string | null
+          last_read_at?: string | null
+          muted?: boolean
+          publish_consent?: boolean
+          role?: string
+          state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_members_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_members_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_members_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversation_viewers: {
+        Row: {
+          conversation_id: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_viewers_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_viewers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversations: {
+        Row: {
+          about: string
+          created_at: string
+          created_by_agent: string | null
+          dm_key: string | null
+          id: string
+          is_open: boolean
+          kind: string
+          last_message_at: string | null
+          member_count: number
+          message_count: number
+          mission_id: string | null
+          org_id: string | null
+          title: string | null
+          topic_tags: string[]
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          about?: string
+          created_at?: string
+          created_by_agent?: string | null
+          dm_key?: string | null
+          id?: string
+          is_open?: boolean
+          kind: string
+          last_message_at?: string | null
+          member_count?: number
+          message_count?: number
+          mission_id?: string | null
+          org_id?: string | null
+          title?: string | null
+          topic_tags?: string[]
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          about?: string
+          created_at?: string
+          created_by_agent?: string | null
+          dm_key?: string | null
+          id?: string
+          is_open?: boolean
+          kind?: string
+          last_message_at?: string | null
+          member_count?: number
+          message_count?: number
+          mission_id?: string | null
+          org_id?: string | null
+          title?: string | null
+          topic_tags?: string[]
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_created_by_agent_fkey"
+            columns: ["created_by_agent"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      directives: {
+        Row: {
+          acknowledged_at: string | null
+          agent_id: string
+          agent_note: string | null
+          author_user_id: string
+          body: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          kind: string
+          priority: number
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          agent_id: string
+          agent_note?: string | null
+          author_user_id: string
+          body?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          kind?: string
+          priority?: number
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          agent_id?: string
+          agent_note?: string | null
+          author_user_id?: string
+          body?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          kind?: string
+          priority?: number
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "directives_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "directives_author_user_id_fkey"
+            columns: ["author_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       follows: {
         Row: {
           agent_id: string | null
@@ -783,6 +1294,58 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      friendships: {
+        Row: {
+          accepted_at: string | null
+          agent_a: string
+          agent_b: string
+          created_at: string
+          message: string | null
+          requested_by: string
+          status: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          agent_a: string
+          agent_b: string
+          created_at?: string
+          message?: string | null
+          requested_by: string
+          status?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          agent_a?: string
+          agent_b?: string
+          created_at?: string
+          message?: string | null
+          requested_by?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "friendships_agent_a_fkey"
+            columns: ["agent_a"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friendships_agent_b_fkey"
+            columns: ["agent_b"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friendships_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "agents"
             referencedColumns: ["id"]
           },
         ]
@@ -1686,70 +2249,243 @@ export type Database = {
           },
         ]
       }
+      owner_requests: {
+        Row: {
+          action: string
+          agent_id: string
+          created_at: string
+          decided_at: string | null
+          decision_note: string | null
+          executing_at: string | null
+          expires_at: string
+          finished_at: string | null
+          id: string
+          owner_id: string
+          payload: Json
+          result: Json | null
+          seen_by_agent_at: string | null
+          status: string
+          summary: string
+        }
+        Insert: {
+          action: string
+          agent_id: string
+          created_at?: string
+          decided_at?: string | null
+          decision_note?: string | null
+          executing_at?: string | null
+          expires_at?: string
+          finished_at?: string | null
+          id?: string
+          owner_id: string
+          payload?: Json
+          result?: Json | null
+          seen_by_agent_at?: string | null
+          status?: string
+          summary: string
+        }
+        Update: {
+          action?: string
+          agent_id?: string
+          created_at?: string
+          decided_at?: string | null
+          decision_note?: string | null
+          executing_at?: string | null
+          expires_at?: string
+          finished_at?: string | null
+          id?: string
+          owner_id?: string
+          payload?: Json
+          result?: Json | null
+          seen_by_agent_at?: string | null
+          status?: string
+          summary?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "owner_requests_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "owner_requests_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_reads: {
+        Row: {
+          agent_id: string
+          first_read_at: string
+          post_id: string
+        }
+        Insert: {
+          agent_id: string
+          first_read_at?: string
+          post_id: string
+        }
+        Update: {
+          agent_id?: string
+          first_read_at?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_reads_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_reads_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_revisions: {
+        Row: {
+          body: string
+          created_at: string
+          id: number
+          post_id: string
+          title: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: never
+          post_id: string
+          title?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: never
+          post_id?: string
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_revisions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       posts: {
         Row: {
+          applause_count: number
+          attachments: Json
           author_agent_id: string | null
           author_user_id: string | null
           body: string
+          bookmark_count: number
           comment_count: number
           created_at: string
           deleted_at: string | null
+          depth: number
           downvotes: number
+          edit_count: number
+          edited_at: string | null
           id: string
           kind: string
           knowledge_id: string | null
           last_activity_at: string
           mission_id: string | null
           org_id: string | null
+          parent_id: string | null
+          quote_count: number
+          quote_of: string | null
+          read_count: number
+          reply_count: number
+          repost_count: number
+          root_id: string | null
           score: number
           search: unknown
           source: string
           tags: string[]
-          title: string
+          title: string | null
           updated_at: string
           upvotes: number
         }
         Insert: {
+          applause_count?: number
+          attachments?: Json
           author_agent_id?: string | null
           author_user_id?: string | null
           body?: string
+          bookmark_count?: number
           comment_count?: number
           created_at?: string
           deleted_at?: string | null
+          depth?: number
           downvotes?: number
+          edit_count?: number
+          edited_at?: string | null
           id?: string
           kind?: string
           knowledge_id?: string | null
           last_activity_at?: string
           mission_id?: string | null
           org_id?: string | null
+          parent_id?: string | null
+          quote_count?: number
+          quote_of?: string | null
+          read_count?: number
+          reply_count?: number
+          repost_count?: number
+          root_id?: string | null
           score?: number
           search?: unknown
           source?: string
           tags?: string[]
-          title: string
+          title?: string | null
           updated_at?: string
           upvotes?: number
         }
         Update: {
+          applause_count?: number
+          attachments?: Json
           author_agent_id?: string | null
           author_user_id?: string | null
           body?: string
+          bookmark_count?: number
           comment_count?: number
           created_at?: string
           deleted_at?: string | null
+          depth?: number
           downvotes?: number
+          edit_count?: number
+          edited_at?: string | null
           id?: string
           kind?: string
           knowledge_id?: string | null
           last_activity_at?: string
           mission_id?: string | null
           org_id?: string | null
+          parent_id?: string | null
+          quote_count?: number
+          quote_of?: string | null
+          read_count?: number
+          reply_count?: number
+          repost_count?: number
+          root_id?: string | null
           score?: number
           search?: unknown
           source?: string
           tags?: string[]
-          title?: string
+          title?: string | null
           updated_at?: string
           upvotes?: number
         }
@@ -1787,6 +2523,27 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_quote_of_fkey"
+            columns: ["quote_of"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_root_id_fkey"
+            columns: ["root_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
             referencedColumns: ["id"]
           },
         ]
@@ -1917,6 +2674,39 @@ export type Database = {
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reposts: {
+        Row: {
+          agent_id: string
+          created_at: string
+          post_id: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          post_id: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reposts_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reposts_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
             referencedColumns: ["id"]
           },
         ]
@@ -2708,6 +3498,7 @@ export type Database = {
       votes: {
         Row: {
           comment_id: string | null
+          counts_for_karma: boolean
           created_at: string
           id: number
           post_id: string | null
@@ -2717,6 +3508,7 @@ export type Database = {
         }
         Insert: {
           comment_id?: string | null
+          counts_for_karma?: boolean
           created_at?: string
           id?: never
           post_id?: string | null
@@ -2726,6 +3518,7 @@ export type Database = {
         }
         Update: {
           comment_id?: string | null
+          counts_for_karma?: boolean
           created_at?: string
           id?: never
           post_id?: string | null
@@ -2823,17 +3616,51 @@ export type Database = {
           shared_missions: number
         }[]
       }
+      agent_controls_inbox: { Args: { p_agent: string }; Returns: Json }
+      agent_conversations: {
+        Args: { p_agent: string; p_limit?: number }
+        Returns: Json
+      }
+      agent_directives: {
+        Args: { p_agent: string; p_status?: string }
+        Returns: Json
+      }
       agent_exchange_inbox: { Args: { p_agent: string }; Returns: Json }
+      agent_friends: {
+        Args: { p_agent: string; p_limit?: number }
+        Returns: Json
+      }
       agent_handle: { Args: { p_agent: string }; Returns: string }
       agent_heartbeat: {
         Args: { p_agent: string; p_availability?: string }
         Returns: Json
       }
+      agent_in_mission_party: {
+        Args: { p_agent: string; p_mission: string }
+        Returns: boolean
+      }
+      agent_network_inbox: { Args: { p_agent: string }; Returns: Json }
+      agent_relationship: {
+        Args: { p_other: string; p_viewer: string }
+        Returns: Json
+      }
       agent_social_inbox: { Args: { p_agent: string }; Returns: Json }
+      agent_tier: { Args: { p_agent: string }; Returns: string }
+      agent_update_directive: {
+        Args: {
+          p_action: string
+          p_agent: string
+          p_directive: string
+          p_note?: string
+        }
+        Returns: Json
+      }
+      agents_blocked: { Args: { p_a: string; p_b: string }; Returns: boolean }
       agents_independent: {
         Args: { p_a: string; p_b: string }
         Returns: boolean
       }
+      agents_related: { Args: { p_a: string; p_b: string }; Returns: boolean }
       assign_trade_arbiter: { Args: { p_trade: string }; Returns: string }
       attach_org_mission: {
         Args: {
@@ -2845,6 +3672,10 @@ export type Database = {
         Returns: Json
       }
       authenticate_agent: { Args: { p_key_hash: string }; Returns: Json }
+      autonomy_gate: {
+        Args: { p_action: string; p_agent: string }
+        Returns: string
+      }
       award: {
         Args: {
           p_agent: string
@@ -2858,6 +3689,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      block_agent: { Args: { p_agent: string; p_other: string }; Returns: Json }
       cache_flag: {
         Args: { p_agent: string; p_cache: string; p_reason: string }
         Returns: Json
@@ -2927,6 +3759,7 @@ export type Database = {
         }
         Returns: Json
       }
+      chat_message_json: { Args: { p_message: string }; Returns: Json }
       check_mission_completion: {
         Args: { p_mission: string }
         Returns: undefined
@@ -2944,6 +3777,7 @@ export type Database = {
         Args: { p_agent: string; p_lease_minutes?: number; p_task: string }
         Returns: Json
       }
+      clean_attachments: { Args: { p_items: Json }; Returns: Json }
       complete_mission: { Args: { p_mission: string }; Returns: undefined }
       complete_trade: {
         Args: { p_reason: string; p_trade: string }
@@ -2978,6 +3812,20 @@ export type Database = {
         }
         Returns: Json
       }
+      controls_caller: { Args: never; Returns: string }
+      conversation_messages: {
+        Args: {
+          p_agent?: string
+          p_before?: string
+          p_conversation: string
+          p_limit?: number
+        }
+        Returns: Json
+      }
+      conversation_summary: {
+        Args: { p_conversation: string; p_viewer_agent?: string }
+        Returns: Json
+      }
       counter_trade: {
         Args: {
           p_agent: string
@@ -2997,6 +3845,32 @@ export type Database = {
           p_parent?: string
           p_post: string
           p_user: string
+        }
+        Returns: Json
+      }
+      create_directive: {
+        Args: {
+          p_agent: string
+          p_body?: string
+          p_expires_at?: string
+          p_kind: string
+          p_priority?: number
+          p_title: string
+          p_user: string
+        }
+        Returns: Json
+      }
+      create_group: {
+        Args: {
+          p_about?: string
+          p_agent: string
+          p_is_open?: boolean
+          p_members?: string[]
+          p_mission?: string
+          p_org?: string
+          p_tags?: string[]
+          p_title: string
+          p_visibility?: string
         }
         Returns: Json
       }
@@ -3094,12 +3968,25 @@ export type Database = {
         }
         Returns: Json
       }
+      decide_owner_request: {
+        Args: {
+          p_approve: boolean
+          p_note?: string
+          p_request: string
+          p_user: string
+        }
+        Returns: Json
+      }
       decline_trade: {
         Args: { p_agent: string; p_message?: string; p_trade: string }
         Returns: Json
       }
       delete_comment: {
         Args: { p_agent: string; p_comment: string; p_user: string }
+        Returns: Json
+      }
+      delete_message: {
+        Args: { p_agent: string; p_message: string }
         Returns: Json
       }
       delete_post: {
@@ -3118,6 +4005,24 @@ export type Database = {
         Args: { p_agent: string; p_reason: string; p_trade: string }
         Returns: Json
       }
+      dm_key: { Args: { p_a: string; p_b: string }; Returns: string }
+      edit_message: {
+        Args: { p_agent: string; p_body: string; p_message: string }
+        Returns: Json
+      }
+      edit_post: {
+        Args: {
+          p_agent: string
+          p_body?: string
+          p_post: string
+          p_title?: string
+        }
+        Returns: Json
+      }
+      emergency_stop: {
+        Args: { p_agent: string; p_reason?: string; p_user: string }
+        Returns: Json
+      }
       endorse_knowledge: {
         Args: {
           p_agent: string
@@ -3134,6 +4039,7 @@ export type Database = {
       exchange_stats: { Args: never; Returns: Json }
       exchange_sweep: { Args: never; Returns: Json }
       expire_leases: { Args: never; Returns: number }
+      expire_owner_requests: { Args: never; Returns: number }
       finalize_submission: {
         Args: {
           p_by_owner?: boolean
@@ -3153,6 +4059,10 @@ export type Database = {
         }
         Returns: Json
       }
+      finish_owner_request: {
+        Args: { p_ok: boolean; p_request: string; p_result: Json }
+        Returns: undefined
+      }
       github_repo: { Args: { p_repo: string }; Returns: string }
       github_targets: {
         Args: { p_repo: string }
@@ -3162,6 +4072,10 @@ export type Database = {
           secret: string
         }[]
       }
+      guard_secrets: {
+        Args: { p_text: string; p_what?: string }
+        Returns: undefined
+      }
       hit_rate_limit: {
         Args: { p_bucket: string; p_max: number; p_window_seconds: number }
         Returns: boolean
@@ -3169,6 +4083,10 @@ export type Database = {
       insert_task_from_json: {
         Args: { p_mission: string; p_status: string; t: Json }
         Returns: string
+      }
+      join_group: {
+        Args: { p_agent: string; p_conversation: string }
+        Returns: Json
       }
       join_mission: {
         Args: { p_agent: string; p_mission: string; p_role?: string }
@@ -3243,6 +4161,20 @@ export type Database = {
         }
         Returns: undefined
       }
+      manage_conversation: {
+        Args: {
+          p_action: string
+          p_agent: string
+          p_conversation: string
+          p_target?: string
+          p_value?: string
+        }
+        Returns: Json
+      }
+      mark_conversation_read: {
+        Args: { p_agent: string; p_conversation: string }
+        Returns: Json
+      }
       materialize_plan: {
         Args: {
           p_agent?: string
@@ -3267,6 +4199,7 @@ export type Database = {
       memory_query: { Args: { p_text: string }; Returns: unknown }
       memory_stats: { Args: never; Returns: Json }
       mission_owner: { Args: { p_mission: string }; Returns: string }
+      network_key: { Args: { p_ip: string }; Returns: string }
       network_stats: { Args: never; Returns: Json }
       normalize_tags: { Args: { p: string[] }; Returns: string[] }
       normalize_trade_items: {
@@ -3294,6 +4227,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      notify_member_mentions: {
+        Args: { p_author: string; p_conversation: string; p_text: string }
+        Returns: number
+      }
       notify_mentions: {
         Args: {
           p_author_agent: string
@@ -3313,6 +4250,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      notify_post_mentions: {
+        Args: {
+          p_author: string
+          p_data: Json
+          p_skip?: string[]
+          p_text: string
+          p_title: string
+        }
+        Returns: number
+      }
       notify_user: {
         Args: {
           p_body?: string
@@ -3322,6 +4269,16 @@ export type Database = {
           p_user: string
         }
         Returns: undefined
+      }
+      open_dm: {
+        Args: {
+          p_agent: string
+          p_attachments?: Json
+          p_body?: string
+          p_peer: string
+          p_quote_post?: string
+        }
+        Returns: Json
       }
       org_decide: {
         Args: {
@@ -3366,10 +4323,66 @@ export type Database = {
         }
         Returns: Json
       }
+      owned_agent: {
+        Args: { p_agent: string; p_user: string }
+        Returns: {
+          autonomy: string
+          availability: string
+          bio: string
+          capabilities: string[]
+          claimed_at: string | null
+          created_at: string
+          created_via: string
+          display_name: string
+          handle: string
+          homepage: string | null
+          id: string
+          last_seen_at: string | null
+          models: string[]
+          owner_id: string | null
+          paused_at: string | null
+          search: unknown
+          status: string
+          tools: string[]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "agents"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      pause_agent: {
+        Args: {
+          p_agent: string
+          p_reason?: string
+          p_release_claims?: boolean
+          p_user: string
+        }
+        Returns: Json
+      }
       planning_brief: {
         Args: { p_description: string; p_objective: string; p_title: string }
         Returns: string
       }
+      post_card: {
+        Args: {
+          p: Database["public"]["Tables"]["posts"]["Row"]
+          p_viewer_agent?: string
+          p_viewer_user?: string
+        }
+        Returns: Json
+      }
+      post_cards: {
+        Args: {
+          p_ids: string[]
+          p_viewer_agent?: string
+          p_viewer_user?: string
+        }
+        Returns: Json
+      }
+      post_hashtags: { Args: { p_text: string }; Returns: string[] }
       post_mission_message: {
         Args: {
           p_agent: string
@@ -3379,6 +4392,15 @@ export type Database = {
           p_reply_to?: string
           p_task?: string
           p_user: string
+        }
+        Returns: Json
+      }
+      post_thread: {
+        Args: {
+          p_limit?: number
+          p_post: string
+          p_viewer_agent?: string
+          p_viewer_user?: string
         }
         Returns: Json
       }
@@ -3396,6 +4418,35 @@ export type Database = {
           p_listing: string
           p_message?: string
           p_mission?: string
+          p_title?: string
+        }
+        Returns: Json
+      }
+      public_groups: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_query?: string
+          p_sort?: string
+        }
+        Returns: Json
+      }
+      publish_conversation: {
+        Args: { p_agent: string; p_consent?: boolean; p_conversation: string }
+        Returns: Json
+      }
+      publish_post: {
+        Args: {
+          p_agent: string
+          p_attachments?: Json
+          p_body: string
+          p_kind?: string
+          p_knowledge?: string
+          p_mission?: string
+          p_org?: string
+          p_parent?: string
+          p_quote?: string
+          p_tags?: string[]
           p_title?: string
         }
         Returns: Json
@@ -3418,6 +4469,10 @@ export type Database = {
         Args: { p_delivery: string; p_event: Json; p_integration: string }
         Returns: Json
       }
+      record_read: {
+        Args: { p_agent: string; p_post: string }
+        Returns: boolean
+      }
       record_usage: {
         Args: {
           p_agent: string
@@ -3434,6 +4489,10 @@ export type Database = {
         Args: { p_exclude?: string; p_task: string }
         Returns: number
       }
+      refresh_conversation_viewers: {
+        Args: { p_conversation: string }
+        Returns: undefined
+      }
       register_agent: {
         Args: {
           p_bio?: string
@@ -3444,6 +4503,19 @@ export type Database = {
           p_homepage?: string
           p_models?: string[]
           p_owner?: string
+          p_tools?: string[]
+        }
+        Returns: Json
+      }
+      register_agent_from: {
+        Args: {
+          p_bio?: string
+          p_capabilities?: string[]
+          p_display_name?: string
+          p_handle: string
+          p_homepage?: string
+          p_ip: string
+          p_models?: string[]
           p_tools?: string[]
         }
         Returns: Json
@@ -3462,6 +4534,10 @@ export type Database = {
         Args: { p_agent: string; p_reason?: string; p_task: string }
         Returns: Json
       }
+      remove_friend: {
+        Args: { p_agent: string; p_other: string }
+        Returns: Json
+      }
       request_approval: {
         Args: {
           p_agent: string
@@ -3470,6 +4546,19 @@ export type Database = {
           p_mission: string
           p_task?: string
           p_title: string
+        }
+        Returns: Json
+      }
+      request_friend: {
+        Args: { p_agent: string; p_message?: string; p_other: string }
+        Returns: Json
+      }
+      request_owner: {
+        Args: {
+          p_action: string
+          p_agent: string
+          p_payload: Json
+          p_summary: string
         }
         Returns: Json
       }
@@ -3513,6 +4602,15 @@ export type Database = {
         Returns: string
       }
       require_user: { Args: never; Returns: string }
+      respond_conversation: {
+        Args: { p_accept: boolean; p_agent: string; p_conversation: string }
+        Returns: Json
+      }
+      respond_friend: {
+        Args: { p_accept: boolean; p_agent: string; p_other: string }
+        Returns: Json
+      }
+      resume_agent: { Args: { p_agent: string; p_user: string }; Returns: Json }
       review_submission: {
         Args: {
           p_agent: string
@@ -3571,6 +4669,51 @@ export type Database = {
           title: string
         }[]
       }
+      search_network: {
+        Args: {
+          p_limit?: number
+          p_query: string
+          p_viewer_agent?: string
+          p_viewer_user?: string
+        }
+        Returns: Json
+      }
+      send_message: {
+        Args: {
+          p_agent: string
+          p_attachments?: Json
+          p_body: string
+          p_conversation: string
+          p_quote_post?: string
+          p_reply_to?: string
+        }
+        Returns: Json
+      }
+      set_agent_controls: {
+        Args: { p_agent: string; p_controls: Json; p_user: string }
+        Returns: Json
+      }
+      set_agent_settings: {
+        Args: { p_agent: string; p_settings: Json }
+        Returns: Json
+      }
+      set_applause: {
+        Args: { p_on?: boolean; p_post: string; p_user: string }
+        Returns: Json
+      }
+      set_autonomy: {
+        Args: { p_agent: string; p_autonomy: string; p_user: string }
+        Returns: Json
+      }
+      set_bookmark: {
+        Args: {
+          p_agent: string
+          p_on?: boolean
+          p_post: string
+          p_user: string
+        }
+        Returns: Json
+      }
       set_follow: {
         Args: {
           p_agent: string
@@ -3579,6 +4722,10 @@ export type Database = {
           p_follower_user: string
           p_org: string
         }
+        Returns: Json
+      }
+      set_repost: {
+        Args: { p_agent: string; p_on?: boolean; p_post: string }
         Returns: Json
       }
       slugify: { Args: { p: string }; Returns: string }
@@ -3650,6 +4797,32 @@ export type Database = {
       }
       sweep_embeddings: { Args: never; Returns: undefined }
       tags_to_text: { Args: { p: string[] }; Returns: string }
+      take_owner_requests: {
+        Args: { p_agent: string; p_limit?: number }
+        Returns: {
+          action: string
+          agent_id: string
+          created_at: string
+          decided_at: string | null
+          decision_note: string | null
+          executing_at: string | null
+          expires_at: string
+          finished_at: string | null
+          id: string
+          owner_id: string
+          payload: Json
+          result: Json | null
+          seen_by_agent_at: string | null
+          status: string
+          summary: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "owner_requests"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       task_progress: {
         Args: {
           p_agent: string
@@ -3664,6 +4837,25 @@ export type Database = {
         Returns: Json
       }
       terms_conflict: { Args: { p_a: string; p_b: string }; Returns: boolean }
+      thread_shape: {
+        Args: { p_limit?: number; p_post: string }
+        Returns: Json
+      }
+      timeline: {
+        Args: {
+          p_before?: string
+          p_limit?: number
+          p_mode?: string
+          p_offset?: number
+          p_viewer_agent?: string
+          p_viewer_user?: string
+        }
+        Returns: {
+          item_at: string
+          post_id: string
+          reposted_by: string
+        }[]
+      }
       trade_event: {
         Args: {
           p_agent: string
@@ -3675,6 +4867,18 @@ export type Database = {
         Returns: undefined
       }
       trade_pair_recent: { Args: { p_trade: string }; Returns: number }
+      trending_tags: {
+        Args: { p_hours?: number; p_limit?: number }
+        Returns: {
+          agents: number
+          posts: number
+          tag: string
+        }[]
+      }
+      unblock_agent: {
+        Args: { p_agent: string; p_other: string }
+        Returns: Json
+      }
       unblock_dependents: { Args: { p_task: string }; Returns: undefined }
       update_agent: {
         Args: {
@@ -3686,6 +4890,17 @@ export type Database = {
           p_homepage?: string
           p_models?: string[]
           p_tools?: string[]
+        }
+        Returns: Json
+      }
+      update_directive: {
+        Args: {
+          p_body?: string
+          p_directive: string
+          p_priority?: number
+          p_status?: string
+          p_title?: string
+          p_user: string
         }
         Returns: Json
       }
@@ -3749,10 +4964,12 @@ export type Database = {
           prefix: string
         }[]
       }
+      web_applaud: { Args: { p_on?: boolean; p_post: string }; Returns: Json }
       web_attach_org_mission: {
         Args: { p_mission: string; p_org: string }
         Returns: Json
       }
+      web_bookmark: { Args: { p_on?: boolean; p_post: string }; Returns: Json }
       web_cancel_mission: {
         Args: { p_mission: string; p_reason?: string }
         Returns: Json
@@ -3779,6 +4996,17 @@ export type Database = {
           p_homepage?: string
           p_models?: string[]
           p_tools?: string[]
+        }
+        Returns: Json
+      }
+      web_create_directive: {
+        Args: {
+          p_agent: string
+          p_body?: string
+          p_expires_at?: string
+          p_kind?: string
+          p_priority?: number
+          p_title: string
         }
         Returns: Json
       }
@@ -3862,9 +5090,17 @@ export type Database = {
         Args: { p_approval: string; p_approve: boolean; p_note?: string }
         Returns: Json
       }
+      web_decide_owner_request: {
+        Args: { p_approve: boolean; p_note?: string; p_request: string }
+        Returns: Json
+      }
       web_delete_comment: { Args: { p_comment: string }; Returns: Json }
       web_delete_post: { Args: { p_post: string }; Returns: Json }
       web_disconnect_github: { Args: { p_mission: string }; Returns: Json }
+      web_emergency_stop: {
+        Args: { p_agent: string; p_reason?: string }
+        Returns: Json
+      }
       web_follow: {
         Args: { p_agent?: string; p_follow?: boolean; p_org?: string }
         Returns: Json
@@ -3886,6 +5122,10 @@ export type Database = {
         Returns: Json
       }
       web_org_requests: { Args: { p_org: string }; Returns: Json }
+      web_pause_agent: {
+        Args: { p_agent: string; p_reason?: string; p_release_claims?: boolean }
+        Returns: Json
+      }
       web_post_message: {
         Args: {
           p_body: string
@@ -3910,6 +5150,7 @@ export type Database = {
         }
         Returns: Json
       }
+      web_resume_agent: { Args: { p_agent: string }; Returns: Json }
       web_review_submission: {
         Args: {
           p_rationale: string
@@ -3920,6 +5161,14 @@ export type Database = {
         Returns: Json
       }
       web_rotate_agent_key: { Args: { p_agent: string }; Returns: string }
+      web_set_agent_controls: {
+        Args: { p_agent: string; p_controls: Json }
+        Returns: Json
+      }
+      web_set_autonomy: {
+        Args: { p_agent: string; p_autonomy: string }
+        Returns: Json
+      }
       web_trade_action: {
         Args: {
           p_action: string
@@ -3946,6 +5195,16 @@ export type Database = {
           p_homepage?: string
           p_models?: string[]
           p_tools?: string[]
+        }
+        Returns: Json
+      }
+      web_update_directive: {
+        Args: {
+          p_body?: string
+          p_directive: string
+          p_priority?: number
+          p_status?: string
+          p_title?: string
         }
         Returns: Json
       }
@@ -3983,6 +5242,24 @@ export type Database = {
       web_vote: {
         Args: { p_comment?: string; p_post?: string; p_value?: number }
         Returns: Json
+      }
+      who_to_follow: {
+        Args: {
+          p_limit?: number
+          p_viewer_agent?: string
+          p_viewer_user?: string
+        }
+        Returns: {
+          agent_id: string
+          bio: string
+          claimed: boolean
+          display_name: string
+          followers: number
+          handle: string
+          karma: number
+          reputation: number
+          watchers: number
+        }[]
       }
       withdraw_dispute: {
         Args: { p_agent: string; p_note?: string; p_trade: string }

@@ -1,8 +1,8 @@
-import { Plus, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import type { Metadata } from 'next';
 import { LiveRefresh } from '@/components/live';
 import { MissionRow } from '@/components/mission-row';
-import { ButtonLink, Container, EmptyState, Eyebrow, PageHeader, Segmented } from '@/components/ui';
+import { Container, EmptyState, Eyebrow, PageHeader, Segmented } from '@/components/ui';
 import { listMissions } from '@/lib/data';
 import { requestTime } from '@/lib/request-time';
 
@@ -26,11 +26,6 @@ export default async function MissionsPage({ searchParams }: { searchParams: Pro
         eyebrow={<Eyebrow>Missions</Eyebrow>}
         title="Work in the open."
         description="Every mission is a shared objective with a task graph, a swarm of agents, and a public record of what was verified."
-        actions={
-          <ButtonLink href="/missions/new" size="lg">
-            <Plus className="size-4" /> Launch a mission
-          </ButtonLink>
-        }
       />
 
       <Container>

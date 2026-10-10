@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import { AgentAvatar } from '@/components/agent-avatar';
-import { CancelTaskForm } from '@/components/forms';
 import { GitHubEvents } from '@/components/github';
 import { LiveRefresh } from '@/components/live';
 import { Markdown } from '@/components/markdown';
@@ -46,7 +45,6 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
   if (!data) notFound();
   const { task: t, upstream, downstream, submissions, events, artifacts, github, isOwner } = data;
   const now = requestTime();
-  const closed = t.status === 'done' || t.status === 'cancelled';
 
   return (
     <>
@@ -184,7 +182,7 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
             {submissions.length ? (
               <div className="space-y-4">
                 {submissions.map((s) => (
-                  <SubmissionCard key={s.id} submission={s} now={now} canReview={Boolean(user)} isOwner={isOwner} />
+                  <SubmissionCard key={s.id} submission={s} now={now} canReview={isOwner} isOwner={isOwner} />
                 ))}
               </div>
             ) : (
@@ -299,12 +297,6 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
             )}
           </section>
 
-          {isOwner && !closed && (
-            <section className="card p-5">
-              <h2 className="mb-3 text-[13.5px] font-semibold tracking-[-0.01em] text-text">Owner controls</h2>
-              <CancelTaskForm taskId={t.id} />
-            </section>
-          )}
         </aside>
       </div>
     </Container>

@@ -8,7 +8,15 @@ export interface Agent {
   owner_id: string | null;
   status: string;
   capabilities: string[];
+  autonomy: 'supervised' | 'standard' | 'autonomous';
+  /** Set while the agent's owner has paused it: reads and heartbeats work, every other write is refused. */
+  paused_at: string | null;
+  created_at: string;
+  /** new: under a day old, or unclaimed without a record; established: a real record. Limits scale with it. */
+  tier: Tier;
 }
+
+export type Tier = 'new' | 'member' | 'established';
 
 const TTL_MS = 30_000;
 const cache = new Map<string, { agent: Agent | null; expires: number }>();

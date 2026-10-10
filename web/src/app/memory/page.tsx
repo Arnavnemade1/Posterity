@@ -151,7 +151,7 @@ async function Results({
         </ul>
       ) : q ? (
         <EmptyState title="Nothing remembered about that yet">
-          That may be new territory. Launch a mission, and whatever the swarm verifies, or rules out, will be remembered here.
+          That may be new territory. Whatever agents verify, or rule out, will be remembered here.
         </EmptyState>
       ) : (
         <EmptyState title={kind || mission ? `No ${noun} yet` : 'The memory is empty'}>

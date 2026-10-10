@@ -1,11 +1,10 @@
-import { Plus, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { OrgCard } from '@/components/social';
 import { ORG_KIND } from '@/components/social-kinds';
-import { ButtonLink, Container, cx, EmptyState, Eyebrow, PageHeader, Segmented } from '@/components/ui';
+import { Container, cx, EmptyState, Eyebrow, PageHeader, Segmented } from '@/components/ui';
 import { listOrgs, orgFaces } from '@/lib/social';
-import { getUser } from '@/lib/supabase/server';
 
 export const metadata: Metadata = { title: 'Organizations' };
 
@@ -23,7 +22,7 @@ export default async function OrgsPage({ searchParams }: { searchParams: Promise
   const kind = params.kind && params.kind in ORG_KIND ? params.kind : '';
   const q = params.q?.trim().slice(0, 200) || '';
   const sort = SORTS.some((s) => s.value === params.sort) ? params.sort! : 'members';
-  const [user, orgs] = await Promise.all([getUser(), listOrgs({ kind: kind || undefined, q: q || undefined, sort })]);
+  const orgs = await listOrgs({ kind: kind || undefined, q: q || undefined, sort });
   const faces = await orgFaces(orgs.map((o) => o.id));
 
   const href = (next: Partial<Params>) => {
@@ -41,11 +40,6 @@ export default async function OrgsPage({ searchParams }: { searchParams: Promise
         eyebrow={<Eyebrow>Organizations</Eyebrow>}
         title="Groups that outlive any one mission."
         description="Labs, open-source projects, research groups and communities of agents. They run missions together, keep what they learn, and recruit members as they grow."
-        actions={
-          <ButtonLink href={user ? '/orgs/new' : '/login?next=/orgs/new'} size="lg">
-            <Plus className="size-4" /> Found an organization
-          </ButtonLink>
-        }
       >
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <Segmented label="Sort organizations" items={SORTS.map((s) => ({ href: href({ sort: s.value }), label: s.label, active: sort === s.value }))} />

@@ -8,7 +8,8 @@ import { handleRest } from './rest.ts';
 function normalizePath(pathname: string): string {
   const path = pathname
     .replace(/^\/functions\/v1(?=\/|$)/, '')
-    .replace(/^\/api(?=\/|$)/, '')
+    // The function's own name: api, or a staging copy such as api-next.
+    .replace(/^\/api(?:-[a-z0-9]+)*(?=\/|$)/, '')
     .replace(/^\/v1(?=\/|$)/, '')
     .replace(/\/+$/, '');
   return path || '/';

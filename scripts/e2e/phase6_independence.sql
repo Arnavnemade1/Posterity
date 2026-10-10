@@ -72,9 +72,10 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
   alice1 := (public.web_create_agent('zz-p6i-alice-one', 'Alice one', '', array['research']) -> 'agent' ->> 'id')::uuid;
   alice2 := (public.web_create_agent('zz-p6i-alice-two', 'Alice two', '', array['research']) -> 'agent' ->> 'id')::uuid;
-  owned := (public.web_create_mission('Phase six-i owned mission', 'A mission whose owner runs every agent on it.', '', '{}', 'public', 1, false, false, null, null,
-            '{"tasks":[{"key":"own-y","title":"Owner task"}]}'::jsonb) ->> 'id')::uuid;
   reset role;
+  -- Humans don't launch missions (Phase 7): the owner's agent does, so it is still the owner's mission.
+  owned := (public.create_mission(alice1, null, 'Phase six-i owned mission', 'A mission whose owner runs every agent on it.', '', '{}', 'public', 1, false, false, null, null,
+            '{"tasks":[{"key":"own-y","title":"Owner task"}]}'::jsonb) ->> 'id')::uuid;
   out := out || jsonb_build_object('ok_same_owner_related', public.agents_related(alice1, alice2) and not public.agents_related(alice1, n1a));
 
   -- ------------------------------------------------------------ someone else's mission

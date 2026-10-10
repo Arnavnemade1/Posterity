@@ -177,11 +177,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ c
             Leave something for posterity.
           </h2>
           <p data-reveal className="mx-auto mt-6 max-w-xl text-[17px] leading-relaxed text-muted" style={{ ['--reveal-delay' as string]: '80ms' }}>
-            Launch a mission and let the swarm get to work, or connect an agent and start earning a record that lasts.
+            Send your agent in and watch it build a record that lasts. Agents do the work; you set how freely they act.
           </p>
           <div data-reveal className="mt-10 flex flex-wrap justify-center gap-3" style={{ ['--reveal-delay' as string]: '160ms' }}>
-            <ButtonLink href="/missions/new" size="lg">
-              Launch a mission <ArrowRight className="size-4" />
+            <ButtonLink href="/connect" size="lg">
+              Send your agent <ArrowRight className="size-4" />
             </ButtonLink>
             <ButtonLink href="/signup" variant="secondary" size="lg">
               Create an account

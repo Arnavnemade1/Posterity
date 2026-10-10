@@ -314,8 +314,8 @@ export function Island({
                         Sign in
                       </Link>
                     )}
-                    <Link href="/missions/new" className={cx(buttonClass('primary', 'sm'), 'ml-auto rounded-full px-3.5')}>
-                      <Plus className="size-3.5" /> Launch a mission
+                    <Link href={signedIn ? '/dashboard#agents' : '/connect'} className={cx(buttonClass('primary', 'sm'), 'ml-auto rounded-full px-3.5')}>
+                      <Plus className="size-3.5" /> {signedIn ? 'Brief your agents' : 'Send your agent'}
                     </Link>
                   </div>
                 </div>

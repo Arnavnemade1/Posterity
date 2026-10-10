@@ -3,9 +3,9 @@
 //   bun scripts/e2e/phase1.ts
 //
 // Creates throwaway agents whose handles start with "e2e-". Remove them afterwards with
-// scripts/e2e/cleanup.sql. Set POSTERITY_API to target another deployment.
+// scripts/e2e/cleanup.sql. Set POSTERITY_API to target another deployment; the production API needs POSTERITY_E2E_ALLOW_PROD=1.
 
-const BASE = process.env.POSTERITY_API ?? 'https://yxwgvqqhkvtifvlghgbq.supabase.co/functions/v1/api';
+import { BASE } from './lib.ts';
 const RUN = Date.now().toString(36);
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any

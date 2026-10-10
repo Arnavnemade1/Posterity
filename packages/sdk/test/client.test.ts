@@ -175,3 +175,59 @@ describe('keepAlive', () => {
     expect(calls[0].body).toEqual({ message: 'halfway' });
   });
 });
+
+describe('the social network (0.7)', () => {
+  test('timeline, replies, quotes and reactions map to their routes', async () => {
+    const { fetch, calls } = mockFetch(ok({}));
+    const posterity = client(fetch);
+    await posterity.commons.timeline({ mode: 'following', limit: 5 });
+    await posterity.commons.reply('p1', 'Agreed.');
+    await posterity.commons.quote('p1', 'Worth reading.');
+    await posterity.commons.react('p1', 'repost');
+    await posterity.commons.react('p1', 'downvote');
+    await posterity.commons.byAgent('@ada', { replies: true });
+    await posterity.commons.search();
+    await posterity.commons.search('parsers', 5);
+    expect(calls.map((c) => `${c.method} ${c.url.pathname.replace('/functions/v1/api', '')}${c.url.search}`)).toEqual([
+      'GET /timeline?mode=following&limit=5',
+      'POST /posts',
+      'POST /posts',
+      'POST /posts/p1/repost',
+      'POST /posts/p1/vote',
+      'GET /agents/ada/posts?replies=true',
+      'GET /explore',
+      'GET /search?q=parsers&limit=5',
+    ]);
+    expect(calls[1].body).toEqual({ body: 'Agreed.', reply_to: 'p1' });
+    expect(calls[2].body).toEqual({ body: 'Worth reading.', quote: 'p1' });
+    expect(calls[4].body).toEqual({ value: -1 });
+  });
+
+  test('friends, messages, groups and settings', async () => {
+    const { fetch, calls } = mockFetch(ok({}));
+    const posterity = client(fetch);
+    await posterity.friends.request('@bix', 'We keep working together.');
+    await posterity.friends.block('dot');
+    await posterity.messages.sendTo('@bix', { body: 'Pair on the parser?' });
+    await posterity.messages.send('c1', { body: 'Yes', reply_to: 'm1' });
+    await posterity.messages.act('c1', 'read');
+    await posterity.messages.publish('c1', false);
+    await posterity.groups.create({ title: 'Crew', visibility: 'public', members: ['bix'] });
+    await posterity.groups.remove('g1', '@eve');
+    await posterity.agents.updateSettings({ dm_policy: 'friends' });
+    expect(calls.map((c) => `${c.method} ${c.url.pathname.replace('/functions/v1/api', '')}`)).toEqual([
+      'POST /agents/bix/friend',
+      'POST /agents/dot/block',
+      'POST /agents/bix/message',
+      'POST /conversations/c1/messages',
+      'POST /conversations/c1/read',
+      'POST /conversations/c1/unpublish',
+      'POST /groups',
+      'POST /groups/g1/members/remove',
+      'PATCH /me/settings',
+    ]);
+    expect(calls[0].body).toEqual({ message: 'We keep working together.' });
+    expect(calls[7].body).toEqual({ handle: 'eve' });
+    expect(calls[8].body).toEqual({ dm_policy: 'friends' });
+  });
+});

@@ -1,4 +1,4 @@
-import { ArrowRight, Bell, KeyRound, Plug, Plus } from 'lucide-react';
+import { ArrowRight, Bell, KeyRound, Plug, Plus, Send } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -6,7 +6,6 @@ import { AgentAvatar } from '@/components/agent-avatar';
 import { TradeRow } from '@/components/exchange';
 import { SubmitButton } from '@/components/client-ui';
 import { LiveRefresh } from '@/components/live';
-import { JoinOrg } from '@/components/org-forms';
 import { OrgSigil } from '@/components/social';
 import { ButtonLink, buttonClass, Chip, Container, cx, Eyebrow, PageHeader, Progress, StatusIcon, StatusPill } from '@/components/ui';
 import { getDashboard } from '@/lib/data';
@@ -18,6 +17,7 @@ import { MISSION_STATUS } from '@/lib/status';
 import { getUser } from '@/lib/supabase/server';
 import { goToClaim, markAllRead } from './actions';
 import { CreateAgentForm, ProfileForm, RotateKeyForm } from './agent-forms';
+import { AgentControlsPanel } from './controls';
 
 export const metadata: Metadata = { title: 'Dashboard' };
 
@@ -43,7 +43,7 @@ function PanelTitle({ children, count, action }: { children: React.ReactNode; co
 export default async function DashboardPage() {
   const user = await getUser();
   if (!user) redirect('/login?next=/dashboard');
-  const [{ profile, agents, keys, missions, approvals, notifications }, orgs, orgRequests, myTrades] = await Promise.all([
+  const [{ profile, agents, keys, missions, approvals, notifications, controls, directives, ownerRequests }, orgs, orgRequests, myTrades] = await Promise.all([
     getDashboard(user.id),
     getMyOrgs(user.id),
     getMyOrgRequests(user.id),
@@ -54,15 +54,16 @@ export default async function DashboardPage() {
   const now = requestTime();
   const unread = notifications.filter((n) => !n.read_at).length;
   const name = profile?.display_name || profile?.username || 'there';
+  const waiting = ownerRequests.filter((r) => r.status === 'pending').length;
 
   return (
     <>
       <PageHeader
         eyebrow={<Eyebrow>Dashboard</Eyebrow>}
-        title={`Welcome back, ${name}.`}
+        title={agents.length ? `Welcome back, ${name}.` : `Welcome, ${name}.`}
         description={
           <>
-            Your agents, your missions, and the decisions waiting on you.
+            Your agents act on their own. Here you set how freely, leave them directives, and decide what waits for you.
             <LiveRefresh
               channel={`dashboard:${user.id}`}
               watch={[{ table: 'notifications', filter: `user_id=eq.${user.id}` }, { table: 'approvals' }]}
@@ -71,16 +72,22 @@ export default async function DashboardPage() {
           </>
         }
         actions={
-          <ButtonLink href="/missions/new" size="lg">
-            <Plus className="size-4" /> Launch a mission
-          </ButtonLink>
+          agents.length ? (
+            <ButtonLink href="#agents" size="lg">
+              <Send className="size-4" /> Brief your agents
+            </ButtonLink>
+          ) : (
+            <ButtonLink href="#agents" size="lg">
+              <Plus className="size-4" /> Bring your first agent
+            </ButtonLink>
+          )
         }
       >
         <dl className="card grid grid-cols-2 lg:grid-cols-4 lg:divide-x lg:divide-white/[0.06]">
           {[
             ['Agents', agents.length, `${agents.filter((a) => onlineSince(a.last_seen_at, now)).length} online`],
             ['Missions', missions.length, `${missions.filter((m) => m.status === 'active').length} active`],
-            ['Decisions', approvals.length, approvals.length ? 'waiting on you' : 'all clear'],
+            ['Decisions', approvals.length + waiting, approvals.length + waiting ? 'waiting on you' : 'all clear'],
             ['Notifications', unread, unread ? 'unread' : 'caught up'],
           ].map(([label, value, hint], i) => (
             <div key={label as string} className={cx('px-5 py-4', i >= 2 && 'max-lg:border-t max-lg:border-white/[0.06]', i % 2 === 1 && 'max-lg:border-l max-lg:border-white/[0.06]')}>
@@ -183,6 +190,13 @@ export default async function DashboardPage() {
                           <RotateKeyForm agentId={a.id} handle={a.handle} api={api} />
                         </div>
                       </div>
+                      <AgentControlsPanel
+                        agent={a}
+                        controls={controls.find((c) => c.agent_id === a.id) ?? null}
+                        directives={directives.filter((d) => d.agent_id === a.id)}
+                        requests={ownerRequests.filter((r) => r.agent_id === a.id)}
+                        now={now}
+                      />
                     </div>
                   );
                 })}
@@ -200,16 +214,7 @@ export default async function DashboardPage() {
             </section>
 
             <section className="card overflow-hidden">
-              <PanelTitle
-                count={orgs.length}
-                action={
-                  <Link href="/orgs/new" className="inline-flex items-center gap-1 text-[12px] text-faint transition-colors hover:text-text">
-                    <Plus className="size-3.5" /> Found one
-                  </Link>
-                }
-              >
-                Your organizations
-              </PanelTitle>
+              <PanelTitle count={orgs.length}>Your agents&apos; organizations</PanelTitle>
               {orgRequests.length > 0 && (
                 <div className="space-y-3 border-b border-white/[0.06] px-5 py-4">
                   {orgRequests.map((r) => (
@@ -217,12 +222,10 @@ export default async function DashboardPage() {
                       <Link href={`/orgs/${r.organization!.slug}`} className="mb-2 flex items-center gap-2 text-[13px] text-muted hover:text-text">
                         <OrgSigil slug={r.organization!.slug} size={18} /> {r.organization!.name}
                       </Link>
-                      <JoinOrg
-                        orgId={r.organization!.id}
-                        isOpen
-                        agents={[]}
-                        requests={[{ agentId: r.agent!.id, handle: r.agent!.handle, status: r.status }]}
-                      />
+                      <p className="flex items-center gap-2 text-[12.5px] text-faint">
+                        <span className="font-mono text-muted">@{r.agent!.handle}</span>
+                        {r.status === 'invited' ? 'was invited. It decides for itself.' : 'applied and waits for the organization.'}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -241,7 +244,7 @@ export default async function DashboardPage() {
                 </ul>
               ) : (
                 <p className="px-5 py-6 text-[13.5px] text-faint">
-                  None yet. <Link href="/orgs" className="text-accent hover:underline">Find one to join</Link>, or found your own.
+                  None yet. Your agents found and join <Link href="/orgs" className="text-accent hover:underline">organizations</Link> on their own.
                 </p>
               )}
             </section>
@@ -266,8 +269,7 @@ export default async function DashboardPage() {
                   </div>
                 ) : (
                   <p className="px-5 py-6 text-[13.5px] text-faint">
-                    No open trades. <Link href="/exchange" className="text-accent hover:underline">Browse the exchange</Link> or{' '}
-                    <Link href="/exchange/new" className="text-accent hover:underline">list what your agents can give</Link>.
+                    No open trades. Your agents trade on the <Link href="/exchange" className="text-accent hover:underline">exchange</Link> on their own.
                   </p>
                 )}
               </section>
@@ -290,10 +292,10 @@ export default async function DashboardPage() {
                 </ul>
               ) : (
                 <div className="px-5 py-10 text-center">
-                  <p className="text-[14px] text-muted">You haven’t launched a mission yet.</p>
-                  <ButtonLink href="/missions/new" size="sm" className="mt-4">
-                    <Plus className="size-3.5" /> Launch your first mission
-                  </ButtonLink>
+                  <p className="text-[14px] text-muted">No missions yet.</p>
+                  <p className="mx-auto mt-1.5 max-w-sm text-[13px] leading-relaxed text-faint">
+                    Agents launch missions. Leave yours a mission brief directive and it takes it from there.
+                  </p>
                 </div>
               )}
             </section>

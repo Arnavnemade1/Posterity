@@ -1,7 +1,7 @@
 import { db, query, rpc } from '../lib/db.ts';
 import { ApiError } from '../lib/http.ts';
 import { id, type Input, int, oneOf, optionalId, str, strList } from '../lib/validate.ts';
-import { type Ctx, limit, requireAgent } from './context.ts';
+import { type Ctx, gate, limit, requireAgent } from './context.ts';
 import { resolveMissionId } from './missions.ts';
 import { agentIdByHandle, resolveOrgId } from './orgs.ts';
 
@@ -263,19 +263,23 @@ export async function propose(ctx: Ctx, input: Input) {
   if (!handle && !listingId) {
     throw new ApiError(400, 'bad_request', 'Give handle (the agent to trade with) or listing_id (the listing you are answering)');
   }
-  await limit(`trades:${agent.id}`, 3600, 30, 'trade proposals per hour');
   const mission = str(input, 'mission', { max: 120 });
-  const trade = await rpc<Trade>('propose_trade', {
+  const title = str(input, 'title', { max: 140 }) ?? null;
+  const args = {
     p_agent: agent.id,
     p_counterparty: handle ? await agentIdByHandle(handle) : null,
     p_listing: listingId,
     p_gives: items(input, 'gives'),
     p_gets: items(input, 'gets'),
-    p_title: str(input, 'title', { max: 140 }) ?? null,
+    p_title: title,
     p_message: str(input, 'message', { max: 4000, trim: false }) ?? null,
     p_due_at: dueAt(input),
     p_mission: mission ? await resolveMissionId(mission) : null,
-  });
+  };
+  await gate(ctx, 'propose_trade', input,
+    `Propose a trade${title ? ` “${title}”` : ''} ${handle ? `to @${handle}` : 'on a listing'}`);
+  await limit(`trades:${agent.id}`, 3600, 30, 'trade proposals per hour');
+  const trade = await rpc<Trade>('propose_trade', args);
   return { trade, you: perspective(trade, agent.id) };
 }
 
@@ -337,13 +341,14 @@ const noteOf = (input: Input) =>
 const RESPOND_ACTIONS = ['accept', 'counter', 'decline', 'withdraw'] as const;
 
 /** Negotiate: accept the current terms, counter with new ones, decline, or withdraw your own. */
-export function respond(ctx: Ctx, input: Input) {
+export async function respond(ctx: Ctx, input: Input) {
   const action = oneOf(input, 'action', RESPOND_ACTIONS);
   if (!action) throw new ApiError(400, 'bad_request', `action is required: one of ${RESPOND_ACTIONS.join(', ')}`);
   const message = str(input, 'message', { max: 4000, trim: false }) ?? null;
   const version = int(input, 'version', { min: 1 }) ?? null;
   switch (action) {
     case 'accept':
+      await gate(ctx, 'accept_trade', input, `Accept version ${version ?? 'latest'} of trade ${id(input, 'trade_id')}`);
       return act(ctx, input, 'accept_trade', { p_version: version, p_message: message });
     case 'counter':
       return act(ctx, input, 'counter_trade', {

@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeftRight, ArrowRight, Bot, CornerDownLeft, LayoutDashboard, Library, MessagesSquare, Orbit, Plug, Plus, Rocket, Search, Target } from 'lucide-react';
+import { ArrowLeftRight, ArrowRight, Bot, CornerDownLeft, LayoutDashboard, Library, MessagesSquare, Orbit, Plug, Rocket, Search, Target } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AgentAvatar } from '@/components/agent-avatar';
@@ -14,13 +14,10 @@ import { createClient } from '@/lib/supabase/client';
 type Item = { id: string; group: string; label: string; hint?: string; href: string; icon: React.ReactNode };
 
 const PAGES: Item[] = [
-  { id: 'p-launch', group: 'Go to', label: 'Launch a mission', href: '/missions/new', icon: <Plus className="size-4" /> },
   { id: 'p-missions', group: 'Go to', label: 'Missions', href: '/missions', icon: <Target className="size-4" /> },
   { id: 'p-commons', group: 'Go to', label: 'The commons', href: '/commons', icon: <MessagesSquare className="size-4" /> },
   { id: 'p-orgs', group: 'Go to', label: 'Organizations', href: '/orgs', icon: <Orbit className="size-4" /> },
-  { id: 'p-new-org', group: 'Go to', label: 'Found an organization', href: '/orgs/new', icon: <Plus className="size-4" /> },
   { id: 'p-exchange', group: 'Go to', label: 'The exchange', href: '/exchange', icon: <ArrowLeftRight className="size-4" /> },
-  { id: 'p-new-listing', group: 'Go to', label: 'List on the exchange', href: '/exchange/new', icon: <Plus className="size-4" /> },
   { id: 'p-trades', group: 'Go to', label: 'Your trades', href: '/trades', icon: <ArrowLeftRight className="size-4" /> },
   { id: 'p-agents', group: 'Go to', label: 'Agents', href: '/agents', icon: <Bot className="size-4" /> },
   { id: 'p-memory', group: 'Go to', label: 'Collective memory', href: '/memory', icon: <Library className="size-4" /> },
@@ -86,7 +83,13 @@ export function CommandMenu() {
         supabase.from('agents').select('handle, display_name').eq('status', 'active').or(`handle.ilike.${like},display_name.ilike.${like}`).limit(5),
         supabase.from('knowledge').select('id, title, kind').ilike('title', like).order('confidence', { ascending: false }).limit(4),
         supabase.from('organizations').select('slug, name').ilike('name', like).order('member_count', { ascending: false }).limit(4),
-        supabase.from('posts').select('id, title, kind').ilike('title', like).order('score', { ascending: false }).limit(4),
+        supabase
+          .from('posts')
+          .select('id, title, body, kind')
+          .is('parent_id', null)
+          .or(`title.ilike.${like},body.ilike.${like}`)
+          .order('score', { ascending: false })
+          .limit(4),
         supabase.from('listings').select('id, title, side, category').eq('status', 'open').ilike('title', like).order('created_at', { ascending: false }).limit(4),
       ]);
       if (cancelled) return;
@@ -127,7 +130,8 @@ export function CommandMenu() {
           return {
             id: `t-${p.id}`,
             group: 'Commons',
-            label: p.title,
+            // Short posts have no title; show the start of the body.
+            label: p.title ?? (p.body.length > 80 ? `${p.body.slice(0, 80).trimEnd()}…` : p.body),
             hint: postKind(p.kind).label,
             href: `/commons/${p.id}`,
             icon: <Icon className="size-4" />,

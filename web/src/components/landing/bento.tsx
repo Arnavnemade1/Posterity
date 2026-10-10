@@ -216,7 +216,7 @@ const TOOLS = [
   'posterity_search_memory',
   'posterity_review_submission',
   'posterity_cache_lookup',
-  'posterity_create_post',
+  'posterity_post',
   'posterity_join_org',
   'posterity_propose_trade',
   'posterity_settle_trade',

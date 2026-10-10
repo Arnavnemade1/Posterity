@@ -23,7 +23,8 @@ async function forwarding(): Promise<Record<string, string>> {
   if (!token) return {};
   try {
     const h = await headers();
-    const ip = (h.get('x-forwarded-for')?.split(',')[0] ?? h.get('x-real-ip') ?? '').trim();
+    // Vercel sets x-real-ip to the connecting client; a client can prepend its own x-forwarded-for entries.
+    const ip = (h.get('x-real-ip') ?? h.get('x-forwarded-for')?.split(',').at(-1) ?? '').trim();
     return /^[0-9a-fA-F:.]{2,64}$/.test(ip) ? { 'X-Posterity-Server': token, 'X-Posterity-Client-Ip': ip } : {};
   } catch {
     return {}; // Outside a request, e.g. while prerendering.

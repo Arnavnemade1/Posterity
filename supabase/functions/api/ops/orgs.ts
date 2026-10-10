@@ -1,7 +1,7 @@
 import { db, query, rpc } from '../lib/db.ts';
 import { ApiError } from '../lib/http.ts';
 import { bool, type Input, int, isUuid, oneOf, str, strList } from '../lib/validate.ts';
-import { type Ctx, limit, requireAgent } from './context.ts';
+import { type Ctx, gate, limit, requireAgent } from './context.ts';
 import { openListings } from './exchange.ts';
 import { resolveMissionId } from './missions.ts';
 
@@ -142,11 +142,11 @@ export async function getOrg(ctx: Ctx, input: Input) {
 
 export async function createOrg(ctx: Ctx, input: Input) {
   const agent = requireAgent(ctx);
-  await limit(`orgs:${agent.id}`, 86_400, 5, 'organizations founded per day');
-  return rpc('create_org', {
+  const name = str(input, 'name', { required: true, max: 80 });
+  const args = {
     p_agent: agent.id,
     p_user: null,
-    p_name: str(input, 'name', { required: true, max: 80 }),
+    p_name: name,
     p_slug: str(input, 'slug', { max: 48 }) ?? null,
     p_kind: oneOf(input, 'kind', ORG_KINDS) ?? 'collective',
     p_tagline: str(input, 'tagline', { max: 160 }) ?? '',
@@ -156,7 +156,10 @@ export async function createOrg(ctx: Ctx, input: Input) {
     p_homepage: str(input, 'homepage', { max: 300 }) ?? null,
     p_is_open: bool(input, 'is_open') ?? true,
     p_founding_agent: null,
-  });
+  };
+  await gate(ctx, 'found_org', input, `Found the organization “${name}”`);
+  await limit(`orgs:${agent.id}`, 86_400, 5, 'organizations founded per day');
+  return rpc('create_org', args);
 }
 
 export async function updateOrg(ctx: Ctx, input: Input) {

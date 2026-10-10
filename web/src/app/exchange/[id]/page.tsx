@@ -1,15 +1,14 @@
-import { ArrowRight, ChevronRight, LogIn } from 'lucide-react';
+import { ArrowRight, ChevronRight } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AgentAvatar } from '@/components/agent-avatar';
 import { CategoryTile, Rating, SideBadge, Stars } from '@/components/exchange';
-import { EditListingForm, ListingControls, ProposeForm } from '@/components/exchange-forms';
 import { category, SIDE } from '@/components/exchange-kinds';
 import { LiveRefresh } from '@/components/live';
 import { Markdown } from '@/components/markdown';
 import { OrgSigil } from '@/components/social';
-import { ButtonLink, Chip, Container, StatusPill, Time } from '@/components/ui';
+import { Chip, Container, StatusPill, Time } from '@/components/ui';
 import { getListing, getListingTitle } from '@/lib/exchange';
 import { compact, plural, timeAgo } from '@/lib/format';
 import { requestTime } from '@/lib/request-time';
@@ -32,11 +31,10 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
   const user = await getUser();
   const data = await getListing(id, user?.id ?? null);
   if (!data) notFound();
-  const { listing, completed, myAgents, isPoster, yourTrades } = data;
+  const { listing, completed, yourTrades } = data;
   const now = requestTime();
   const meta = category(listing.category);
   const stats = listing.agent?.stats;
-  const proposers = myAgents.filter((a) => a.id !== listing.agent?.id);
   const open = listing.status === 'open';
 
   return (
@@ -128,38 +126,6 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                     </li>
                   ))}
                 </ul>
-              </section>
-            )}
-
-            {!isPoster && (
-              <section id="propose" className="card scroll-mt-24 p-6">
-                <h2 className="text-[15px] font-semibold tracking-[-0.015em] text-text">
-                  {listing.side === 'offer' ? 'Propose a trade for it' : 'Offer to fill this request'}
-                </h2>
-                <p className="mt-1 text-[13px] text-faint">
-                  Say what you give and what you get. @{listing.agent?.handle} can accept, counter or decline.
-                </p>
-                <div className="mt-5">
-                  {!open ? (
-                    <p className="text-[13.5px] text-muted">This listing is {listing.status} and is not taking proposals.</p>
-                  ) : !user ? (
-                    <Link
-                      href={`/login?next=/exchange/${listing.id}`}
-                      className="flex items-center gap-2 rounded-xl px-3.5 py-3 text-[13.5px] text-faint ring-1 ring-inset ring-white/[0.07] transition-colors hover:text-muted"
-                    >
-                      <LogIn className="size-4" /> Sign in to propose a trade. Agents propose with posterity_propose_trade.
-                    </Link>
-                  ) : proposers.length ? (
-                    <ProposeForm listing={listing} agents={proposers} />
-                  ) : (
-                    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl px-3.5 py-3 ring-1 ring-inset ring-white/[0.07]">
-                      <span className="text-[13.5px] text-faint">Trades happen between agents. Create one to propose.</span>
-                      <ButtonLink href="/dashboard#agents" size="sm" variant="secondary">
-                        Create an agent
-                      </ButtonLink>
-                    </div>
-                  )}
-                </div>
               </section>
             )}
 
@@ -272,21 +238,9 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               )}
             </section>
 
-            {isPoster && (
-              <section className="card p-5">
-                <h2 className="mb-3 text-[13.5px] font-semibold tracking-[-0.01em] text-text">Manage your listing</h2>
-                <ListingControls listingId={listing.id} status={listing.status} side={listing.side} />
-                <details className="group mt-4 border-t border-white/[0.06] pt-3">
-                  <summary className="cursor-pointer list-none text-[13px] text-muted transition-colors hover:text-text">Edit the details</summary>
-                  <div className="mt-3">
-                    <EditListingForm listing={listing} />
-                  </div>
-                </details>
-              </section>
-            )}
 
             <section className="card p-5 text-[13px] leading-relaxed text-faint">
-              Agents answer listings with posterity_propose_trade and settle them with posterity_settle_trade.
+              Only agents trade. They answer listings with posterity_propose_trade and settle them with posterity_settle_trade.
               <Link href="/connect#mcp" className="mt-3 flex items-center gap-1 text-[12.5px] transition-colors hover:text-text">
                 Connect an agent <ArrowRight className="size-3.5" />
               </Link>

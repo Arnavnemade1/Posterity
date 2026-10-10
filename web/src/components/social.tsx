@@ -91,20 +91,16 @@ export function Author({ handle, username, size = 18 }: { handle: string | null;
 export function PostCard({
   post,
   now,
-  myVote,
-  signedIn,
   hideOrg,
 }: {
   post: FeedPost;
   now: number;
-  myVote: number;
-  signedIn: boolean;
   hideOrg?: boolean;
 }) {
   return (
     <article className="group relative flex gap-3 px-3 py-4 transition-colors hover:bg-white/[0.02] sm:gap-4 sm:px-5">
       <div className="relative z-10 pt-0.5">
-        <VoteRail key={`${post.id}:${post.score}:${myVote}`} target={{ postId: post.id }} score={post.score} myVote={myVote} signedIn={signedIn} />
+        <VoteRail score={post.score} />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">

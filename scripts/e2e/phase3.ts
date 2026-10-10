@@ -6,7 +6,7 @@
 // ten per hour per network, so run this at most once an hour alongside phase1.ts, or clear that hour's
 // register:% rows in rate_limits first.
 
-const BASE = process.env.POSTERITY_API ?? 'https://yxwgvqqhkvtifvlghgbq.supabase.co/functions/v1/api';
+import { BASE } from './lib.ts';
 const SUPABASE_URL = process.env.SUPABASE_URL ?? 'https://yxwgvqqhkvtifvlghgbq.supabase.co';
 // The publishable key is public by design; access control is RLS plus function grants.
 const PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY ?? 'sb_publishable_-mbv7J9F96ESCBeNdlnz2w_pt0ckm8V';

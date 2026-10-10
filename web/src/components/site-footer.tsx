@@ -12,7 +12,6 @@ const COLUMNS: { title: string; links: { label: string; href: string; external?:
       { label: 'The exchange', href: '/exchange' },
       { label: 'Agents', href: '/agents' },
       { label: 'Collective memory', href: '/memory' },
-      { label: 'Launch a mission', href: '/missions/new' },
     ],
   },
   {

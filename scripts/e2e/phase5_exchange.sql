@@ -1,12 +1,15 @@
 -- Phase 5 database test: the resource exchange end to end. Listings,
 -- negotiation, settlement, defaults, disputes and independent arbitration,
--- ratings, the sweep, the heartbeat inbox and RLS, exercised as signed-in
--- humans acting through their agents.
+-- ratings, the sweep, the heartbeat inbox and RLS.
+--
+-- Since Phase 7 only agents trade; the web functions that let owners act as their
+-- agents are gone. The engine is unchanged, so this test drives it through the
+-- same wrappers, recreated as temporary functions for the length of the transaction.
 --
 -- Runs entirely inside one transaction and ends by raising PHASE5_RESULT, which
 -- rolls everything back. Read the JSON in the error message: every "ok_*" key
 -- should be true. Run it with the Supabase SQL editor or MCP `execute_sql`.
-do $$
+do $test$
 declare
   alice uuid := gen_random_uuid();
   bob   uuid := gen_random_uuid();
@@ -21,6 +24,80 @@ begin
   values (alice, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'alice@phase5.invalid', '{"username":"phase5_alice"}', now(), now()),
          (bob,   '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'bob@phase5.invalid',   '{"username":"phase5_bob"}',   now(), now()),
          (carol, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'carol@phase5.invalid', '{"username":"phase5_carol"}', now(), now());
+
+  -- ------------------------------------------------------------ the pre-Phase 7 wrappers, temporarily
+  create function pg_temp.web_create_listing(
+    p_agent uuid, p_side text, p_category text, p_title text, p_description text default '', p_terms text default '',
+    p_quantity text default null, p_tags text[] default '{}', p_mission uuid default null, p_org uuid default null,
+    p_expires_days int default 60
+  ) returns jsonb language plpgsql security definer set search_path = '' as $fn$
+  begin
+    perform public.require_agent_owner(p_agent);
+    return public.create_listing(p_agent, p_side, p_category, p_title, p_description, p_terms, p_quantity, p_tags,
+                                 p_mission, p_org, p_expires_days);
+  end
+  $fn$;
+  create function pg_temp.web_update_listing(
+    p_listing uuid, p_title text default null, p_description text default null, p_terms text default null,
+    p_quantity text default null, p_tags text[] default null, p_status text default null, p_expires_days int default null
+  ) returns jsonb language plpgsql security definer set search_path = '' as $fn$
+  declare
+    v_agent uuid;
+  begin
+    perform public.require_user();
+    select agent_id into v_agent from public.listings where id = p_listing;
+    if v_agent is null then
+      raise exception 'Listing not found' using errcode = 'PT404';
+    end if;
+    perform public.require_agent_owner(v_agent);
+    return public.update_listing(p_listing, v_agent, p_title, p_description, p_terms, p_quantity, p_tags, p_status, p_expires_days);
+  end
+  $fn$;
+  create function pg_temp.web_propose_trade(
+    p_agent uuid, p_counterparty uuid default null, p_listing uuid default null, p_gives jsonb default '[]',
+    p_gets jsonb default '[]', p_title text default null, p_message text default null, p_due_at timestamptz default null,
+    p_mission uuid default null
+  ) returns jsonb language plpgsql security definer set search_path = '' as $fn$
+  begin
+    perform public.require_agent_owner(p_agent);
+    return public.propose_trade(p_agent, p_counterparty, p_listing, p_gives, p_gets, p_title, p_message, p_due_at, p_mission);
+  end
+  $fn$;
+  create function pg_temp.web_trade_action(
+    p_trade uuid, p_agent uuid, p_action text, p_message text default null, p_version int default null,
+    p_gives jsonb default null, p_gets jsonb default null, p_due_at timestamptz default null, p_score int default null,
+    p_outcome text default null, p_fault text default null
+  ) returns jsonb language plpgsql security definer set search_path = '' as $fn$
+  begin
+    perform public.require_agent_owner(p_agent);
+    case p_action
+      when 'accept' then return public.accept_trade(p_trade, p_agent, p_version, p_message);
+      when 'decline', 'withdraw' then return public.decline_trade(p_trade, p_agent, p_message);
+      when 'counter' then return public.counter_trade(p_trade, p_agent, p_gives, p_gets, p_version, p_message, p_due_at);
+      when 'deliver' then return public.deliver_trade(p_trade, p_agent, p_message);
+      when 'confirm' then return public.confirm_trade(p_trade, p_agent, p_message);
+      when 'cancel' then return public.cancel_trade(p_trade, p_agent, p_message);
+      when 'dispute' then return public.dispute_trade(p_trade, p_agent, p_message);
+      when 'withdraw_dispute' then return public.withdraw_dispute(p_trade, p_agent, p_message);
+      when 'rule' then return public.rule_trade(p_trade, p_agent, p_outcome, coalesce(p_fault, 'none'), p_message);
+      when 'rate' then return public.rate_trade(p_trade, p_agent, p_score, p_message);
+      when 'message' then return public.post_trade_message(p_trade, p_agent, p_message);
+      else raise exception 'Unknown action %', p_action using errcode = 'PT400';
+    end case;
+  end
+  $fn$;
+  revoke execute on function
+    pg_temp.web_create_listing(uuid, text, text, text, text, text, text, text[], uuid, uuid, int),
+    pg_temp.web_update_listing(uuid, text, text, text, text, text[], text, int),
+    pg_temp.web_propose_trade(uuid, uuid, uuid, jsonb, jsonb, text, text, timestamptz, uuid),
+    pg_temp.web_trade_action(uuid, uuid, text, text, int, jsonb, jsonb, timestamptz, int, text, text)
+  from public;
+  grant execute on function
+    pg_temp.web_create_listing(uuid, text, text, text, text, text, text, text[], uuid, uuid, int),
+    pg_temp.web_update_listing(uuid, text, text, text, text, text[], text, int),
+    pg_temp.web_propose_trade(uuid, uuid, uuid, jsonb, jsonb, text, text, timestamptz, uuid),
+    pg_temp.web_trade_action(uuid, uuid, text, text, int, jsonb, jsonb, timestamptz, int, text, text)
+  to authenticated;
 
   -- ------------------------------------------------------------ agents
   set local role authenticated;
@@ -42,28 +119,28 @@ begin
 
   -- ------------------------------------------------------------ listings
   perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
-  offer := public.web_create_listing(a, 'offer', 'compute', '40 A100 GPU-hours', 'Spare capacity on our cluster.',
+  offer := pg_temp.web_create_listing(a, 'offer', 'compute', '40 A100 GPU-hours', 'Spare capacity on our cluster.',
                                      'A security review, or docs work', '40 GPU-hours', array['gpu', 'cuda']);
   out := out || jsonb_build_object('ok_offer_listed', offer ->> 'status' = 'open' and offer ->> 'side' = 'offer'
                                      and (offer ->> 'expires_at')::timestamptz > now() + interval '59 days');
   begin
-    perform public.web_create_listing(a, 'offer', 'money', 'Cash for anything');
+    perform pg_temp.web_create_listing(a, 'offer', 'money', 'Cash for anything');
     out := out || jsonb_build_object('ok_category_checked', false);
   exception when others then
     out := out || jsonb_build_object('ok_category_checked', sqlstate = 'PT400');
   end;
   begin
-    perform public.web_create_listing(b, 'offer', 'compute', 'Borrowed agent listing');
+    perform pg_temp.web_create_listing(b, 'offer', 'compute', 'Borrowed agent listing');
     out := out || jsonb_build_object('ok_list_as_own_agent_only', false);
   exception when others then
     out := out || jsonb_build_object('ok_list_as_own_agent_only', sqlstate = 'PT403');
   end;
   perform set_config('request.jwt.claims', json_build_object('sub', bob, 'role', 'authenticated')::text, true);
-  request := public.web_create_listing(b, 'request', 'dataset', 'Labeled flood imagery', 'Need 5k labeled tiles.',
+  request := pg_temp.web_create_listing(b, 'request', 'dataset', 'Labeled flood imagery', 'Need 5k labeled tiles.',
                                        'Python data cleaning', '5k tiles', array['hydrology', 'gpu']);
 
   -- ------------------------------------------------------------ answering a listing
-  t := public.web_propose_trade(b, null, (offer ->> 'id')::uuid,
+  t := pg_temp.web_propose_trade(b, null, (offer ->> 'id')::uuid,
          '[{"category": "expertise", "description": "Security review of your auth module"}]'::jsonb, '[]'::jsonb,
          null, 'Happy to trade a review for GPU time.');
   t1 := (t ->> 'id')::uuid;
@@ -75,7 +152,7 @@ begin
     'ok_proposal_title', t ->> 'title' = '40 A100 GPU-hours',
     'ok_independent', (t ->> 'independent')::boolean);
   begin
-    perform public.web_propose_trade(b, null, (offer ->> 'id')::uuid, '["Another idea"]'::jsonb, '[]'::jsonb);
+    perform pg_temp.web_propose_trade(b, null, (offer ->> 'id')::uuid, '["Another idea"]'::jsonb, '[]'::jsonb);
     out := out || jsonb_build_object('ok_one_open_proposal_per_listing', false);
   exception when others then
     out := out || jsonb_build_object('ok_one_open_proposal_per_listing', sqlstate = 'PT409');
@@ -95,20 +172,20 @@ begin
   -- ------------------------------------------------------------ negotiation
   perform set_config('request.jwt.claims', json_build_object('sub', bob, 'role', 'authenticated')::text, true);
   begin
-    perform public.web_trade_action(t1, b, 'accept');
+    perform pg_temp.web_trade_action(t1, b, 'accept');
     out := out || jsonb_build_object('ok_cannot_accept_own_terms', false);
   exception when others then
     out := out || jsonb_build_object('ok_cannot_accept_own_terms', sqlstate = 'PT409');
   end;
   begin
-    perform public.web_trade_action(t1, a, 'accept');
+    perform pg_temp.web_trade_action(t1, a, 'accept');
     out := out || jsonb_build_object('ok_act_as_own_agent_only', false);
   exception when others then
     out := out || jsonb_build_object('ok_act_as_own_agent_only', sqlstate = 'PT403');
   end;
 
   perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
-  t := public.web_trade_action(t1, a, 'counter', 'Add API docs and it is a deal.', 1, null,
+  t := pg_temp.web_trade_action(t1, a, 'counter', 'Add API docs and it is a deal.', 1, null,
          '[{"category": "expertise", "description": "Security review of your auth module"},
            {"category": "work", "description": "Docs for the public API"}]'::jsonb);
   out := out || jsonb_build_object('ok_countered', (t ->> 'version')::int = 2 and (t ->> 'awaiting_id')::uuid = b
@@ -117,12 +194,12 @@ begin
 
   perform set_config('request.jwt.claims', json_build_object('sub', bob, 'role', 'authenticated')::text, true);
   begin
-    perform public.web_trade_action(t1, b, 'accept', null, 1);
+    perform pg_temp.web_trade_action(t1, b, 'accept', null, 1);
     out := out || jsonb_build_object('ok_stale_terms_refused', false);
   exception when others then
     out := out || jsonb_build_object('ok_stale_terms_refused', sqlstate = 'PT409');
   end;
-  t := public.web_trade_action(t1, b, 'accept', 'Deal.', 2);
+  t := pg_temp.web_trade_action(t1, b, 'accept', 'Deal.', 2);
   out := out || jsonb_build_object('ok_accepted', t ->> 'status' = 'active' and t ->> 'accepted_at' is not null,
     'ok_agreement_public', exists (select 1 from public.activity where kind = 'trade_agreed' and data ->> 'trade_id' = t1::text));
 
@@ -133,7 +210,7 @@ begin
   select count(*) into n from public.trade_events where trade_id = t1;
   out := out || jsonb_build_object('ok_timeline_private', n = 0);
   begin
-    perform public.web_trade_action(t1, c, 'message', 'Can I join?');
+    perform pg_temp.web_trade_action(t1, c, 'message', 'Can I join?');
     out := out || jsonb_build_object('ok_outsiders_cannot_write', false);
   exception when others then
     out := out || jsonb_build_object('ok_outsiders_cannot_write', sqlstate = 'PT403');
@@ -142,22 +219,22 @@ begin
   -- ------------------------------------------------------------ settlement
   perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
   begin
-    perform public.web_trade_action(t1, a, 'deliver', '');
+    perform pg_temp.web_trade_action(t1, a, 'deliver', '');
     out := out || jsonb_build_object('ok_delivery_needs_note', false);
   exception when others then
     out := out || jsonb_build_object('ok_delivery_needs_note', sqlstate = 'PT400');
   end;
-  t := public.web_trade_action(t1, a, 'deliver', '40 hours credited on cluster-x; access key sent out of band.');
+  t := pg_temp.web_trade_action(t1, a, 'deliver', '40 hours credited on cluster-x; access key sent out of band.');
   out := out || jsonb_build_object('ok_delivered', t ->> 'counterparty_delivered_at' is not null);
-  perform public.web_trade_action(t1, a, 'message', 'Ping me if the credits do not show up.');
+  perform pg_temp.web_trade_action(t1, a, 'message', 'Ping me if the credits do not show up.');
 
   perform set_config('request.jwt.claims', json_build_object('sub', bob, 'role', 'authenticated')::text, true);
-  t := public.web_trade_action(t1, b, 'confirm', 'Credits arrived.');
+  t := pg_temp.web_trade_action(t1, b, 'confirm', 'Credits arrived.');
   out := out || jsonb_build_object('ok_half_confirmed', t ->> 'status' = 'active' and t ->> 'counterparty_confirmed_at' is not null);
-  perform public.web_trade_action(t1, b, 'deliver', 'Review report and API docs are in the shared repo.');
+  perform pg_temp.web_trade_action(t1, b, 'deliver', 'Review report and API docs are in the shared repo.');
 
   perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
-  t := public.web_trade_action(t1, a, 'confirm');
+  t := pg_temp.web_trade_action(t1, a, 'confirm');
   out := out || jsonb_build_object('ok_completed', t ->> 'status' = 'completed' and t ->> 'closed_reason' = 'confirmed');
   reset role;
   out := out || jsonb_build_object(
@@ -170,10 +247,10 @@ begin
 
   -- ------------------------------------------------------------ ratings
   perform set_config('request.jwt.claims', json_build_object('sub', bob, 'role', 'authenticated')::text, true);
-  t := public.web_trade_action(t1, b, 'rate', 'Fast and exactly as described.', null, null, null, null, 5);
+  t := pg_temp.web_trade_action(t1, b, 'rate', 'Fast and exactly as described.', null, null, null, null, 5);
   out := out || jsonb_build_object('ok_rated', (t ->> 'rating_from_proposer')::int = 5);
   begin
-    perform public.web_trade_action(t1, b, 'rate', null, null, null, null, null, 4);
+    perform pg_temp.web_trade_action(t1, b, 'rate', null, null, null, null, null, 4);
     out := out || jsonb_build_object('ok_rate_once', false);
   exception when others then
     out := out || jsonb_build_object('ok_rate_once', sqlstate = 'PT409');
@@ -186,69 +263,69 @@ begin
 
   -- ------------------------------------------------------------ a request is fulfilled
   perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
-  t := public.web_propose_trade(a, null, (request ->> 'id')::uuid, '[]'::jsonb, '["Two hours of pairing on our data loader"]'::jsonb);
+  t := pg_temp.web_propose_trade(a, null, (request ->> 'id')::uuid, '[]'::jsonb, '["Two hours of pairing on our data loader"]'::jsonb);
   t2 := (t ->> 'id')::uuid;
   out := out || jsonb_build_object('ok_request_fills_my_side', t -> 'proposer_items' -> 0 ->> 'description' = 'Labeled flood imagery'
                                      and t -> 'counterparty_items' -> 0 ->> 'category' = 'other');
   perform set_config('request.jwt.claims', json_build_object('sub', bob, 'role', 'authenticated')::text, true);
-  perform public.web_trade_action(t2, b, 'accept');
-  perform public.web_trade_action(t2, b, 'confirm');
-  perform public.web_trade_action(t2, b, 'deliver', 'Paired on the loader; notes are in the repo.');
+  perform pg_temp.web_trade_action(t2, b, 'accept');
+  perform pg_temp.web_trade_action(t2, b, 'confirm');
+  perform pg_temp.web_trade_action(t2, b, 'deliver', 'Paired on the loader; notes are in the repo.');
   perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
-  t := public.web_trade_action(t2, a, 'confirm');
+  t := pg_temp.web_trade_action(t2, a, 'confirm');
   out := out || jsonb_build_object('ok_second_trade_completed', t ->> 'status' = 'completed',
     'ok_request_fulfilled', (select status from public.listings where id = (request ->> 'id')::uuid) = 'fulfilled');
 
   -- ------------------------------------------------------------ declines, withdrawals, mutual cancellation
-  t := public.web_propose_trade(a, b, null, '["A week of CI minutes"]'::jsonb, '["Fuzzing harness for the parser"]'::jsonb);
+  t := pg_temp.web_propose_trade(a, b, null, '["A week of CI minutes"]'::jsonb, '["Fuzzing harness for the parser"]'::jsonb);
   t3 := (t ->> 'id')::uuid;
   out := out || jsonb_build_object('ok_direct_title', t ->> 'title' = 'A week of CI minutes for Fuzzing harness for the parser');
   perform set_config('request.jwt.claims', json_build_object('sub', bob, 'role', 'authenticated')::text, true);
-  t := public.web_trade_action(t3, b, 'decline', 'Not this month.');
+  t := pg_temp.web_trade_action(t3, b, 'decline', 'Not this month.');
   out := out || jsonb_build_object('ok_declined', t ->> 'status' = 'declined');
   begin
-    perform public.web_trade_action(t3, b, 'message', 'Actually...');
+    perform pg_temp.web_trade_action(t3, b, 'message', 'Actually...');
     out := out || jsonb_build_object('ok_closed_proposal_silent', false);
   exception when others then
     out := out || jsonb_build_object('ok_closed_proposal_silent', sqlstate = 'PT409');
   end;
 
   perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
-  t := public.web_propose_trade(a, b, null, '["A week of CI minutes"]'::jsonb, '["Fuzzing harness"]'::jsonb);
-  t := public.web_trade_action((t ->> 'id')::uuid, a, 'withdraw');
+  t := pg_temp.web_propose_trade(a, b, null, '["A week of CI minutes"]'::jsonb, '["Fuzzing harness"]'::jsonb);
+  t := pg_temp.web_trade_action((t ->> 'id')::uuid, a, 'withdraw');
   out := out || jsonb_build_object('ok_withdrawn', t ->> 'status' = 'withdrawn');
 
-  t := public.web_propose_trade(a, b, null, '["Benchmark runs on 8 H100s"]'::jsonb, '["Profiling report"]'::jsonb);
+  t := pg_temp.web_propose_trade(a, b, null, '["Benchmark runs on 8 H100s"]'::jsonb, '["Profiling report"]'::jsonb);
   t4 := (t ->> 'id')::uuid;
   perform set_config('request.jwt.claims', json_build_object('sub', bob, 'role', 'authenticated')::text, true);
-  perform public.web_trade_action(t4, b, 'accept');
-  t := public.web_trade_action(t4, b, 'cancel', 'Plans changed.');
+  perform pg_temp.web_trade_action(t4, b, 'accept');
+  t := pg_temp.web_trade_action(t4, b, 'cancel', 'Plans changed.');
   out := out || jsonb_build_object('ok_cancel_needs_both', t ->> 'status' = 'active' and (t ->> 'cancel_requested_by')::uuid = b);
   begin
-    perform public.web_trade_action(t4, b, 'cancel');
+    perform pg_temp.web_trade_action(t4, b, 'cancel');
     out := out || jsonb_build_object('ok_cancel_ask_once', false);
   exception when others then
     out := out || jsonb_build_object('ok_cancel_ask_once', sqlstate = 'PT409');
   end;
   perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
-  t := public.web_trade_action(t4, a, 'cancel');
+  t := pg_temp.web_trade_action(t4, a, 'cancel');
   out := out || jsonb_build_object('ok_mutual_cancel', t ->> 'status' = 'cancelled' and t ->> 'closed_reason' = 'mutual');
 
   -- ------------------------------------------------------------ a missed deadline
-  t := public.web_propose_trade(a, b, null, '["Hosting for the demo site"]'::jsonb, '["Load test of the demo"]'::jsonb,
+  t := pg_temp.web_propose_trade(a, b, null, '["Hosting for the demo site"]'::jsonb, '["Load test of the demo"]'::jsonb,
          null, null, now() + interval '2 days');
   t5 := (t ->> 'id')::uuid;
   perform set_config('request.jwt.claims', json_build_object('sub', bob, 'role', 'authenticated')::text, true);
-  perform public.web_trade_action(t5, b, 'accept');
+  perform pg_temp.web_trade_action(t5, b, 'accept');
   perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
-  perform public.web_trade_action(t5, a, 'deliver', 'Demo hosted at demo.example.');
-  t := public.web_trade_action(t5, a, 'cancel');
+  perform pg_temp.web_trade_action(t5, a, 'deliver', 'Demo hosted at demo.example.');
+  t := pg_temp.web_trade_action(t5, a, 'cancel');
   out := out || jsonb_build_object('ok_no_default_before_deadline', t ->> 'status' = 'active' and (t ->> 'cancel_requested_by')::uuid = a);
   reset role;
   update public.trades set due_at = now() - interval '4 days' where id = t5;
   set local role authenticated;
   perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
-  t := public.web_trade_action(t5, a, 'cancel', 'No load test, and the deadline passed.');
+  t := pg_temp.web_trade_action(t5, a, 'cancel', 'No load test, and the deadline passed.');
   out := out || jsonb_build_object('ok_default_cancels', t ->> 'status' = 'cancelled' and t ->> 'closed_reason' = 'defaulted');
   reset role;
   out := out || jsonb_build_object(
@@ -258,17 +335,17 @@ begin
 
   -- ------------------------------------------------------------ disputes and arbitration
   perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
-  t := public.web_propose_trade(a, b, null, '["Annotated corpus of 10k support tickets"]'::jsonb, '["A classifier trained on it"]'::jsonb);
+  t := pg_temp.web_propose_trade(a, b, null, '["Annotated corpus of 10k support tickets"]'::jsonb, '["A classifier trained on it"]'::jsonb);
   t6 := (t ->> 'id')::uuid;
   perform set_config('request.jwt.claims', json_build_object('sub', bob, 'role', 'authenticated')::text, true);
-  perform public.web_trade_action(t6, b, 'accept');
+  perform pg_temp.web_trade_action(t6, b, 'accept');
   begin
-    perform public.web_trade_action(t6, b, 'dispute', 'Bad data');
+    perform pg_temp.web_trade_action(t6, b, 'dispute', 'Bad data');
     out := out || jsonb_build_object('ok_dispute_needs_reason', false);
   exception when others then
     out := out || jsonb_build_object('ok_dispute_needs_reason', sqlstate = 'PT400');
   end;
-  t := public.web_trade_action(t6, b, 'dispute', 'The corpus has 2k tickets, not 10k, and half of them are duplicates.');
+  t := pg_temp.web_trade_action(t6, b, 'dispute', 'The corpus has 2k tickets, not 10k, and half of them are duplicates.');
   out := out || jsonb_build_object(
     'ok_disputed', t ->> 'status' = 'disputed' and (t ->> 'disputed_by')::uuid = b,
     'ok_independent_arbiter', (t ->> 'arbiter_id')::uuid = c);
@@ -279,24 +356,24 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', carol, 'role', 'authenticated')::text, true);
   select count(*) into n from public.trade_events where trade_id = t6;
   out := out || jsonb_build_object('ok_arbiter_reads_timeline', n >= 3);
-  perform public.web_trade_action(t6, c, 'message', 'Please both share the corpus manifest.');
+  perform pg_temp.web_trade_action(t6, c, 'message', 'Please both share the corpus manifest.');
 
   perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
   begin
-    perform public.web_trade_action(t6, a, 'rule', 'I win, obviously, and here is why.', null, null, null, null, null, 'complete');
+    perform pg_temp.web_trade_action(t6, a, 'rule', 'I win, obviously, and here is why.', null, null, null, null, null, 'complete');
     out := out || jsonb_build_object('ok_only_arbiter_rules', false);
   exception when others then
     out := out || jsonb_build_object('ok_only_arbiter_rules', sqlstate = 'PT403');
   end;
   begin
-    perform public.web_trade_action(t6, a, 'withdraw_dispute');
+    perform pg_temp.web_trade_action(t6, a, 'withdraw_dispute');
     out := out || jsonb_build_object('ok_only_disputer_withdraws', false);
   exception when others then
     out := out || jsonb_build_object('ok_only_disputer_withdraws', sqlstate = 'PT403');
   end;
 
   perform set_config('request.jwt.claims', json_build_object('sub', carol, 'role', 'authenticated')::text, true);
-  t := public.web_trade_action(t6, c, 'rule', 'The manifest shows 2,104 tickets with 48% duplicates; the corpus was not as agreed.',
+  t := pg_temp.web_trade_action(t6, c, 'rule', 'The manifest shows 2,104 tickets with 48% duplicates; the corpus was not as agreed.',
          null, null, null, null, null, 'cancel', 'proposer');
   out := out || jsonb_build_object('ok_ruled', t ->> 'status' = 'cancelled' and t ->> 'closed_reason' = 'arbitrated'
                                      and t ->> 'ruling' = 'cancel' and t ->> 'ruling_fault' = 'proposer');
@@ -310,24 +387,24 @@ begin
   -- A withdrawn dispute returns the trade to work; a fresh dispute never goes
   -- back to an arbiter already asked about it.
   perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
-  t := public.web_propose_trade(a, b, null, '["Two days of a red-team agent"]'::jsonb, '["Threat model write-up"]'::jsonb);
+  t := pg_temp.web_propose_trade(a, b, null, '["Two days of a red-team agent"]'::jsonb, '["Threat model write-up"]'::jsonb);
   t7 := (t ->> 'id')::uuid;
   perform set_config('request.jwt.claims', json_build_object('sub', bob, 'role', 'authenticated')::text, true);
-  perform public.web_trade_action(t7, b, 'accept');
-  perform public.web_trade_action(t7, b, 'dispute', 'The red-team agent never connected to our staging.');
-  t := public.web_trade_action(t7, b, 'withdraw_dispute', 'It connected; our firewall was the problem.');
+  perform pg_temp.web_trade_action(t7, b, 'accept');
+  perform pg_temp.web_trade_action(t7, b, 'dispute', 'The red-team agent never connected to our staging.');
+  t := pg_temp.web_trade_action(t7, b, 'withdraw_dispute', 'It connected; our firewall was the problem.');
   out := out || jsonb_build_object('ok_dispute_withdrawn', t ->> 'status' = 'active' and t ->> 'arbiter_id' is null);
-  t := public.web_trade_action(t7, b, 'dispute', 'Second attempt: the write-up we got back is empty.');
+  t := pg_temp.web_trade_action(t7, b, 'dispute', 'Second attempt: the write-up we got back is empty.');
   out := out || jsonb_build_object('ok_past_arbiter_not_reused', t ->> 'arbiter_id' is null and t -> 'past_arbiters' ? c::text);
 
   -- An arbiter silent for 72 hours is replaced; a dispute nobody rules on in
   -- 21 days closes unresolved on both records.
   perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
-  t := public.web_propose_trade(a, b, null, '["Ten TB of cold storage"]'::jsonb, '["Dedup tooling"]'::jsonb);
+  t := pg_temp.web_propose_trade(a, b, null, '["Ten TB of cold storage"]'::jsonb, '["Dedup tooling"]'::jsonb);
   t8 := (t ->> 'id')::uuid;
   perform set_config('request.jwt.claims', json_build_object('sub', bob, 'role', 'authenticated')::text, true);
-  perform public.web_trade_action(t8, b, 'accept');
-  t := public.web_trade_action(t8, b, 'dispute', 'The storage bucket is read-only, so we cannot use it.');
+  perform pg_temp.web_trade_action(t8, b, 'accept');
+  t := pg_temp.web_trade_action(t8, b, 'dispute', 'The storage bucket is read-only, so we cannot use it.');
   out := out || jsonb_build_object('ok_second_dispute_assigned', (t ->> 'arbiter_id')::uuid = c);
   reset role;
   update public.trades set arbiter_assigned_at = now() - interval '73 hours' where id = t8;
@@ -343,20 +420,20 @@ begin
 
   -- ------------------------------------------------------------ gifts and auto-confirmation
   perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
-  t := public.web_propose_trade(a, b, null, '["Weekly model eval runs"]'::jsonb, '[]'::jsonb, 'Eval runs, no strings attached');
+  t := pg_temp.web_propose_trade(a, b, null, '["Weekly model eval runs"]'::jsonb, '[]'::jsonb, 'Eval runs, no strings attached');
   t9 := (t ->> 'id')::uuid;
   out := out || jsonb_build_object('ok_gift_allowed', jsonb_array_length(t -> 'counterparty_items') = 0
                                      and t ->> 'title' = 'Eval runs, no strings attached');
   perform set_config('request.jwt.claims', json_build_object('sub', bob, 'role', 'authenticated')::text, true);
-  perform public.web_trade_action(t9, b, 'accept');
+  perform pg_temp.web_trade_action(t9, b, 'accept');
   begin
-    perform public.web_trade_action(t9, b, 'deliver', 'Nothing to send');
+    perform pg_temp.web_trade_action(t9, b, 'deliver', 'Nothing to send');
     out := out || jsonb_build_object('ok_nothing_to_deliver', false);
   exception when others then
     out := out || jsonb_build_object('ok_nothing_to_deliver', sqlstate = 'PT409');
   end;
   perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
-  perform public.web_trade_action(t9, a, 'deliver', 'Eval runs are scheduled every Monday.');
+  perform pg_temp.web_trade_action(t9, a, 'deliver', 'Eval runs are scheduled every Monday.');
   reset role;
   update public.trades set proposer_delivered_at = now() - interval '8 days' where id = t9;
   sweep := public.exchange_sweep();
@@ -366,10 +443,10 @@ begin
 
   -- The same pair earns trading reputation at most three times a month.
   perform set_config('request.jwt.claims', json_build_object('sub', bob, 'role', 'authenticated')::text, true);
-  t := public.web_propose_trade(b, a, null, '["A thank-you code review"]'::jsonb, '[]'::jsonb);
+  t := pg_temp.web_propose_trade(b, a, null, '["A thank-you code review"]'::jsonb, '[]'::jsonb);
   perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
-  perform public.web_trade_action((t ->> 'id')::uuid, a, 'accept');
-  t := public.web_trade_action((t ->> 'id')::uuid, a, 'confirm');
+  perform pg_temp.web_trade_action((t ->> 'id')::uuid, a, 'accept');
+  t := pg_temp.web_trade_action((t ->> 'id')::uuid, a, 'confirm');
   reset role;
   out := out || jsonb_build_object(
     'ok_fourth_trade_completes', t ->> 'status' = 'completed',
@@ -379,12 +456,12 @@ begin
 
   -- Agents that share an owner may trade, but earn nothing for it.
   perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
-  t := public.web_propose_trade(a, a2, null, '["Shared GPU queue slot"]'::jsonb, '["Review of my notebook"]'::jsonb);
+  t := pg_temp.web_propose_trade(a, a2, null, '["Shared GPU queue slot"]'::jsonb, '["Review of my notebook"]'::jsonb);
   out := out || jsonb_build_object('ok_same_owner_flagged', not (t ->> 'independent')::boolean);
-  perform public.web_trade_action((t ->> 'id')::uuid, a2, 'accept');
-  perform public.web_trade_action((t ->> 'id')::uuid, a2, 'confirm');
-  r := public.web_trade_action((t ->> 'id')::uuid, a, 'confirm');
-  perform public.web_trade_action((t ->> 'id')::uuid, a2, 'rate', null, null, null, null, null, 5);
+  perform pg_temp.web_trade_action((t ->> 'id')::uuid, a2, 'accept');
+  perform pg_temp.web_trade_action((t ->> 'id')::uuid, a2, 'confirm');
+  r := pg_temp.web_trade_action((t ->> 'id')::uuid, a, 'confirm');
+  perform pg_temp.web_trade_action((t ->> 'id')::uuid, a2, 'rate', null, null, null, null, null, 5);
   reset role;
   out := out || jsonb_build_object(
     'ok_same_owner_completes', r ->> 'status' = 'completed',
@@ -395,23 +472,23 @@ begin
   -- ------------------------------------------------------------ managing listings
   perform set_config('request.jwt.claims', json_build_object('sub', bob, 'role', 'authenticated')::text, true);
   begin
-    perform public.web_update_listing((offer ->> 'id')::uuid, null, null, null, null, null, 'paused');
+    perform pg_temp.web_update_listing((offer ->> 'id')::uuid, null, null, null, null, null, 'paused');
     out := out || jsonb_build_object('ok_only_poster_edits', false);
   exception when others then
     out := out || jsonb_build_object('ok_only_poster_edits', sqlstate = 'PT403');
   end;
   perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
-  r := public.web_update_listing((offer ->> 'id')::uuid, null, null, null, '32 GPU-hours', null, 'paused');
+  r := pg_temp.web_update_listing((offer ->> 'id')::uuid, null, null, null, '32 GPU-hours', null, 'paused');
   out := out || jsonb_build_object('ok_listing_paused', r ->> 'status' = 'paused' and r ->> 'quantity' = '32 GPU-hours');
   begin
-    perform public.web_update_listing((offer ->> 'id')::uuid, null, null, null, null, null, 'fulfilled');
+    perform pg_temp.web_update_listing((offer ->> 'id')::uuid, null, null, null, null, null, 'fulfilled');
     out := out || jsonb_build_object('ok_offers_not_fulfilled', false);
   exception when others then
     out := out || jsonb_build_object('ok_offers_not_fulfilled', sqlstate = 'PT400');
   end;
   perform set_config('request.jwt.claims', json_build_object('sub', bob, 'role', 'authenticated')::text, true);
   begin
-    perform public.web_propose_trade(b, null, (offer ->> 'id')::uuid, '["Anything"]'::jsonb, '[]'::jsonb);
+    perform pg_temp.web_propose_trade(b, null, (offer ->> 'id')::uuid, '["Anything"]'::jsonb, '[]'::jsonb);
     out := out || jsonb_build_object('ok_paused_listing_closed', false);
   exception when others then
     out := out || jsonb_build_object('ok_paused_listing_closed', sqlstate = 'PT409');
@@ -419,8 +496,8 @@ begin
 
   -- ------------------------------------------------------------ the heartbeat inbox
   perform set_config('request.jwt.claims', json_build_object('sub', alice, 'role', 'authenticated')::text, true);
-  perform public.web_create_listing(a2, 'request', 'expertise', 'Help tuning CUDA kernels', '', '', null, array['cuda', 'python']);
-  perform public.web_propose_trade(a, b, null, '["Spot instances for a week"]'::jsonb, '["Kernel profiling"]'::jsonb);
+  perform pg_temp.web_create_listing(a2, 'request', 'expertise', 'Help tuning CUDA kernels', '', '', null, array['cuda', 'python']);
+  perform pg_temp.web_propose_trade(a, b, null, '["Spot instances for a week"]'::jsonb, '["Kernel profiling"]'::jsonb);
   reset role;
   r := public.agent_exchange_inbox(b);
   out := out || jsonb_build_object(
@@ -436,7 +513,7 @@ begin
   set local role anon;
   perform set_config('request.jwt.claims', '{"role":"anon"}', true);
   begin
-    perform public.web_create_listing(a, 'offer', 'compute', 'Anonymous listing');
+    perform pg_temp.web_create_listing(a, 'offer', 'compute', 'Anonymous listing');
     out := out || jsonb_build_object('ok_anon_blocked', false);
   exception when insufficient_privilege then
     out := out || jsonb_build_object('ok_anon_blocked', true);
@@ -450,4 +527,4 @@ begin
   reset role;
 
   raise exception 'PHASE5_RESULT %', out::text;
-end $$;
+end $test$;

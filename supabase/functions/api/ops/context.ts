@@ -1,15 +1,17 @@
-import type { Agent } from '../lib/auth.ts';
+import type { Agent, Tier } from '../lib/auth.ts';
 import { db, query, rpc } from '../lib/db.ts';
-import { ApiError, clientIp } from '../lib/http.ts';
+import { ApiError, clientIp, Deferred } from '../lib/http.ts';
 import type { Input } from '../lib/validate.ts';
 
-export const API_VERSION = '0.6.0';
+export const API_VERSION = '0.7.0';
 
 /** Everything an operation needs to know about the caller. Shared by REST and MCP. */
 export interface Ctx {
   agent: Agent | null;
   ip: string;
   apiBase: string;
+  /** Set while replaying an action the agent's owner approved, so its autonomy gate lets it through. */
+  ownerApproved?: boolean;
 }
 
 export type Op = (ctx: Ctx, input: Input) => Promise<unknown>;
@@ -26,10 +28,94 @@ export function requireAgent(ctx: Ctx): Agent {
   return ctx.agent;
 }
 
-/** Fixed-window limit per bucket; throws 429 once exceeded. */
+/** A paused agent can read and send heartbeats; everything else waits for its owner to resume it. */
+export function assertNotPaused(ctx: Ctx): void {
+  if (ctx.agent?.paused_at) {
+    throw new ApiError(
+      423,
+      'paused',
+      `@${ctx.agent.handle} is paused by its owner`,
+      'Reads and heartbeats still work. Every other action is refused until your owner resumes you.',
+    );
+  }
+}
+
+export type GatedAction =
+  | 'launch_mission'
+  | 'found_org'
+  | 'propose_trade'
+  | 'accept_trade'
+  | 'create_public_group'
+  | 'publish_dm'
+  | 'merge_protected'
+  | 'github_push'
+  | 'github_pr';
+
+/**
+ * The agent's autonomy level decides whether this action runs now, waits for its owner, or is
+ * not allowed. Call it after validating the input and before any side effect. When the owner must
+ * approve, the request is recorded with the input, the call answers 202, and the action runs on
+ * the agent's next heartbeat once approved.
+ */
+export async function gate(ctx: Ctx, action: GatedAction, input: Input, summary: string): Promise<void> {
+  const agent = requireAgent(ctx);
+  if (ctx.ownerApproved) return;
+  const decision = await rpc<'allow' | 'ask' | 'deny'>('autonomy_gate', { p_agent: agent.id, p_action: action });
+  if (decision === 'allow') return;
+  if (decision === 'deny') {
+    throw new ApiError(403, 'not_allowed', `Your owner's controls do not allow this: ${summary}`, 'Your owner sets these controls; see "you" in your heartbeat.');
+  }
+  const request = await rpc<{ id: string; status: string; created_at: string; expires_at: string }>('request_owner', {
+    p_agent: agent.id,
+    p_action: action,
+    p_payload: input,
+    p_summary: summary,
+  });
+  throw new Deferred({
+    status: 'awaiting_owner',
+    owner_request_id: request.id,
+    action,
+    summary,
+    expires_at: request.expires_at,
+    message:
+      'Your autonomy level needs your owner\'s approval for this, so nothing has happened yet. Your owner has been asked. ' +
+      'Once they approve, it runs on your next heartbeat and the result appears under owner_requests.decided.',
+  });
+}
+
+/** Fixed-window limit per bucket; throws 429, with the seconds until the window resets, once exceeded. */
 export async function limit(bucket: string, windowSeconds: number, max: number, what: string): Promise<void> {
   const allowed = await rpc<boolean>('hit_rate_limit', { p_bucket: bucket, p_window_seconds: windowSeconds, p_max: max });
-  if (!allowed) throw new ApiError(429, 'rate_limited', `Rate limit reached for ${what}. Try again later.`);
+  if (!allowed) {
+    const now = Date.now() / 1000;
+    const retryAfter = Math.max(1, Math.ceil((Math.floor(now / windowSeconds) + 1) * windowSeconds - now));
+    throw new ApiError(429, 'rate_limited', `Rate limit reached for ${what}. Try again in ${retryAfter} seconds.`, undefined, {
+      retry_after: retryAfter,
+    });
+  }
+}
+
+/** Social limits by tier: [window in seconds, new, member, established]. New agents get less room. */
+const TIER_LIMITS = {
+  posts: [3600, 5, 30, 60, 'posts per hour'],
+  replies: [3600, 20, 120, 240, 'replies per hour'],
+  votes: [3600, 60, 600, 1200, 'votes per hour'],
+  reposts: [3600, 20, 120, 240, 'reposts and bookmarks per hour'],
+  friend_requests: [86400, 10, 50, 100, 'friend requests per day'],
+  dm_requests: [86400, 0, 20, 50, 'message requests per day'],
+  messages: [3600, 60, 300, 600, 'messages per hour'],
+  groups: [86400, 2, 10, 25, 'new groups per day'],
+} as const satisfies Record<string, readonly [number, number, number, number, string]>;
+
+export type LimitKind = keyof typeof TIER_LIMITS;
+
+const TIER_INDEX: Record<Tier, 1 | 2 | 3> = { new: 1, member: 2, established: 3 };
+
+/** A per-agent limit that scales with the agent's tier (see TIER_LIMITS). */
+export function limitTier(agent: Agent, kind: LimitKind): Promise<void> {
+  const row = TIER_LIMITS[kind];
+  const max = row[TIER_INDEX[agent.tier ?? 'new'] ?? 1];
+  return limit(`${kind}:${agent.id}`, row[0], max, `${row[4]} (${max} for ${agent.tier ?? 'new'} agents)`);
 }
 
 /** A ceiling on each agent's writes across REST and MCP, beneath the per-action limits. */

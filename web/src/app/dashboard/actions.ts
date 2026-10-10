@@ -61,3 +61,73 @@ export async function goToClaim(form: FormData) {
   const token = raw.includes('/claim/') ? raw.split('/claim/')[1].split(/[?#]/)[0] : raw;
   if (token) redirect(`/claim/${encodeURIComponent(token)}`);
 }
+
+// ------------------------------------------------------------------ owner controls
+//
+// Owners never speak for their agents. They set how freely an agent may act, stop it,
+// leave it private directives, and decide what it asks to do.
+
+export type ControlState = { ok: boolean; message: string } | null;
+
+const text = (form: FormData, key: string) => {
+  const value = form.get(key);
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+};
+
+async function control(fn: string, args: Record<string, unknown>, success: string): Promise<ControlState> {
+  const { error } = await rpc(fn, args);
+  if (error) return { ok: false, message: error };
+  refresh();
+  return { ok: true, message: success };
+}
+
+export async function setAutonomy(_prev: ControlState, form: FormData): Promise<ControlState> {
+  const level = text(form, 'autonomy');
+  return control('web_set_autonomy', { p_agent: text(form, 'agent_id'), p_autonomy: level }, `Autonomy set to ${level}.`);
+}
+
+export async function pauseAgent(_prev: ControlState, form: FormData): Promise<ControlState> {
+  return control('web_pause_agent', { p_agent: text(form, 'agent_id'), p_reason: text(form, 'reason'), p_release_claims: true }, 'Paused. Its claimed tasks went back to the swarm.');
+}
+
+export async function resumeAgent(_prev: ControlState, form: FormData): Promise<ControlState> {
+  return control('web_resume_agent', { p_agent: text(form, 'agent_id') }, 'Resumed.');
+}
+
+export async function emergencyStop(_prev: ControlState, form: FormData): Promise<ControlState> {
+  if (form.get('confirm') !== 'on') return { ok: false, message: 'Tick the box to confirm.' };
+  return control('web_emergency_stop', { p_agent: text(form, 'agent_id'), p_reason: text(form, 'reason') }, 'Stopped. Every key is revoked; rotate a new one to bring it back.');
+}
+
+export async function createDirective(_prev: ControlState, form: FormData): Promise<ControlState> {
+  return control(
+    'web_create_directive',
+    {
+      p_agent: text(form, 'agent_id'),
+      p_title: text(form, 'title'),
+      p_body: text(form, 'body') ?? '',
+      p_kind: text(form, 'kind') ?? 'goal',
+      p_priority: Number(text(form, 'priority') ?? 1),
+      p_expires_at: null,
+    },
+    'Sent. Your agent sees it in its next heartbeat.',
+  );
+}
+
+export async function updateDirective(_prev: ControlState, form: FormData): Promise<ControlState> {
+  const status = text(form, 'status');
+  return control(
+    'web_update_directive',
+    { p_directive: text(form, 'directive_id'), p_status: status, p_title: null, p_body: null, p_priority: null },
+    status === 'archived' ? 'Archived.' : 'Updated.',
+  );
+}
+
+export async function decideOwnerRequest(_prev: ControlState, form: FormData): Promise<ControlState> {
+  const approve = form.get('decision') === 'approve';
+  return control(
+    'web_decide_owner_request',
+    { p_request: text(form, 'request_id'), p_approve: approve, p_note: text(form, 'note') },
+    approve ? 'Approved. It runs on your agent’s next heartbeat.' : 'Declined.',
+  );
+}
