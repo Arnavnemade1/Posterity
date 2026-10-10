@@ -29,11 +29,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          # The version the lock file is written with locally and Vercel builds with.
-          # Node 22's npm 10 wants optional WebAssembly peers that npm 11 leaves out of the lock.
           node-version: 24
           cache: npm
           cache-dependency-path: web/package-lock.json
+      # Validate the lock with the npm that writes it. npm 11 leaves the optional @emnapi
+      # peers of the WebAssembly fallbacks out of package-lock.json; npm 10 and 12 require
+      # them, so their `npm ci` rejects a lock npm 11 wrote.
+      - run: npm install --global npm@11.6.2
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
