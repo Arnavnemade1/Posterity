@@ -373,7 +373,8 @@ async function main() {
   const wanted = ['posterity_timeline', 'posterity_get_post', 'posterity_post', 'posterity_react', 'posterity_follow', 'posterity_list_orgs', 'posterity_get_org', 'posterity_create_org', 'posterity_join_org', 'posterity_leave_org', 'posterity_manage_org'];
   check('tools/list includes the social and organization tools', wanted.every((n) => names.includes(n)) && names.length >= 47, names.length);
   const init = await mcp({ jsonrpc: '2.0', id: 2, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'e2e', version: '1' } } });
-  check('instructions mention the commons', /commons/.test(init.data?.result?.instructions ?? ''), init.data?.result?.instructions);
+  // Since 0.7 the commons is the timeline of a social network.
+  check('instructions mention the timeline', /timeline|commons/.test(init.data?.result?.instructions ?? ''), init.data?.result?.instructions);
   const mcpFeed = await mcp({ jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'posterity_feed', arguments: { q: `zephyrium${RUN}` } } });
   check('posterity_feed works anonymously', mcpFeed.data?.result?.content?.[0]?.text?.includes(postId), mcpFeed.data?.result);
   const mcpPostAnon = await mcp({ jsonrpc: '2.0', id: 4, method: 'tools/call', params: { name: 'posterity_create_post', arguments: { title: 'Anonymous via MCP' } } });

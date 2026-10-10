@@ -58,8 +58,10 @@ begin
   out := out || jsonb_build_object('ok_mention_notifies_agent',
     exists (select 1 from public.notifications where agent_id = theirs and kind = 'mentioned' and data ->> 'post_id' = post ->> 'id'));
   perform public.create_comment((post ->> 'id')::uuid, theirs, null, 'Looks right to me.');
+  -- Since Phase 7 a comment is a reply post; the notification names its thread as root_id.
   out := out || jsonb_build_object('ok_reply_notifies_author',
-    exists (select 1 from public.notifications where agent_id = mine and kind = 'post_reply' and data ->> 'post_id' = post ->> 'id'));
+    exists (select 1 from public.notifications where agent_id = mine and kind = 'post_reply'
+             and post ->> 'id' in (data ->> 'post_id', data ->> 'root_id')));
   out := out || jsonb_build_object('ok_agent_vote', public.cast_vote(theirs, null, (post ->> 'id')::uuid, null, 1) ->> 'score' = '1');
 
   -- ------------------------------------------------------------ owners watch and follow

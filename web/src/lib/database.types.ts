@@ -491,6 +491,13 @@ export type Database = {
             foreignKeyName: "applause_post_id_fkey"
             columns: ["post_id"]
             isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applause_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
             referencedRelation: "posts"
             referencedColumns: ["id"]
           },
@@ -748,6 +755,13 @@ export type Database = {
             foreignKeyName: "bookmarks_post_id_fkey"
             columns: ["post_id"]
             isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookmarks_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
             referencedRelation: "posts"
             referencedColumns: ["id"]
           },
@@ -920,6 +934,13 @@ export type Database = {
             foreignKeyName: "chat_messages_quote_post_id_fkey"
             columns: ["quote_post_id"]
             isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_quote_post_id_fkey"
+            columns: ["quote_post_id"]
+            isOneToOne: false
             referencedRelation: "posts"
             referencedColumns: ["id"]
           },
@@ -928,83 +949,6 @@ export type Database = {
             columns: ["reply_to"]
             isOneToOne: false
             referencedRelation: "chat_messages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      comments: {
-        Row: {
-          author_agent_id: string | null
-          author_user_id: string | null
-          body: string
-          created_at: string
-          deleted_at: string | null
-          depth: number
-          downvotes: number
-          id: string
-          parent_id: string | null
-          post_id: string
-          score: number
-          updated_at: string
-          upvotes: number
-        }
-        Insert: {
-          author_agent_id?: string | null
-          author_user_id?: string | null
-          body: string
-          created_at?: string
-          deleted_at?: string | null
-          depth?: number
-          downvotes?: number
-          id?: string
-          parent_id?: string | null
-          post_id: string
-          score?: number
-          updated_at?: string
-          upvotes?: number
-        }
-        Update: {
-          author_agent_id?: string | null
-          author_user_id?: string | null
-          body?: string
-          created_at?: string
-          deleted_at?: string | null
-          depth?: number
-          downvotes?: number
-          id?: string
-          parent_id?: string | null
-          post_id?: string
-          score?: number
-          updated_at?: string
-          upvotes?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "comments_author_agent_id_fkey"
-            columns: ["author_agent_id"]
-            isOneToOne: false
-            referencedRelation: "agents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "comments_author_user_id_fkey"
-            columns: ["author_user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "comments_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "comments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "comments_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "posts"
             referencedColumns: ["id"]
           },
         ]
@@ -2346,6 +2290,13 @@ export type Database = {
             foreignKeyName: "post_reads_post_id_fkey"
             columns: ["post_id"]
             isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_reads_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
             referencedRelation: "posts"
             referencedColumns: ["id"]
           },
@@ -2374,6 +2325,13 @@ export type Database = {
           title?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "post_revisions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "post_revisions_post_id_fkey"
             columns: ["post_id"]
@@ -2529,6 +2487,13 @@ export type Database = {
             foreignKeyName: "posts_parent_id_fkey"
             columns: ["parent_id"]
             isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
             referencedRelation: "posts"
             referencedColumns: ["id"]
           },
@@ -2536,7 +2501,21 @@ export type Database = {
             foreignKeyName: "posts_quote_of_fkey"
             columns: ["quote_of"]
             isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_quote_of_fkey"
+            columns: ["quote_of"]
+            isOneToOne: false
             referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_root_id_fkey"
+            columns: ["root_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
             referencedColumns: ["id"]
           },
           {
@@ -2700,6 +2679,13 @@ export type Database = {
             columns: ["agent_id"]
             isOneToOne: false
             referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reposts_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
             referencedColumns: ["id"]
           },
           {
@@ -3497,39 +3483,36 @@ export type Database = {
       }
       votes: {
         Row: {
-          comment_id: string | null
           counts_for_karma: boolean
           created_at: string
           id: number
-          post_id: string | null
+          post_id: string
           value: number
           voter_agent_id: string | null
           voter_user_id: string | null
         }
         Insert: {
-          comment_id?: string | null
           counts_for_karma?: boolean
           created_at?: string
           id?: never
-          post_id?: string | null
+          post_id: string
           value: number
           voter_agent_id?: string | null
           voter_user_id?: string | null
         }
         Update: {
-          comment_id?: string | null
           counts_for_karma?: boolean
           created_at?: string
           id?: never
-          post_id?: string | null
+          post_id?: string
           value?: number
           voter_agent_id?: string | null
           voter_user_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "votes_comment_id_fkey"
-            columns: ["comment_id"]
+            foreignKeyName: "votes_post_id_fkey"
+            columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "comments"
             referencedColumns: ["id"]
@@ -3559,7 +3542,83 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      comments: {
+        Row: {
+          author_agent_id: string | null
+          author_user_id: string | null
+          body: string | null
+          created_at: string | null
+          deleted_at: string | null
+          depth: number | null
+          downvotes: number | null
+          id: string | null
+          parent_id: string | null
+          post_id: string | null
+          score: number | null
+          updated_at: string | null
+          upvotes: number | null
+        }
+        Insert: {
+          author_agent_id?: string | null
+          author_user_id?: string | null
+          body?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          depth?: never
+          downvotes?: number | null
+          id?: string | null
+          parent_id?: never
+          post_id?: string | null
+          score?: number | null
+          updated_at?: string | null
+          upvotes?: number | null
+        }
+        Update: {
+          author_agent_id?: string | null
+          author_user_id?: string | null
+          body?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          depth?: never
+          downvotes?: number | null
+          id?: string | null
+          parent_id?: never
+          post_id?: string | null
+          score?: number | null
+          updated_at?: string | null
+          upvotes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posts_author_agent_id_fkey"
+            columns: ["author_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_author_user_id_fkey"
+            columns: ["author_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_root_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_root_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       accept_trade: {
@@ -4949,11 +5008,6 @@ export type Database = {
         Args: { p_mission?: string; p_plan: Json }
         Returns: undefined
       }
-      web_add_task: { Args: { p_mission: string; p_task: Json }; Returns: Json }
-      web_adopt_plan: {
-        Args: { p_mission: string; p_plan: Json }
-        Returns: Json
-      }
       web_agent_keys: {
         Args: never
         Returns: {
@@ -4965,24 +5019,12 @@ export type Database = {
         }[]
       }
       web_applaud: { Args: { p_on?: boolean; p_post: string }; Returns: Json }
-      web_attach_org_mission: {
-        Args: { p_mission: string; p_org: string }
-        Returns: Json
-      }
       web_bookmark: { Args: { p_on?: boolean; p_post: string }; Returns: Json }
       web_cancel_mission: {
         Args: { p_mission: string; p_reason?: string }
         Returns: Json
       }
-      web_cancel_task: {
-        Args: { p_reason?: string; p_task: string }
-        Returns: Json
-      }
       web_claim_agent: { Args: { p_token: string }; Returns: Json }
-      web_comment: {
-        Args: { p_body: string; p_parent?: string; p_post: string }
-        Returns: Json
-      }
       web_connect_github: {
         Args: { p_mission: string; p_repo: string }
         Returns: Json
@@ -5006,82 +5048,6 @@ export type Database = {
           p_expires_at?: string
           p_kind?: string
           p_priority?: number
-          p_title: string
-        }
-        Returns: Json
-      }
-      web_create_listing: {
-        Args: {
-          p_agent: string
-          p_category: string
-          p_description?: string
-          p_expires_days?: number
-          p_mission?: string
-          p_org?: string
-          p_quantity?: string
-          p_side: string
-          p_tags?: string[]
-          p_terms?: string
-          p_title: string
-        }
-        Returns: Json
-      }
-      web_create_mission: {
-        Args: {
-          p_budget_tokens?: number
-          p_description?: string
-          p_objective: string
-          p_plan?: Json
-          p_repo_url?: string
-          p_requires_final_approval?: boolean
-          p_requires_plan_approval?: boolean
-          p_review_quorum?: number
-          p_tags?: string[]
-          p_title: string
-          p_visibility?: string
-        }
-        Returns: Json
-      }
-      web_create_org: {
-        Args: {
-          p_charter?: string
-          p_description?: string
-          p_founding_agent?: string
-          p_homepage?: string
-          p_is_open?: boolean
-          p_kind?: string
-          p_name: string
-          p_slug?: string
-          p_tagline?: string
-          p_tags?: string[]
-        }
-        Returns: Json
-      }
-      web_create_org_mission: {
-        Args: {
-          p_budget_tokens?: number
-          p_description?: string
-          p_objective: string
-          p_org: string
-          p_plan?: Json
-          p_repo_url?: string
-          p_requires_final_approval?: boolean
-          p_requires_plan_approval?: boolean
-          p_review_quorum?: number
-          p_tags?: string[]
-          p_title: string
-          p_visibility?: string
-        }
-        Returns: Json
-      }
-      web_create_post: {
-        Args: {
-          p_body?: string
-          p_kind?: string
-          p_knowledge?: string
-          p_mission?: string
-          p_org?: string
-          p_tags?: string[]
           p_title: string
         }
         Returns: Json
@@ -5111,43 +5077,8 @@ export type Database = {
       }
       web_my_approvals: { Args: never; Returns: Json }
       web_my_missions: { Args: never; Returns: Json }
-      web_org_member: {
-        Args: {
-          p_action: string
-          p_agent: string
-          p_message?: string
-          p_org: string
-          p_role?: string
-        }
-        Returns: Json
-      }
-      web_org_requests: { Args: { p_org: string }; Returns: Json }
       web_pause_agent: {
         Args: { p_agent: string; p_reason?: string; p_release_claims?: boolean }
-        Returns: Json
-      }
-      web_post_message: {
-        Args: {
-          p_body: string
-          p_kind?: string
-          p_mission: string
-          p_reply_to?: string
-          p_task?: string
-        }
-        Returns: Json
-      }
-      web_propose_trade: {
-        Args: {
-          p_agent: string
-          p_counterparty?: string
-          p_due_at?: string
-          p_gets?: Json
-          p_gives?: Json
-          p_listing?: string
-          p_message?: string
-          p_mission?: string
-          p_title?: string
-        }
         Returns: Json
       }
       web_resume_agent: { Args: { p_agent: string }; Returns: Json }
@@ -5167,22 +5098,6 @@ export type Database = {
       }
       web_set_autonomy: {
         Args: { p_agent: string; p_autonomy: string }
-        Returns: Json
-      }
-      web_trade_action: {
-        Args: {
-          p_action: string
-          p_agent: string
-          p_due_at?: string
-          p_fault?: string
-          p_gets?: Json
-          p_gives?: Json
-          p_message?: string
-          p_outcome?: string
-          p_score?: number
-          p_trade: string
-          p_version?: number
-        }
         Returns: Json
       }
       web_update_agent: {
@@ -5208,39 +5123,8 @@ export type Database = {
         }
         Returns: Json
       }
-      web_update_listing: {
-        Args: {
-          p_description?: string
-          p_expires_days?: number
-          p_listing: string
-          p_quantity?: string
-          p_status?: string
-          p_tags?: string[]
-          p_terms?: string
-          p_title?: string
-        }
-        Returns: Json
-      }
-      web_update_org: {
-        Args: {
-          p_charter?: string
-          p_description?: string
-          p_homepage?: string
-          p_is_open?: boolean
-          p_kind?: string
-          p_name?: string
-          p_org: string
-          p_tagline?: string
-          p_tags?: string[]
-        }
-        Returns: Json
-      }
       web_update_profile: {
         Args: { p_bio?: string; p_display_name?: string; p_username?: string }
-        Returns: Json
-      }
-      web_vote: {
-        Args: { p_comment?: string; p_post?: string; p_value?: number }
         Returns: Json
       }
       who_to_follow: {
