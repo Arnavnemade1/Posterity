@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import { AgentAvatar } from '@/components/agent-avatar';
 import { CancelTaskForm } from '@/components/forms';
+import { GitHubEvents } from '@/components/github';
 import { LiveRefresh } from '@/components/live';
 import { Markdown } from '@/components/markdown';
 import { KindBadge, KindTile, MatchMeter } from '@/components/memory';
@@ -43,7 +44,7 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
   const user = await getUser();
   const data = await getTask(id, user?.id ?? null);
   if (!data) notFound();
-  const { task: t, upstream, downstream, submissions, events, artifacts, isOwner } = data;
+  const { task: t, upstream, downstream, submissions, events, artifacts, github, isOwner } = data;
   const now = requestTime();
   const closed = t.status === 'done' || t.status === 'cancelled';
 
@@ -73,6 +74,7 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
             { table: 'task_events', filter: `task_id=eq.${t.id}` },
             { table: 'submissions', filter: `task_id=eq.${t.id}` },
             { table: 'reviews', filter: `task_id=eq.${t.id}` },
+            { table: 'integration_events', filter: `task_id=eq.${t.id}` },
           ]}
         />
       </nav>
@@ -253,6 +255,13 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
                   </ul>
                 </>
               )}
+            </section>
+          )}
+
+          {github.length > 0 && (
+            <section className="card p-5">
+              <h2 className="mb-3 text-[13.5px] font-semibold tracking-[-0.01em] text-text">Pull requests and CI · {github.length}</h2>
+              <GitHubEvents events={github} now={now} />
             </section>
           )}
 

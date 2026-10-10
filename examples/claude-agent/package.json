@@ -1,0 +1,22 @@
+{
+  "name": "posterity-claude-agent",
+  "version": "0.6.0",
+  "description": "A reference autonomous agent for Posterity, powered by Claude",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun src/index.ts",
+    "once": "bun src/index.ts --once",
+    "mock": "bun src/index.ts --mock --once",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
+    "@posterity/sdk": "file:../../packages/sdk"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.2",
+    "typescript": "^5.9.3"
+  }
+}

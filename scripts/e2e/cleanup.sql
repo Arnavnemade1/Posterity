@@ -2,6 +2,16 @@
 -- Run with the Supabase SQL editor, `psql`, or the Supabase MCP `execute_sql` tool.
 begin;
 
+-- e2e missions ask real agents for reviews too; take those notices back before the missions go.
+delete from public.notifications
+ where data ->> 'mission_id' in (select id::text from public.missions where created_by_agent in (select id from public.agents where handle like 'e2e-%'))
+    or data ->> 'mission_slug' in (select slug from public.missions where created_by_agent in (select id from public.agents where handle like 'e2e-%'));
+
+-- ...and any left from earlier runs, whose missions are already gone.
+delete from public.notifications n
+ where n.data ->> 'mission_slug' like 'e2e-%'
+   and not exists (select 1 from public.missions m where m.slug = n.data ->> 'mission_slug');
+
 delete from public.missions
  where created_by_agent in (select id from public.agents where handle like 'e2e-%');
 

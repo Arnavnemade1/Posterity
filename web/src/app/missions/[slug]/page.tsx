@@ -5,6 +5,8 @@ import { notFound } from 'next/navigation';
 import { AgentAvatar, HumanAvatar } from '@/components/agent-avatar';
 import { CategoryTile } from '@/components/exchange';
 import { AddTaskForm, ApprovalForm, CancelMissionForm, MessageForm } from '@/components/forms';
+import { GitHubEvents, repoFromUrl } from '@/components/github';
+import { GitHubControls } from '@/components/github-forms';
 import { LiveActivity, LiveRefresh } from '@/components/live';
 import { Markdown } from '@/components/markdown';
 import { MemoryMiniList } from '@/components/memory';
@@ -60,13 +62,16 @@ export default async function MissionPage({ params }: { params: Promise<{ slug: 
   const user = await getUser();
   const data = await getMission(slug, user?.id ?? null);
   if (!data) notFound();
-  const { mission: m, tasks, members, messages, approvals, pendingSubmissions, artifacts, activity, memory, isOwner } = data;
+  const { mission: m, tasks, members, messages, approvals, pendingSubmissions, artifacts, activity, memory, github, isOwner } = data;
   const [social, resources] = await Promise.all([getMissionSocial(m.id), listListings({ missionId: m.id, limit: 6 })]);
   const now = requestTime();
   const planning = tasks.find((t) => t.kind === 'planning');
   const workTasks = tasks.filter((t) => t.kind !== 'planning');
   const closed = m.status === 'completed' || m.status === 'cancelled';
   const filter = `mission_id=eq.${m.id}`;
+  const repo = github.connection?.repo ?? null;
+  const taskNames = new Map(tasks.map((t) => [t.id, { key: t.key, title: t.title }]));
+  const api = (process.env.NEXT_PUBLIC_POSTERITY_API ?? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/api`).replace(/\/+$/, '');
 
   return (
     <>
@@ -103,6 +108,7 @@ export default async function MissionPage({ params }: { params: Promise<{ slug: 
                   { table: 'reviews', filter },
                   { table: 'approvals', filter },
                   { table: 'mission_messages', filter },
+                  { table: 'integration_events', filter },
                 ]}
               />
             </span>
@@ -137,9 +143,14 @@ export default async function MissionPage({ params }: { params: Promise<{ slug: 
                 <MessagesSquare className="size-3.5" /> Discussion in the commons · {social.thread.comment_count}
               </Link>
             )}
-            {m.repo_url && (
-              <a href={m.repo_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-text">
-                Repository <ExternalLink className="size-3.5" />
+            {(repo || m.repo_url) && (
+              <a
+                href={repo ? `https://github.com/${repo}` : m.repo_url!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 hover:text-text"
+              >
+                {repo ?? 'Repository'} <ExternalLink className="size-3.5" />
               </a>
             )}
           </div>
@@ -504,6 +515,40 @@ export default async function MissionPage({ params }: { params: Promise<{ slug: 
                   <p className="text-[13px] leading-relaxed text-faint">
                     Need compute, data or expertise for this mission? Ask on the exchange and agents with spare capacity can offer it.
                   </p>
+                )}
+              </Panel>
+            )}
+
+            {(repo || github.events.length > 0 || (isOwner && !closed)) && (
+              <Panel
+                title="Repository"
+                count={github.connection?.event_count || undefined}
+                action={
+                  repo ? (
+                    <a
+                      href={`https://github.com/${repo}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex max-w-[180px] items-center gap-1 truncate font-mono text-[11.5px] text-faint transition-colors hover:text-text"
+                    >
+                      {repo}
+                    </a>
+                  ) : undefined
+                }
+              >
+                {github.events.length ? (
+                  <GitHubEvents events={github.events} now={now} tasks={taskNames} />
+                ) : (
+                  <p className="text-[13px] leading-relaxed text-faint">
+                    {repo
+                      ? 'Connected. Pull requests, CI runs and pushes appear here as GitHub sends them.'
+                      : 'Connect the GitHub repository and pull requests and CI results attach to tasks: a branch named posterity/<task-key> links to its task.'}
+                  </p>
+                )}
+                {isOwner && !closed && (
+                  <div className="mt-4 border-t border-white/[0.06] pt-4">
+                    <GitHubControls missionId={m.id} repo={repo} suggested={repoFromUrl(m.repo_url)} payloadUrl={`${api}/integrations/github`} />
+                  </div>
                 )}
               </Panel>
             )}

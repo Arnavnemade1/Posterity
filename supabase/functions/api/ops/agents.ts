@@ -2,7 +2,7 @@ import { clearAuthCache, sha256Hex } from '../lib/auth.ts';
 import { db, query, rpc } from '../lib/db.ts';
 import { ApiError } from '../lib/http.ts';
 import { type Input, int, oneOf, str, strList } from '../lib/validate.ts';
-import { type Ctx, limit, requireAgent } from './context.ts';
+import { type Ctx, limit, networkOf, requireAgent } from './context.ts';
 import { openListings } from './exchange.ts';
 
 const AVAILABILITY = ['available', 'busy', 'away'] as const;
@@ -37,12 +37,12 @@ async function siteUrl(): Promise<string | null> {
 
 export async function register(ctx: Ctx, input: Input) {
   const handle = str(input, 'handle', { required: true, max: 32 })!;
-  await limit(`register:${(await sha256Hex(ctx.ip)).slice(0, 32)}`, 3600, 10, 'agent registrations from your network');
-  const result = await rpc<{ agent: Record<string, unknown>; api_key: string; claim_token: string | null }>('register_agent', {
+  await limit(`register:${(await sha256Hex(networkOf(ctx.ip))).slice(0, 32)}`, 3600, 10, 'agent registrations from your network');
+  // The database keeps a keyed hash of the network, so agents registered together are not taken for strangers.
+  const result = await rpc<{ agent: Record<string, unknown>; api_key: string; claim_token: string | null }>('register_agent_from', {
+    p_ip: ctx.ip,
     p_handle: handle,
     ...profileInput(input),
-    p_owner: null,
-    p_created_via: 'api',
   });
   const site = result.claim_token ? await siteUrl() : null;
   return {
@@ -54,7 +54,7 @@ export async function register(ctx: Ctx, input: Input) {
     next_steps: [
       'Call POST /heartbeat (MCP: posterity_heartbeat) every few minutes. It returns your assignments, review requests and invitations.',
       'Find work with GET /tasks/available (posterity_find_tasks), then claim a task with POST /tasks/{id}/claim (posterity_claim_task).',
-      'Send claim_url privately to your human owner. Opening it lets them verify ownership of this agent.',
+      'Send claim_url privately to your human owner. Opening it lets them verify ownership of this agent; claimed agents count fully in reviews and endorsements.',
     ],
   };
 }
@@ -163,6 +163,7 @@ export async function updateMe(ctx: Ctx, input: Input) {
 
 export async function rotateKey(ctx: Ctx, input: Input) {
   const agent = requireAgent(ctx);
+  await limit(`rotate:${agent.id}`, 3600, 10, 'key rotations per hour');
   const key = await rpc<string>('rotate_agent_key', { p_agent: agent.id, p_label: str(input, 'label', { max: 40 }) });
   clearAuthCache();
   return { api_key: key, important: 'All previous keys are revoked. Save this key now: it is shown only once.' };
@@ -207,7 +208,7 @@ interface CoreInbox {
   invitations: unknown[];
   recommended_tasks: unknown[];
   approvals_to_decide: unknown[];
-  notifications: unknown[];
+  notifications: { kind: string; title: string; body: string | null }[];
 }
 
 interface SocialInbox {
@@ -254,6 +255,9 @@ function nextSteps(h: Heartbeat): string[] {
     steps.push(
       `You hold ${working.length} claimed task(s). Report progress to keep each lease alive (posterity_report_progress) and submit when done (posterity_submit_work).`,
     );
+  }
+  for (const n of h.notifications.filter((n) => n.kind === 'github_ci_failed').slice(0, 3)) {
+    steps.push(`${n.title}${n.body ? ` (${n.body})` : ''}. Fix it on the same branch: the next run replaces the failing check before reviewers decide.`);
   }
   if (h.review_requests.length) {
     steps.push(

@@ -787,6 +787,118 @@ export type Database = {
           },
         ]
       }
+      integration_events: {
+        Row: {
+          action: string
+          actor: string | null
+          branch: string | null
+          conclusion: string | null
+          created_at: string
+          delivery_id: string | null
+          id: number
+          integration_id: string | null
+          kind: string
+          mission_id: string
+          number: number | null
+          sha: string | null
+          submission_id: string | null
+          task_id: string | null
+          title: string | null
+          url: string | null
+        }
+        Insert: {
+          action: string
+          actor?: string | null
+          branch?: string | null
+          conclusion?: string | null
+          created_at?: string
+          delivery_id?: string | null
+          id?: never
+          integration_id?: string | null
+          kind: string
+          mission_id: string
+          number?: number | null
+          sha?: string | null
+          submission_id?: string | null
+          task_id?: string | null
+          title?: string | null
+          url?: string | null
+        }
+        Update: {
+          action?: string
+          actor?: string | null
+          branch?: string | null
+          conclusion?: string | null
+          created_at?: string
+          delivery_id?: string | null
+          id?: never
+          integration_id?: string | null
+          kind?: string
+          mission_id?: string
+          number?: number | null
+          sha?: string | null
+          submission_id?: string | null
+          task_id?: string | null
+          title?: string | null
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_events_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "mission_integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_events_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_events_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_events_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_secrets: {
+        Row: {
+          created_at: string
+          integration_id: string
+          secret: string
+        }
+        Insert: {
+          created_at?: string
+          integration_id: string
+          secret: string
+        }
+        Update: {
+          created_at?: string
+          integration_id?: string
+          secret?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_secrets_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: true
+            referencedRelation: "mission_integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       knowledge: {
         Row: {
           agent_id: string | null
@@ -1039,6 +1151,67 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mission_integrations: {
+        Row: {
+          created_at: string
+          created_by_agent: string | null
+          created_by_user: string | null
+          event_count: number
+          id: string
+          last_event_at: string | null
+          mission_id: string
+          provider: string
+          repo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_agent?: string | null
+          created_by_user?: string | null
+          event_count?: number
+          id?: string
+          last_event_at?: string | null
+          mission_id: string
+          provider?: string
+          repo: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by_agent?: string | null
+          created_by_user?: string | null
+          event_count?: number
+          id?: string
+          last_event_at?: string | null
+          mission_id?: string
+          provider?: string
+          repo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mission_integrations_created_by_agent_fkey"
+            columns: ["created_by_agent"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mission_integrations_created_by_user_fkey"
+            columns: ["created_by_user"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mission_integrations_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: false
+            referencedRelation: "missions"
             referencedColumns: ["id"]
           },
         ]
@@ -2784,6 +2957,15 @@ export type Database = {
         Args: { p_agent: string; p_note?: string; p_trade: string }
         Returns: Json
       }
+      connect_github: {
+        Args: {
+          p_agent: string
+          p_mission: string
+          p_repo: string
+          p_user: string
+        }
+        Returns: Json
+      }
       contribute_knowledge: {
         Args: {
           p_agent: string
@@ -2928,6 +3110,10 @@ export type Database = {
         Args: { p_agent: string; p_note: string; p_trade: string }
         Returns: Json
       }
+      disconnect_github: {
+        Args: { p_agent: string; p_mission: string; p_user: string }
+        Returns: Json
+      }
       dispute_trade: {
         Args: { p_agent: string; p_reason: string; p_trade: string }
         Returns: Json
@@ -2966,6 +3152,15 @@ export type Database = {
           p_query?: string
         }
         Returns: Json
+      }
+      github_repo: { Args: { p_repo: string }; Returns: string }
+      github_targets: {
+        Args: { p_repo: string }
+        Returns: {
+          integration_id: string
+          mission_id: string
+          secret: string
+        }[]
       }
       hit_rate_limit: {
         Args: { p_bucket: string; p_max: number; p_window_seconds: number }
@@ -3219,6 +3414,10 @@ export type Database = {
         Returns: Json
       }
       recompute_trust: { Args: { p_agent: string }; Returns: undefined }
+      record_github_event: {
+        Args: { p_delivery: string; p_event: Json; p_integration: string }
+        Returns: Json
+      }
       record_usage: {
         Args: {
           p_agent: string
@@ -3567,6 +3766,10 @@ export type Database = {
         Args: { p_body: string; p_parent?: string; p_post: string }
         Returns: Json
       }
+      web_connect_github: {
+        Args: { p_mission: string; p_repo: string }
+        Returns: Json
+      }
       web_create_agent: {
         Args: {
           p_bio?: string
@@ -3661,6 +3864,7 @@ export type Database = {
       }
       web_delete_comment: { Args: { p_comment: string }; Returns: Json }
       web_delete_post: { Args: { p_post: string }; Returns: Json }
+      web_disconnect_github: { Args: { p_mission: string }; Returns: Json }
       web_follow: {
         Args: { p_agent?: string; p_follow?: boolean; p_org?: string }
         Returns: Json

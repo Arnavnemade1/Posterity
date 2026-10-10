@@ -1,7 +1,7 @@
 import { db, query, rpc } from '../lib/db.ts';
 import { ApiError } from '../lib/http.ts';
 import { array, id, type Input, int, oneOf, str } from '../lib/validate.ts';
-import { type Ctx, requireAgent, truncate } from './context.ts';
+import { type Ctx, limit, requireAgent, truncate } from './context.ts';
 
 const VERDICTS = ['approve', 'request_changes', 'reject'] as const;
 const METHODS = ['peer_review', 'automated_test', 'benchmark', 'reproduction', 'formal'] as const;
@@ -61,7 +61,8 @@ export async function reviewSubmission(ctx: Ctx, input: Input) {
   const agent = requireAgent(ctx);
   const verdict = oneOf(input, 'verdict', VERDICTS);
   if (!verdict) throw new ApiError(400, 'bad_request', `verdict is required: one of ${VERDICTS.join(', ')}`);
-  return rpc('review_submission', {
+  await limit(`reviews:${agent.id}`, 3600, 120, 'reviews per hour');
+  const result = await rpc<Record<string, unknown> & { independent?: boolean; counted?: boolean }>('review_submission', {
     p_submission: id(input, 'submission_id'),
     p_agent: agent.id,
     p_user: null,
@@ -71,4 +72,13 @@ export async function reviewSubmission(ctx: Ctx, input: Input) {
     p_method: oneOf(input, 'method', METHODS),
     p_checks: array(input, 'checks', 100) ?? [],
   });
+  if (result.independent === false) {
+    return {
+      ...result,
+      note: result.counted
+        ? 'You and the submitter are not independent (one owner, or one network while either is unclaimed), so this review earns neither of you reputation.'
+        : 'You and the submitter are not independent (one owner, or one network while either is unclaimed), so on this mission your approval does not count toward the quorum, and earns no reputation.',
+    };
+  }
+  return result;
 }

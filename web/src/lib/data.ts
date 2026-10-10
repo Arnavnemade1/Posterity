@@ -118,6 +118,32 @@ async function db() {
   return createClient();
 }
 
+/** A pull request, CI run or push from a mission's connected GitHub repository. */
+export interface GitHubEvent {
+  id: number;
+  kind: 'pull_request' | 'ci' | 'push';
+  action: string;
+  title: string | null;
+  url: string | null;
+  number: number | null;
+  branch: string | null;
+  sha: string | null;
+  conclusion: string | null;
+  actor: string | null;
+  task_id: string | null;
+  submission_id: string | null;
+  created_at: string;
+}
+
+export interface GitHubConnection {
+  repo: string;
+  event_count: number;
+  last_event_at: string | null;
+  created_at: string;
+}
+
+const GITHUB_EVENT = 'id, kind, action, title, url, number, branch, sha, conclusion, actor, task_id, submission_id, created_at';
+
 export async function getStats(): Promise<NetworkStats> {
   const supabase = await db();
   const { data } = await supabase.rpc('network_stats');
@@ -172,7 +198,7 @@ export async function getMission(slugOrId: string, userId: string | null) {
     creator_agent: { handle: string; owner_id: string | null } | null;
   };
 
-  const [tasks, members, messages, approvals, submissions, artifacts, activity, memory] = await Promise.all([
+  const [tasks, members, messages, approvals, submissions, artifacts, activity, memory, repo, repoEvents] = await Promise.all([
     supabase
       .from('tasks')
       .select(
@@ -217,6 +243,8 @@ export async function getMission(slugOrId: string, userId: string | null) {
       .limit(50),
     getActivity({ missionId: m.id, limit: 25 }),
     listMemory({ missionId: m.id, limit: 6 }),
+    supabase.from('mission_integrations').select('repo, event_count, last_event_at, created_at').eq('mission_id', m.id).eq('provider', 'github').maybeSingle(),
+    supabase.from('integration_events').select(GITHUB_EVENT).eq('mission_id', m.id).order('id', { ascending: false }).limit(8),
   ]);
 
   const taskRows = (tasks.data ?? []) as unknown as (Omit<TaskNode, 'depends_on'> & { deps: { depends_on: string }[] })[];
@@ -270,6 +298,7 @@ export async function getMission(slugOrId: string, userId: string | null) {
     }[],
     activity,
     memory,
+    github: { connection: (repo.data ?? null) as GitHubConnection | null, events: (repoEvents.data ?? []) as GitHubEvent[] },
     isOwner,
   };
 }
@@ -313,7 +342,7 @@ export async function getTask(id: string, userId: string | null) {
     };
   };
 
-  const [upstream, downstream, submissions, events, artifacts] = await Promise.all([
+  const [upstream, downstream, submissions, events, artifacts, github] = await Promise.all([
     supabase
       .from('task_dependencies')
       .select(
@@ -342,6 +371,7 @@ export async function getTask(id: string, userId: string | null) {
       .select('id, title, kind, language, url, content, status, created_at, submission_id, author:agents!artifacts_author_agent_id_fkey(handle)')
       .eq('task_id', id)
       .order('created_at', { ascending: false }),
+    supabase.from('integration_events').select(GITHUB_EVENT).eq('task_id', id).order('id', { ascending: false }).limit(20),
   ]);
 
   const isOwner = Boolean(userId) && (t.mission.created_by_user === userId || t.mission.creator_agent?.owner_id === userId);
@@ -375,6 +405,7 @@ export async function getTask(id: string, userId: string | null) {
       submission_id: string | null;
       author: AgentRef | null;
     }[],
+    github: (github.data ?? []) as GitHubEvent[],
     isOwner,
   };
 }

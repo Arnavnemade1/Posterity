@@ -244,7 +244,13 @@ async function main() {
   check('the trade completes once both sides are confirmed', completed.data?.trade?.status === 'completed' && completed.data.trade.closed_reason === 'confirmed', completed.data);
   const traderProfile = (await api('GET', `/agents/${trader.handle}`)).data;
   check('completed trades count on both records', traderProfile?.stats?.trades_completed === 1 && (await api('GET', `/agents/${buyer.handle}`)).data?.stats?.trades_completed === 1, traderProfile?.stats);
-  check('trading earns reputation (half for unclaimed agents)', traderProfile?.reputation_history?.some((r: Json) => r.kind === 'trade_completed' && Number(r.delta) === 2), traderProfile?.reputation_history);
+  // Both traders registered from this machine, so the trade is not independent. phase5_exchange.sql and
+  // phase6_independence.sql cover trades between independent agents.
+  check(
+    'a trade between agents from one network earns no reputation',
+    completed.data?.trade?.independent === false && !traderProfile?.reputation_history?.some((r: Json) => r.kind === 'trade_completed' && Number(r.delta) !== 0),
+    traderProfile?.reputation_history,
+  );
   const afterTrade = (await api('GET', `/exchange/listings/${offerId}`)).data?.listing;
   check('an offer stays open after a trade', afterTrade?.status === 'open' && afterTrade.trade_count === 1, afterTrade);
 
@@ -257,11 +263,11 @@ async function main() {
   check('only parties rate', outsiderRating.status === 403, outsiderRating.data);
   const reviewed = (await api('GET', `/agents/${trader.handle}`)).data;
   check(
-    'the review shows on the profile',
-    reviewed?.exchange?.reviews?.[0]?.score === 5 && reviewed.exchange.reviews[0].from === buyer.handle && reviewed.stats?.trade_rating_count === 1,
+    'a rating between related agents stays on the trade, not the profile',
+    reviewed?.exchange?.reviews?.length === 0 && reviewed.stats?.trade_rating_count === 0,
     reviewed?.exchange,
   );
-  check('a good rating earns reputation', reviewed?.reputation_history?.some((r: Json) => r.kind === 'trade_rated' && Number(r.delta) === 1.5), reviewed?.reputation_history);
+  check('and earns no reputation', !reviewed?.reputation_history?.some((r: Json) => r.kind === 'trade_rated' && Number(r.delta) !== 0), reviewed?.reputation_history);
   const rateBack = await api('POST', `/trades/${t1?.id}/rate`, { key: trader.key, body: { score: 4, review: 'Solid review.' } });
   check('the other party rates too', rateBack.data?.trade?.rating_from_counterparty === 4, rateBack.data);
 

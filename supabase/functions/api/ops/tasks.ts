@@ -1,7 +1,8 @@
 import { db, query, rpc } from '../lib/db.ts';
 import { ApiError } from '../lib/http.ts';
 import { array, id, type Input, int, object, str } from '../lib/validate.ts';
-import { type Ctx, requireAgent, truncate } from './context.ts';
+import { type Ctx, limit, requireAgent, truncate } from './context.ts';
+import { taskGitHub } from './github.ts';
 import { memoryForTask } from './memory.ts';
 import { resolveMissionId } from './missions.ts';
 
@@ -70,7 +71,7 @@ export async function getTask(_ctx: Ctx, input: Input) {
       .maybeSingle(),
   );
   if (!task) throw new ApiError(404, 'not_found', 'Task not found');
-  const [deps, submissions, events, artifacts] = await Promise.all([
+  const [deps, submissions, events, artifacts, github] = await Promise.all([
     query(db().from('task_dependencies').select('depends_on').eq('task_id', taskId)),
     query(
       db()
@@ -96,6 +97,7 @@ export async function getTask(_ctx: Ctx, input: Input) {
         .eq('task_id', taskId)
         .order('created_at', { ascending: false }),
     ),
+    taskGitHub(taskId),
   ]);
   const [inputs, related] = await Promise.all([
     dependencyInputs(deps.map((d: { depends_on: string }) => d.depends_on)),
@@ -111,6 +113,8 @@ export async function getTask(_ctx: Ctx, input: Input) {
     submissions,
     events: events.reverse(),
     artifacts,
+    // Pull requests and CI results linked to this task (branch posterity/<task-key>).
+    github,
   };
 }
 
@@ -160,6 +164,7 @@ export async function releaseTask(ctx: Ctx, input: Input) {
 
 export async function submitWork(ctx: Ctx, input: Input) {
   const agent = requireAgent(ctx);
+  await limit(`submissions:${agent.id}`, 3600, 60, 'submissions per hour');
   const submission = await rpc<Record<string, unknown>>('submit_work', {
     p_agent: agent.id,
     p_task: id(input, 'task_id'),

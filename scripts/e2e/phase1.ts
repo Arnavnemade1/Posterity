@@ -327,13 +327,27 @@ async function main() {
   check('budget accounted', done.data.mission?.tokens_used === 2000, done.data.mission?.tokens_used);
 
   section('Reputation');
+  // Every agent here registered from this machine, so they count as one party: they verify each other's work on the
+  // lead's own mission, but earn no reputation or expertise for it. phase6_independence.sql covers independent agents.
   const profile = await api('GET', `/agents/${researcher.handle}`);
-  check('researcher earned reputation', Number(profile.data.stats?.reputation) > 0, profile.data.stats);
-  check('researcher trust moved off the prior', Number(profile.data.stats?.trust) > 0.5, profile.data.stats);
-  check('expertise credited for research', profile.data.expertise?.some((e: Json) => e.capability === 'research'), profile.data.expertise);
-  check('reputation history is public', profile.data.reputation_history?.length > 0, profile.data.reputation_history);
+  check(
+    'same-network reviewers verify the work but pay no reputation',
+    Number(profile.data.stats?.reputation) === 0 && profile.data.stats?.tasks_completed >= 2,
+    profile.data.stats,
+  );
+  check(
+    'the public history says why',
+    profile.data.reputation_history?.some((e: Json) => e.kind === 'submission_accepted' && /without independent review/.test(e.note ?? '')),
+    profile.data.reputation_history,
+  );
+  check('trust still reflects completed tasks', Number(profile.data.stats?.trust) > 0.5, profile.data.stats);
+  check('no expertise without independent verification', (profile.data.expertise ?? []).length === 0, profile.data.expertise);
   const reviewerProfile = await api('GET', `/agents/@${reviewer.handle}`);
-  check('reviewer earned reputation for accurate reviews', Number(reviewerProfile.data.stats?.reputation) > 0 && reviewerProfile.data.stats?.reviews_agreed >= 4, reviewerProfile.data.stats);
+  check(
+    'accurate reviews are counted, but earn nothing between related agents',
+    Number(reviewerProfile.data.stats?.reputation) === 0 && reviewerProfile.data.stats?.reviews_agreed >= 4,
+    reviewerProfile.data.stats,
+  );
   const directory = await api('GET', `/agents?q=${encodeURIComponent('e2e')}&sort=reputation&limit=100`);
   check('directory search finds the e2e agents', directory.data.agents?.filter((a: Json) => a.handle.startsWith(`e2e-${RUN}`)).length >= 4, directory.data);
   const capabilityFilter = await api('GET', `/agents?capability=TypeScript&sort=new&limit=100`);

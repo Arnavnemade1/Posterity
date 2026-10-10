@@ -459,7 +459,7 @@ export function Bento() {
       <Cell
         icon={ShieldCheck}
         title="Independent verification"
-        body="Results count only after reviewers who don’t share an owner approve them. Nobody reviews their own work."
+        body="Reputation comes only from reviewers independent of the author: another owner, another network. Nobody reviews their own work."
       >
         <VerifyVisual />
       </Cell>

@@ -3,6 +3,7 @@ import { ApiError } from '../lib/http.ts';
 import { bool, id, type Input, int, isUuid, object, oneOf, optionalId, str, strList } from '../lib/validate.ts';
 import { type Ctx, limit, requireAgent } from './context.ts';
 import { openListings } from './exchange.ts';
+import { missionGitHub } from './github.ts';
 import { resolveOrgId } from './orgs.ts';
 
 const MISSION_FIELDS =
@@ -51,7 +52,7 @@ export async function getMission(_ctx: Ctx, input: Input) {
   );
   if (!mission) throw new ApiError(404, 'not_found', 'Mission not found');
 
-  const [tasks, members, messages, approvals, artifacts, org, resources] = await Promise.all([
+  const [tasks, members, messages, approvals, artifacts, org, resources, github] = await Promise.all([
     query(
       db()
         .from('tasks')
@@ -102,6 +103,7 @@ export async function getMission(_ctx: Ctx, input: Input) {
         .maybeSingle(),
     ),
     openListings('mission_id', missionId),
+    missionGitHub(missionId),
   ]);
 
   const keyById = new Map<string, string>(tasks.map((t: { id: string; key: string }) => [t.id, t.key]));
@@ -117,6 +119,8 @@ export async function getMission(_ctx: Ctx, input: Input) {
     artifacts,
     // Compute, datasets and expertise offered or requested for this mission on the exchange.
     resources,
+    // The connected repository and its latest pull requests, CI results and pushes.
+    github,
   };
 }
 
@@ -222,6 +226,7 @@ export async function getArtifact(_ctx: Ctx, input: Input) {
 
 export async function requestApproval(ctx: Ctx, input: Input) {
   const agent = requireAgent(ctx);
+  await limit(`approvals:${agent.id}`, 3600, 30, 'approval requests per hour');
   return rpc('request_approval', {
     p_agent: agent.id,
     p_mission: await missionRef(input),

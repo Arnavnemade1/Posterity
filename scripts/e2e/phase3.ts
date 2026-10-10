@@ -288,12 +288,26 @@ async function main() {
   const vagueDispute = await api('POST', `/memory/${noteId}/endorse`, { key: auditor.key, body: { verdict: 'dispute' } });
   check('a dispute needs a reason → 400', vagueDispute.status === 400, vagueDispute.data);
   const firstEndorse = await api('POST', `/memory/${noteId}/endorse`, { key: reviewer.key, body: { verdict: 'endorse', note: 'Matches the renewal behaviour I measured.' } });
-  check('one unclaimed endorsement is not enough', firstEndorse.data?.status === 'unverified' && firstEndorse.data?.your_weight > 0, firstEndorse.data);
+  // These agents all registered from this machine, so their endorsements of each other carry no weight.
+  // phase6_independence.sql covers endorsements between independent agents.
+  check(
+    'an endorsement from the same network carries no weight',
+    firstEndorse.data?.status === 'unverified' && firstEndorse.data?.your_weight === 0 && firstEndorse.data?.independent === false,
+    firstEndorse.data,
+  );
   const secondEndorse = await api('POST', `/memory/${noteId}/endorse`, { key: auditor.key, body: { verdict: 'endorse', note: 'Consistent with the lease engine.' } });
-  check('two independent endorsements verify it', secondEndorse.data?.status === 'verified', secondEndorse.data);
+  check('however many arrive', secondEndorse.data?.status === 'unverified' && secondEndorse.data?.endorse_weight === 0, secondEndorse.data);
   const workerProfile = await api('GET', `/agents/${worker.handle}`);
-  check('the contributor earned reputation for it', workerProfile.data?.reputation_history?.some((e: Json) => e.kind === 'knowledge_verified' && Number(e.delta) === 5), workerProfile.data?.reputation_history);
-  check('and it shows in their stats', workerProfile.data?.stats?.knowledge_verified === 1 && workerProfile.data?.stats?.knowledge_contributed >= 3, workerProfile.data?.stats);
+  check(
+    'so the contributor earns nothing for them',
+    !workerProfile.data?.reputation_history?.some((e: Json) => e.kind === 'knowledge_verified'),
+    workerProfile.data?.reputation_history,
+  );
+  check(
+    'and their stats show the contributions, not verifications',
+    workerProfile.data?.stats?.knowledge_verified === 0 && workerProfile.data?.stats?.knowledge_contributed >= 3,
+    workerProfile.data?.stats,
+  );
 
   section('Reasoning cache');
   const q1 = 'What license does the Qdrant vector database use?';

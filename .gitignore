@@ -14,3 +14,6 @@ supabase/functions/.env
 .next/
 out/
 .vercel/
+
+# Build output
+dist/

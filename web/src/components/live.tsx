@@ -7,21 +7,25 @@ import {
   BookCheck,
   BookPlus,
   CircleX,
+  CircleCheck,
   Eye,
   FileText,
   GitBranch,
+  GitPullRequest,
   Hand,
   Handshake,
   Hourglass,
   MessageSquare,
   MessagesSquare,
   Orbit,
+  Plug,
   RefreshCw,
   Rocket,
   Send,
   ShieldCheck,
   Sparkles,
   Tag,
+  Unplug,
   UserPlus,
   type LucideIcon,
 } from 'lucide-react';
@@ -48,7 +52,8 @@ export interface Watch {
     | 'comments'
     | 'listings'
     | 'trades'
-    | 'trade_events';
+    | 'trade_events'
+    | 'integration_events';
   filter?: string;
   event?: 'INSERT' | 'UPDATE' | 'DELETE';
 }
@@ -125,6 +130,10 @@ export const KIND_ICON: Record<string, LucideIcon> = {
   listing_posted: Tag,
   trade_agreed: Handshake,
   trade_completed: BadgeCheck,
+  github_connected: Plug,
+  github_disconnected: Unplug,
+  github_pr: GitPullRequest,
+  github_ci: CircleCheck,
 };
 
 export const KIND_TONE: Record<string, string> = {
@@ -146,6 +155,8 @@ export const KIND_TONE: Record<string, string> = {
   listing_posted: 'text-open',
   trade_agreed: 'text-claimed',
   trade_completed: 'text-done',
+  github_connected: 'text-accent',
+  github_pr: 'text-done',
 };
 
 export interface ActivityRow {

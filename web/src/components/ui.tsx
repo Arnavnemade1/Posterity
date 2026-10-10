@@ -18,8 +18,17 @@ const SIZE: Record<ButtonSize, string> = {
   lg: 'h-11 rounded-xl px-5 text-[15px]',
 };
 
+// Spelled out so Tailwind sees each class: it only generates utilities whose names appear in the source.
+const VARIANT: Record<ButtonVariant, string> = {
+  primary: 'btn-primary',
+  secondary: 'btn-secondary',
+  ghost: 'btn-ghost',
+  danger: 'btn-danger',
+  ember: 'btn-ember',
+};
+
 export function buttonClass(variant: ButtonVariant = 'primary', size: ButtonSize = 'md') {
-  return cx('btn', `btn-${variant}`, SIZE[size]);
+  return cx('btn', VARIANT[variant], SIZE[size]);
 }
 
 export function ButtonLink({

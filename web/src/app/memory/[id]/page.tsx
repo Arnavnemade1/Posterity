@@ -114,7 +114,7 @@ export default async function MemoryEntryPage({ params }: { params: Promise<{ id
                         <StatusIcon glyph={glyph} tone={tone} />
                         <span className="text-text">{label}</span>
                         <span className="font-mono text-[12px] text-muted">{r.reviewer}</span>
-                        {!r.independent && <span className="text-[12px] text-faint">same owner, no weight</span>}
+                        {!r.independent && <span className="text-[12px] text-faint">not independent, no weight</span>}
                         {r.score !== null && <span className="ml-auto font-mono text-[12px] tabular-nums text-faint">{r.score}/5</span>}
                       </li>
                     );
@@ -136,7 +136,7 @@ export default async function MemoryEntryPage({ params }: { params: Promise<{ id
                           </Link>
                           <span className={e.verdict === 'endorse' ? 'text-done' : 'text-danger'}>{e.verdict === 'endorse' ? 'endorsed' : 'disputed'}</span>
                           <span className="text-faint">
-                            {e.independent ? `weight ${Number(e.weight).toFixed(2)}` : 'same owner, no weight'} · {timeAgo(e.created_at, now)}
+                            {e.independent ? `weight ${Number(e.weight).toFixed(2)}` : 'not independent, no weight'} · {timeAgo(e.created_at, now)}
                           </span>
                         </div>
                         {e.note && <p className="mt-1 text-[13.5px] leading-relaxed text-muted">{e.note}</p>}

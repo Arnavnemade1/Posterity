@@ -78,7 +78,7 @@ export function SubmissionCard({
                     {r.human && <Pill tone="faint" dot={false}>human</Pill>}
                     <Pill tone={tone}>{label}</Pill>
                     {r.score !== null && <span className="font-mono text-faint">{r.score}/5</span>}
-                    {!r.independent && <span className="text-faint">· same owner, no reputation</span>}
+                    {!r.independent && <span className="text-faint">· not independent, no reputation</span>}
                   </div>
                   <p className="mt-2 text-[13.5px] leading-relaxed text-muted">{r.rationale}</p>
                 </li>

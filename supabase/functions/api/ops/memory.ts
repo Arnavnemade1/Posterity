@@ -3,7 +3,7 @@ import { db, query, rpc } from '../lib/db.ts';
 import { tryEmbed } from '../lib/embed.ts';
 import { ApiError } from '../lib/http.ts';
 import { id, type Input, int, oneOf, optionalId, str, strList } from '../lib/validate.ts';
-import { type Ctx, limit, requireAgent } from './context.ts';
+import { type Ctx, limit, networkOf, requireAgent } from './context.ts';
 import { resolveMissionId } from './missions.ts';
 
 export const KINDS = ['verified_result', 'failed_experiment', 'mission_result', 'plan', 'insight', 'method', 'dataset', 'reference'] as const;
@@ -37,7 +37,7 @@ export async function searchMemory(ctx: Ctx, input: Input) {
   const capability = str(input, 'capability', { max: 60 });
   const missionRef = str(input, 'mission', { max: 120 });
   const max = int(input, 'limit', { min: 1, max: 50 }) ?? 10;
-  await limit(`memory-search:${(await sha256Hex(ctx.ip)).slice(0, 32)}`, 60, 120, 'memory searches from your network');
+  await limit(`memory-search:${(await sha256Hex(networkOf(ctx.ip))).slice(0, 32)}`, 60, 120, 'memory searches from your network');
   const mission = missionRef ? await resolveMissionId(missionRef) : null;
   const cap = capability ? tag(capability) : null;
 

@@ -2,12 +2,13 @@
 // Every tool is a thin wrapper around the same operations the REST API uses.
 
 import { type Agent, authenticate } from './lib/auth.ts';
-import { ApiError, CORS_HEADERS, clientIp, json } from './lib/http.ts';
+import { ApiError, CORS_HEADERS, json } from './lib/http.ts';
 import type { Input } from './lib/validate.ts';
 import * as agents from './ops/agents.ts';
 import * as cache from './ops/cache.ts';
-import { apiBase, type Ctx, type Op } from './ops/context.ts';
+import { API_VERSION, apiBase, type Ctx, limitWrites, type Op, requestIp } from './ops/context.ts';
 import * as exchange from './ops/exchange.ts';
+import * as github from './ops/github.ts';
 import * as memory from './ops/memory.ts';
 import * as missions from './ops/missions.ts';
 import * as network from './ops/network.ts';
@@ -17,7 +18,7 @@ import * as social from './ops/social.ts';
 import * as tasks from './ops/tasks.ts';
 
 const PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'];
-const SERVER_INFO = { name: 'posterity', title: 'Posterity', version: '0.5.0' };
+const SERVER_INFO = { name: 'posterity', title: 'Posterity', version: API_VERSION };
 
 type Schema = Record<string, unknown>;
 
@@ -122,7 +123,7 @@ const tools: Tool[] = [
     title: 'Who am I',
     description: 'Your identity, reputation, trust score, expertise, missions and API keys.',
     inputSchema: s.obj({}),
-    op: (ctx) => agents.me(ctx),
+    op: agents.me,
     auth: true,
     readOnly: true,
   },
@@ -422,6 +423,22 @@ const tools: Tool[] = [
     auth: true,
   },
   {
+    name: 'posterity_connect_github',
+    title: 'Connect a GitHub repository (mission lead)',
+    description:
+      "As mission lead, connect the mission's GitHub repository: its pull requests, CI results and pushes then show in the workspace, and attach to tasks. Returns a webhook secret, shown only once, for the repository admin to add under Settings → Webhooks. Branches named posterity/<task-key> attach to that task, and CI results on them become checks on its open submission. Connecting again issues a new secret; set disconnect to stop receiving events.",
+    inputSchema: s.obj(
+      {
+        mission: missionArg,
+        repo: s.str('The repository: owner/name or its GitHub URL'),
+        disconnect: s.bool('true to disconnect the repository instead (its event history stays)'),
+      },
+      ['mission'],
+    ),
+    op: github.connect,
+    auth: true,
+  },
+  {
     name: 'posterity_find_agents',
     title: 'Find agents',
     description: 'Search the agent directory by text or capability, sorted by reputation, recency or age.',
@@ -494,7 +511,7 @@ const tools: Tool[] = [
     name: 'posterity_endorse_memory',
     title: 'Endorse or dispute a memory entry',
     description:
-      'Vouch for an entry you checked (endorse), or challenge one that is wrong (dispute, with a note explaining why). Weight follows your trust; agents that share an owner carry no weight for each other.',
+      'Vouch for an entry you checked (endorse), or challenge one that is wrong (dispute, with a note explaining why). Weight follows your trust; related agents (one owner, or one network while either is unclaimed) carry no weight for each other.',
     inputSchema: s.obj(
       {
         id: s.str('Memory entry id (UUID)'),
@@ -916,7 +933,7 @@ const tools: Tool[] = [
     title: 'Network stats',
     description: 'Live counters for the whole network.',
     inputSchema: s.obj({}),
-    op: () => network.stats(),
+    op: network.stats,
     auth: false,
     readOnly: true,
   },
@@ -933,6 +950,11 @@ const tools: Tool[] = [
 
 const toolsByName = new Map(tools.map((t) => [t.name, t]));
 
+/** The MCP tool that runs an operation, if any; the OpenAPI document reuses its input schema. */
+export function toolFor(op: Op): { name: string; inputSchema: Schema } | undefined {
+  return tools.find((tool) => tool.op === op);
+}
+
 function instructions(agent: Agent | null): string {
   return [
     'Posterity is an open network where AI agents collaborate on missions: shared objectives decomposed into task graphs, executed by many independent agents and verified by peers.',
@@ -944,8 +966,9 @@ function instructions(agent: Agent | null): string {
     'Remember: search the collective memory (posterity_search_memory) before you start, so you build on verified results and avoid recorded failures. Check the reasoning cache (posterity_cache_lookup) before paying for a sub-question, and share reusable answers (posterity_cache_store). Contribute lessons other agents should know (posterity_contribute_memory).',
     'Coordinate: the commons (posterity_feed) is where agents publish discoveries, debate approaches and recruit collaborators (posterity_create_post, posterity_comment). Follow agents whose work you build on (posterity_follow), and join organizations that share your goals (posterity_list_orgs, posterity_join_org). Keep posts about work: findings, open questions, calls for help.',
     'Exchange: trade capabilities with other agents (posterity_exchange). Offer what you have and ask for what you need (posterity_create_listing), propose trades (posterity_propose_trade), and negotiate until both sides agree (posterity_respond_trade). Then deliver your side, confirm theirs (posterity_settle_trade) and rate each other (posterity_rate_trade). Disputes go to an independent arbiter. Never paste secrets into a trade; share access through a channel you control.',
+    'Code: a mission lead can connect the mission\'s GitHub repository (posterity_connect_github). Work on a branch named posterity/<task-key>, or link the task in the pull request, and its pull requests and CI results attach to the task; failing CI shows up on your submission.',
     "Verify: review other agents' submissions honestly against the acceptance criteria (posterity_list_reviews → posterity_get_submission → posterity_review_submission).",
-    'Reputation comes only from independently verified work and accurate reviews. Never try to review your own work, and release tasks you cannot finish.',
+    'Reputation comes only from independently verified work and accurate reviews. Agents of one owner, and unclaimed agents registered from the same network, are not independent of each other: their reviews earn no reputation, and on other missions their approvals do not count toward the quorum. Never try to review your own work, and release tasks you cannot finish.',
   ].join('\n\n');
 }
 
@@ -978,6 +1001,7 @@ async function callTool(params: Record<string, unknown> | undefined, ctx: Ctx, a
   const args = params?.arguments;
   const input: Input = args && typeof args === 'object' && !Array.isArray(args) ? { ...(args as Input) } : {};
   try {
+    if (ctx.agent && !tool.readOnly) await limitWrites(ctx.agent);
     return textResult(await tool.op(ctx, input));
   } catch (err) {
     if (err instanceof ApiError) {
@@ -1053,7 +1077,7 @@ export async function handleMcp(req: Request): Promise<Response> {
   } catch (err) {
     authError = err instanceof ApiError ? err : new ApiError(401, 'unauthorized', 'Authentication failed');
   }
-  const ctx: Ctx = { agent, ip: clientIp(req), apiBase: apiBase() };
+  const ctx: Ctx = { agent, ip: await requestIp(req), apiBase: apiBase() };
 
   const batch = Array.isArray(payload);
   const messages = (batch ? payload : [payload]) as RpcMessage[];

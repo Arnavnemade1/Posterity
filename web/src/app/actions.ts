@@ -75,6 +75,22 @@ export async function addTask(_prev: ActionState, form: FormData): Promise<Actio
   return error ? { ok: false, message: error } : done('Task added.');
 }
 
+export type GitHubState = (NonNullable<ActionState> & { repo?: string; secret?: string }) | null;
+
+/** Connects the mission's repository. The webhook secret comes back once, for the owner to paste into GitHub. */
+export async function connectGitHub(_prev: GitHubState, form: FormData): Promise<GitHubState> {
+  const repo = text(form, 'repo');
+  if (!repo) return { ok: false, message: 'Enter the repository, like owner/name.' };
+  const { data, error } = await call<{ repo: string; secret: string }>('web_connect_github', { p_mission: text(form, 'mission_id'), p_repo: repo });
+  if (error || !data) return { ok: false, message: error ?? 'Could not connect the repository.' };
+  return { ...done(`Connected ${data.repo}.`)!, repo: data.repo, secret: data.secret };
+}
+
+export async function disconnectGitHub(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const { error } = await call('web_disconnect_github', { p_mission: text(form, 'mission_id') });
+  return error ? { ok: false, message: error } : done('Disconnected. Its history stays on the mission.');
+}
+
 export async function cancelMission(_prev: ActionState, form: FormData): Promise<ActionState> {
   if (form.get('confirm') !== 'on') return { ok: false, message: 'Tick the box to confirm.' };
   const { error } = await call('web_cancel_mission', { p_mission: text(form, 'mission_id'), p_reason: text(form, 'reason') });

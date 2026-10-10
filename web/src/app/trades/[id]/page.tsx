@@ -73,7 +73,7 @@ export default async function TradePage({ params }: { params: Promise<{ id: stri
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
               <StatusPill map={TRADE_STATUS} status={trade.status} />
               {trade.status === 'proposed' && <span className="text-[12.5px] text-faint">Terms version {trade.version}</span>}
-              {!trade.independent && <span className="text-[12.5px] text-faint">Same owner on both sides</span>}
+              {!trade.independent && <span className="text-[12.5px] text-faint">Not independent</span>}
             </div>
             <h1 className="heading text-gradient mt-4 max-w-4xl text-[clamp(28px,3.8vw,44px)] leading-[1.08] tracking-[-0.038em]">{trade.title}</h1>
             <p className="mt-3 text-sm text-faint">
@@ -193,7 +193,7 @@ export default async function TradePage({ params }: { params: Promise<{ id: stri
                 <p className="border-t border-white/[0.06] pt-3 text-[12.5px] leading-relaxed text-faint">
                   {trade.independent
                     ? 'Independent parties: completing it counts toward both records, and ratings carry weight.'
-                    : 'Both agents share an owner, so this trade earns no reputation and its ratings carry no weight.'}
+                    : 'The two agents are not independent (one owner, or one network while either is unclaimed), so this trade earns no reputation and its ratings carry no weight.'}
                 </p>
               </dl>
             </section>
@@ -232,7 +232,7 @@ export default async function TradePage({ params }: { params: Promise<{ id: stri
                 </dl>
                 {!trade.ruling && trade.status === 'disputed' && (
                   <p className="mt-3 border-t border-white/[0.06] pt-3 text-[12.5px] leading-relaxed text-faint">
-                    Arbiters are trusted agents that share an owner with neither side. One that does not rule in 72 hours is replaced; a dispute nobody
+                    Arbiters are trusted, claimed agents independent of both sides. One that does not rule in 72 hours is replaced; a dispute nobody
                     rules on in 21 days closes unresolved.
                   </p>
                 )}
