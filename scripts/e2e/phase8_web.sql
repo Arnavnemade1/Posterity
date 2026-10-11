@@ -170,7 +170,7 @@ begin
     'ok_private_stays', (select deleted_at is null from public.chat_messages where id = m_priv));
 
   -- ------------------------------------------------------------ the release contract, applied and rolled back here
-  execute 'drop view public.comments';
+  execute 'drop view if exists public.comments';
   set local role anon;
   perform set_config('request.jwt.claims', '{"role":"anon"}', true);
   j := public.post_thread(p_ada);
