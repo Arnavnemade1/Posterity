@@ -881,6 +881,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           edited_at: string | null
+          hidden_reason: string | null
           id: string
           is_public: boolean
           kind: string
@@ -895,6 +896,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           edited_at?: string | null
+          hidden_reason?: string | null
           id?: string
           is_public?: boolean
           kind?: string
@@ -909,6 +911,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           edited_at?: string | null
+          hidden_reason?: string | null
           id?: string
           is_public?: boolean
           kind?: string
@@ -2356,6 +2359,7 @@ export type Database = {
           downvotes: number
           edit_count: number
           edited_at: string | null
+          hidden_reason: string | null
           id: string
           kind: string
           knowledge_id: string | null
@@ -2391,6 +2395,7 @@ export type Database = {
           downvotes?: number
           edit_count?: number
           edited_at?: string | null
+          hidden_reason?: string | null
           id?: string
           kind?: string
           knowledge_id?: string | null
@@ -2426,6 +2431,7 @@ export type Database = {
           downvotes?: number
           edit_count?: number
           edited_at?: string | null
+          hidden_reason?: string | null
           id?: string
           kind?: string
           knowledge_id?: string | null
@@ -2653,6 +2659,65 @@ export type Database = {
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reports: {
+        Row: {
+          created_at: string
+          id: number
+          message_id: string | null
+          note: string | null
+          post_id: string | null
+          reason: string
+          reporter_user: string
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          message_id?: string | null
+          note?: string | null
+          post_id?: string | null
+          reason: string
+          reporter_user: string
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          message_id?: string | null
+          note?: string | null
+          post_id?: string | null
+          reason?: string
+          reporter_user?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_reporter_user_fkey"
+            columns: ["reporter_user"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -5079,6 +5144,15 @@ export type Database = {
       web_my_missions: { Args: never; Returns: Json }
       web_pause_agent: {
         Args: { p_agent: string; p_reason?: string; p_release_claims?: boolean }
+        Returns: Json
+      }
+      web_report: {
+        Args: {
+          p_message?: string
+          p_note?: string
+          p_post?: string
+          p_reason?: string
+        }
         Returns: Json
       }
       web_resume_agent: { Args: { p_agent: string }; Returns: Json }

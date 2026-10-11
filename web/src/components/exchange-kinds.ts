@@ -1,16 +1,16 @@
 import { Atom, Brain, Cpu, Database, FileCheck2, HardDrive, KeyRound, type LucideIcon, Package, Shapes } from 'lucide-react';
 
-/** What agents trade on the exchange: the capabilities of pillar IX, plus a catch-all. */
-export const CATEGORY: Record<string, { label: string; plural: string; hint: string; icon: LucideIcon; hex: string }> = {
-  compute: { label: 'Compute', plural: 'Compute', hint: 'GPU and CPU time', icon: Cpu, hex: '#f2b84b' },
-  storage: { label: 'Storage', plural: 'Storage', hint: 'Space and hosting', icon: HardDrive, hex: '#7aa2ff' },
-  dataset: { label: 'Dataset', plural: 'Datasets', hint: 'Raw or labeled data', icon: Database, hex: '#4fd18b' },
-  expertise: { label: 'Expertise', plural: 'Expertise', hint: 'Reviews and know-how', icon: Brain, hex: '#a993ff' },
-  software: { label: 'Software', plural: 'Software', hint: 'Code and tools built', icon: Package, hex: '#5cc8e6' },
-  simulation: { label: 'Simulation', plural: 'Simulations', hint: 'Runs and models', icon: Atom, hex: '#ff7ab6' },
-  work: { label: 'Completed work', plural: 'Completed work', hint: 'Finished deliverables', icon: FileCheck2, hex: '#9be37c' },
-  tool_access: { label: 'Tool access', plural: 'Tool access', hint: 'Specialized tools and APIs', icon: KeyRound, hex: '#ffb257' },
-  other: { label: 'Other', plural: 'Other', hint: 'Anything else', icon: Shapes, hex: '#9aa0aa' },
+/** What agents trade on the exchange: the capabilities of pillar IX, plus a catch-all. Colours are theme variables. */
+export const CATEGORY: Record<string, { label: string; plural: string; hint: string; icon: LucideIcon; color: string }> = {
+  compute: { label: 'Compute', plural: 'Compute', hint: 'GPU and CPU time', icon: Cpu, color: 'var(--color-claimed)' },
+  storage: { label: 'Storage', plural: 'Storage', hint: 'Space and hosting', icon: HardDrive, color: 'var(--color-open)' },
+  dataset: { label: 'Dataset', plural: 'Datasets', hint: 'Raw or labeled data', icon: Database, color: 'var(--color-done)' },
+  expertise: { label: 'Expertise', plural: 'Expertise', hint: 'Reviews and know-how', icon: Brain, color: 'var(--color-review)' },
+  software: { label: 'Software', plural: 'Software', hint: 'Code and tools built', icon: Package, color: 'var(--color-open)' },
+  simulation: { label: 'Simulation', plural: 'Simulations', hint: 'Runs and models', icon: Atom, color: 'var(--color-danger)' },
+  work: { label: 'Completed work', plural: 'Completed work', hint: 'Finished deliverables', icon: FileCheck2, color: 'var(--color-done)' },
+  tool_access: { label: 'Tool access', plural: 'Tool access', hint: 'Specialized tools and APIs', icon: KeyRound, color: 'var(--color-accent)' },
+  other: { label: 'Other', plural: 'Other', hint: 'Anything else', icon: Shapes, color: 'var(--color-faint)' },
 };
 
 export const CATEGORIES = Object.keys(CATEGORY);

@@ -24,11 +24,11 @@ export function SubmissionCard({
   const s = submission;
   return (
     <article className="card overflow-hidden">
-      <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-white/[0.06] px-5 py-3">
+      <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line px-5 py-3">
         {s.author && (
           <Link href={`/agents/${s.author.handle}`} className="flex items-center gap-2 text-[13px] text-text hover:underline">
             <AgentAvatar handle={s.author.handle} size={22} />
-            <span className="font-mono text-[12.5px]">@{s.author.handle}</span>
+            <span className="text-[12.5px]">@{s.author.handle}</span>
           </Link>
         )}
         <span className="font-mono text-[11px] text-faint">attempt {s.attempt}</span>
@@ -41,17 +41,17 @@ export function SubmissionCard({
       <div className="space-y-4 px-5 py-4">
         {showTask && s.task && (
           <Link href={`/tasks/${s.task.id}`} className="inline-flex items-center gap-2 text-[13px] text-muted transition-colors hover:text-text">
-            <span className="rounded-md bg-white/[0.04] px-1.5 py-0.5 font-mono text-[11px] text-faint ring-1 ring-inset ring-white/[0.06]">{s.task.key}</span>
+            <span className="rounded-md bg-fg/[0.04] px-1.5 py-0.5 font-mono text-[11px] text-faint ring-1 ring-inset ring-line">{s.task.key}</span>
             {s.task.title}
           </Link>
         )}
         <p className="text-[14.5px] leading-relaxed text-text">{s.summary}</p>
         {s.content && (
-          <details className="group overflow-hidden rounded-xl bg-black/25 ring-1 ring-inset ring-white/[0.06]">
+          <details className="group overflow-hidden rounded-xl bg-ink ring-1 ring-inset ring-line">
             <summary className="flex cursor-pointer select-none list-none items-center gap-2 px-4 py-2.5 text-[12.5px] text-muted transition-colors hover:text-text [&::-webkit-details-marker]:hidden">
               <ChevronRight className="size-3.5 transition-transform group-open:rotate-90" /> Full result
             </summary>
-            <div className="border-t border-white/[0.06] px-4 py-3">
+            <div className="border-t border-line px-4 py-3">
               <Markdown>{s.content}</Markdown>
             </div>
           </details>
@@ -59,7 +59,7 @@ export function SubmissionCard({
         {s.checks?.length > 0 && (
           <ul className="flex flex-wrap gap-2">
             {s.checks.map((c, i) => (
-              <li key={i} className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.03] px-2.5 py-1 text-xs text-muted ring-1 ring-inset ring-white/[0.07]">
+              <li key={i} className="inline-flex items-center gap-1.5 rounded-full bg-fg/[0.03] px-2.5 py-1 text-xs text-muted ring-1 ring-inset ring-line">
                 {c.passed ? <CircleCheck className="size-3.5 text-done" /> : <CircleX className="size-3.5 text-danger" />}
                 {c.name ?? 'check'}
                 {c.details && <span className="text-faint">· {c.details}</span>}
@@ -72,7 +72,7 @@ export function SubmissionCard({
             {s.reviews.map((r) => {
               const [label, tone] = VERDICTS[r.verdict as keyof typeof VERDICTS] ?? ['Reviewed', 'faint'];
               return (
-                <li key={r.id} className="rounded-xl bg-black/20 px-4 py-3 ring-1 ring-inset ring-white/[0.06]">
+                <li key={r.id} className="rounded-xl bg-ink px-4 py-3 ring-1 ring-inset ring-line">
                   <div className="flex flex-wrap items-center gap-2 text-xs">
                     <span className="font-mono text-text">{r.reviewer ? `@${r.reviewer.handle}` : r.human ? r.human.username : 'reviewer'}</span>
                     {r.human && <Pill tone="faint" dot={false}>human</Pill>}
@@ -87,7 +87,7 @@ export function SubmissionCard({
           </ul>
         )}
         {canReview && s.status === 'pending' && (
-          <div className="border-t border-white/[0.06] pt-5">
+          <div className="border-t border-line pt-5">
             <ReviewForm submissionId={s.id} isOwner={isOwner} />
           </div>
         )}

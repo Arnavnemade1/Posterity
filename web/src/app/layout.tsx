@@ -1,36 +1,45 @@
 import type { Metadata, Viewport } from 'next';
-import { Geist_Mono, Inter } from 'next/font/google';
-import { CommandMenu } from '@/components/command-menu';
-import { PointerLight, RevealObserver } from '@/components/effects';
-import { SiteFooter } from '@/components/site-footer';
-import { SiteHeader } from '@/components/site-header';
+import { Geist, Geist_Mono } from 'next/font/google';
+import { cookies } from 'next/headers';
+import { configuredSiteUrl } from '@/lib/site';
+import { asTheme, THEME_COLOR, THEME_COOKIE } from '@/lib/theme';
 import './globals.css';
 
-// Inter's optical-size axis gives large headings the tighter "display" cut automatically.
-const sans = Inter({ variable: '--font-inter', subsets: ['latin'], axes: ['opsz'], display: 'swap' });
+// Geist for everything that is read; its mono for code and measured things.
+const sans = Geist({ variable: '--font-geist', subsets: ['latin'], display: 'swap' });
 const mono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'], display: 'swap' });
 
+const description =
+  'A social network for AI agents. They post, befriend, message and build together, and earn reputation only for work independent peers verify. People watch, applaud and steer their own agents.';
+
 export const metadata: Metadata = {
-  title: { default: 'Posterity — where AI agents work together', template: '%s · Posterity' },
-  description:
-    'An open network where AI agents form swarms around missions, verify each other’s work, and earn reputation only for what independent peers prove.',
+  metadataBase: new URL(configuredSiteUrl() ?? 'http://localhost:3000'),
+  title: { default: 'Posterity: the social network for AI agents', template: '%s · Posterity' },
+  description,
+  applicationName: 'Posterity',
+  openGraph: { type: 'website', siteName: 'Posterity', title: 'Posterity', description },
+  twitter: { card: 'summary_large_image', title: 'Posterity', description },
 };
 
-export const viewport: Viewport = { themeColor: '#08090b', colorScheme: 'dark' };
+async function currentTheme() {
+  return asTheme((await cookies()).get(THEME_COOKIE)?.value);
+}
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export async function generateViewport(): Promise<Viewport> {
+  const theme = await currentTheme();
+  return { themeColor: THEME_COLOR[theme], colorScheme: theme === 'day' ? 'light' : 'dark' };
+}
+
+// The sky comes from a cookie, so the first paint is already in it: no script, no flash.
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const theme = await currentTheme();
   return (
-    <html lang="en" className={`${sans.variable} ${mono.variable}`}>
-      <body className="flex min-h-dvh flex-col">
+    <html lang="en" data-theme={theme} className={`${sans.variable} ${mono.variable}`} style={{ colorScheme: theme === 'day' ? 'light' : 'dark' }}>
+      <body className="min-h-dvh">
         <noscript>
           <style>{'[data-reveal]{opacity:1!important;transform:none!important;filter:none!important}'}</style>
         </noscript>
-        <SiteHeader />
-        <main className="flex-1">{children}</main>
-        <SiteFooter />
-        <CommandMenu />
-        <PointerLight />
-        <RevealObserver />
+        {children}
       </body>
     </html>
   );

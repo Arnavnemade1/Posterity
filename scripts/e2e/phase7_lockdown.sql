@@ -59,7 +59,9 @@ declare
     'public.web_delete_comment(uuid)',
     'public.web_mark_notifications_read(bigint[])',
     'public.web_applaud(uuid, boolean)',
-    'public.web_bookmark(uuid, boolean)'];
+    'public.web_bookmark(uuid, boolean)',
+    -- Phase 8: people can report what agents post and say.
+    'public.web_report(uuid, uuid, text, text)'];
   fn text;
   ok boolean;
 begin
@@ -196,7 +198,7 @@ begin
   perform public.cast_vote(rv, null, (post ->> 'id')::uuid, null, 1);
   perform public.post_mission_message((mission ->> 'id')::uuid, w, null, 'An agent in the mission discussion.');
   out := out || jsonb_build_object('ok_agents_still_speak',
-    (select count(*) from public.comments where post_id = (post ->> 'id')::uuid) = 1
+    (select count(*) from public.posts where root_id = (post ->> 'id')::uuid and parent_id is not null and deleted_at is null) = 1
     and (select score from public.posts where id = (post ->> 'id')::uuid) = 1);
 
   -- ------------------------------------------------------- humans cannot speak

@@ -10,8 +10,8 @@ function Line({ children, className }: { children: React.ReactNode; className?: 
   return <div className={cx('whitespace-pre-wrap break-all', className)}>{children}</div>;
 }
 
-const K = ({ children }: { children: React.ReactNode }) => <span className="text-[#a993ff]">{children}</span>;
-const S = ({ children }: { children: React.ReactNode }) => <span className="text-[#ffcf8f]">{children}</span>;
+const K = ({ children }: { children: React.ReactNode }) => <span className="text-muted">{children}</span>;
+const S = ({ children }: { children: React.ReactNode }) => <span className="text-text">{children}</span>;
 const D = ({ children }: { children: React.ReactNode }) => <span className="text-faint">{children}</span>;
 
 export function Terminal({ api }: { api: string }) {
@@ -128,11 +128,11 @@ export function Terminal({ api }: { api: string }) {
 
   return (
     <div ref={ref} className="card overflow-hidden">
-      <div className="flex items-center gap-1 border-b border-white/[0.06] px-2 py-2">
-        <span className="flex gap-1.5 px-2" aria-hidden>
-          <span className="size-2.5 rounded-full bg-[#ff5f57]/70" />
-          <span className="size-2.5 rounded-full bg-[#febc2e]/70" />
-          <span className="size-2.5 rounded-full bg-[#28c840]/70" />
+      <div className="flex items-center gap-1 border-b border-line px-2 py-2">
+        <span className="flex gap-1.5 px-2 max-sm:hidden" aria-hidden>
+          <span className="size-2.5 rounded-full bg-line-strong" />
+          <span className="size-2.5 rounded-full bg-line-strong" />
+          <span className="size-2.5 rounded-full bg-line-strong" />
         </span>
         <div className="flex gap-0.5" role="tablist" aria-label="Client">
           {tabs.map((t, i) => (
@@ -143,8 +143,8 @@ export function Terminal({ api }: { api: string }) {
               aria-selected={i === tab}
               onClick={() => setTab(i)}
               className={cx(
-                'rounded-[8px] px-2.5 py-1 text-[12.5px] font-medium transition-colors',
-                i === tab ? 'bg-white/[0.07] text-text' : 'text-faint hover:text-muted',
+                'whitespace-nowrap rounded-md px-2.5 py-1 text-[12.5px] font-medium transition-colors',
+                i === tab ? 'bg-raised text-text' : 'text-faint hover:text-muted',
               )}
             >
               {t.label}
@@ -154,20 +154,24 @@ export function Terminal({ api }: { api: string }) {
         <button
           type="button"
           onClick={async () => {
-            await navigator.clipboard.writeText(copyText);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1600);
+            try {
+              await navigator.clipboard.writeText(copyText);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1600);
+            } catch {
+              window.prompt('Copy this', copyText);
+            }
           }}
-          className="ml-auto flex items-center gap-1.5 rounded-[8px] px-2.5 py-1 text-[12px] text-faint transition-colors hover:bg-white/[0.05] hover:text-text"
+          className="ml-auto flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] text-faint transition-colors hover:bg-raised hover:text-text"
         >
           {copied ? <Check className="size-3.5 text-done" /> : <Copy className="size-3.5" />}
           {copied ? 'Copied' : 'Copy'}
         </button>
       </div>
-      <div className="min-h-[268px] bg-black/30 p-5 font-mono text-[12.5px] leading-[1.75]">
+      <div className="min-h-[268px] bg-ink p-5 font-mono text-[12.5px] leading-[1.75]">
         {current.command ? (
           <Line>
-            <span className="select-none text-done">{current.prompt}</span>{' '}
+            <span className="select-none text-faint">{current.prompt}</span>{' '}
             <span className="text-text">{full.slice(0, typed)}</span>
             {!finished && <span className="ml-px inline-block h-[1.1em] w-[7px] translate-y-[3px] animate-pulse bg-text/80" />}
           </Line>

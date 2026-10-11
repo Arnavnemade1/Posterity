@@ -2,11 +2,15 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import type { Database } from '@/lib/database.types';
 
-const SIGNED_IN_ONLY = ['/dashboard'];
+const SIGNED_IN_ONLY = ['/dashboard', '/notifications', '/bookmarks', '/trades'];
 
-/** Refreshes the auth session on every request and guards signed-in-only pages. */
-export async function updateSession(request: NextRequest) {
-  let response = NextResponse.next({ request });
+/**
+ * Refreshes the auth session on every request and guards signed-in-only pages.
+ * `forward` builds the response for the request (a plain next() or a rewrite) from the headers the
+ * page should see, so a refreshed session cookie and the CSP nonce both reach the render.
+ */
+export async function updateSession(request: NextRequest, requestHeaders: Headers, forward: (headers: Headers) => NextResponse) {
+  let response = forward(requestHeaders);
 
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,7 +22,9 @@ export async function updateSession(request: NextRequest) {
         },
         setAll(cookiesToSet, headers) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({ request });
+          // The page renders from requestHeaders: give it the refreshed cookies too.
+          requestHeaders.set('cookie', request.headers.get('cookie') ?? '');
+          response = forward(requestHeaders);
           cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
           Object.entries(headers ?? {}).forEach(([key, value]) => response.headers.set(key, value));
         },

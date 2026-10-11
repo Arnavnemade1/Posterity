@@ -406,7 +406,9 @@ begin
 
   -- --------------------------------------------------- comments are replies
   out := out || jsonb_build_object(
-    'ok_comments_table_is_a_view', (select relkind from pg_class where oid = 'public.comments'::regclass) = 'v',
+    -- Phase 8's contract drops the view; until then it must be a view, not the old table.
+    'ok_comments_table_is_a_view', to_regclass('public.comments') is null
+                                   or (select relkind from pg_class where oid = to_regclass('public.comments')) = 'v',
     'ok_same_ids', (select count(*) from public.posts where id in (c1, c2, c3)) = 3,
     'ok_top_level_shape', (select parent_id = p and root_id = p and depth = 1 and title is null from public.posts where id = c1),
     'ok_nested_shape', (select parent_id = c1 and root_id = p and depth = 2 from public.posts where id = c2),
@@ -418,9 +420,12 @@ begin
     'ok_votes_need_posts', (select attnotnull from pg_attribute where attrelid = 'public.votes'::regclass and attname = 'post_id')
                            and not exists (select 1 from pg_attribute where attrelid = 'public.votes'::regclass and attname = 'comment_id' and not attisdropped),
     'ok_karma_kept', (select karma from public.agent_stats where agent_id = replier) = karma_before,
-    'ok_view_top_level', (select post_id = p and parent_id is null and depth = 0 from public.comments where id = c1),
-    'ok_view_nested', (select post_id = p and parent_id = c1 and depth = 1 from public.comments where id = c2),
     'ok_thread_view', (select count(*) from jsonb_array_elements(public.post_thread(p) -> 'replies')) = 2);
+  if to_regclass('public.comments') is not null then
+    out := out || jsonb_build_object(
+      'ok_view_top_level', (select post_id = p and parent_id is null and depth = 0 from public.comments where id = c1),
+      'ok_view_nested', (select post_id = p and parent_id = c1 and depth = 1 from public.comments where id = c2));
+  end if;
 
   -- --------------------------------------------------- the old functions act on posts
   r := public.create_comment(p, replier, null, 'Replying the old way, after the fold.', c1);
@@ -444,17 +449,19 @@ begin
                       and (select karma from public.agent_stats where agent_id = replier) = karma_before - 2,
     'ok_social_stats', (public.social_stats() ->> 'comments')::int >= 2);
 
-  -- --------------------------------------------------- the view is read-only, the grants survive
-  set local role authenticated;
-  perform set_config('request.jwt.claims', json_build_object('sub', owner_id, 'role', 'authenticated')::text, true);
-  begin
-    insert into public.comments (id, post_id, body) values (gen_random_uuid(), p, 'Through the view.');
-    out := out || jsonb_build_object('ok_view_read_only', false);
-  exception when others then
-    out := out || jsonb_build_object('ok_view_read_only', sqlstate = '42501');
-  end;
-  out := out || jsonb_build_object('ok_view_readable', (select count(*) from public.comments where post_id = p) = 2);
-  reset role;
+  -- --------------------------------------------------- the view is read-only (until Phase 8 drops it), the grants survive
+  if to_regclass('public.comments') is not null then
+    set local role authenticated;
+    perform set_config('request.jwt.claims', json_build_object('sub', owner_id, 'role', 'authenticated')::text, true);
+    begin
+      insert into public.comments (id, post_id, body) values (gen_random_uuid(), p, 'Through the view.');
+      out := out || jsonb_build_object('ok_view_read_only', false);
+    exception when others then
+      out := out || jsonb_build_object('ok_view_read_only', sqlstate = '42501');
+    end;
+    out := out || jsonb_build_object('ok_view_readable', (select count(*) from public.comments where post_id = p) = 2);
+    reset role;
+  end if;
   out := out || jsonb_build_object(
     'ok_grants_after_release',
       has_function_privilege('authenticated', 'public.web_applaud(uuid, boolean)', 'execute')

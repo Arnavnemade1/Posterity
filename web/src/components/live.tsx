@@ -1,40 +1,15 @@
 'use client';
 
-import {
-  Activity,
-  BadgeCheck,
-  Ban,
-  BookCheck,
-  BookPlus,
-  CircleX,
-  CircleCheck,
-  Eye,
-  FileText,
-  GitBranch,
-  GitPullRequest,
-  Hand,
-  Handshake,
-  Hourglass,
-  MessageSquare,
-  MessagesSquare,
-  Orbit,
-  Plug,
-  RefreshCw,
-  Rocket,
-  Send,
-  ShieldCheck,
-  Sparkles,
-  Tag,
-  Unplug,
-  UserPlus,
-  type LucideIcon,
-} from 'lucide-react';
+import { Activity } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import { type ActivityRow, activityHref, KIND_ICON, KIND_TONE } from '@/components/activity-kinds';
 import { cx } from '@/components/ui';
 import { timeAgo } from '@/lib/format';
-import { createClient } from '@/lib/supabase/client';
+
+// Realtime is fetched after the page is interactive, so supabase-js never weighs on first load.
+const realtime = () => import('@/lib/supabase/client').then((m) => m.createClient());
 
 export interface Watch {
   table:
@@ -49,11 +24,14 @@ export interface Watch {
     | 'notifications'
     | 'knowledge'
     | 'posts'
-    | 'comments'
     | 'listings'
     | 'trades'
     | 'trade_events'
-    | 'integration_events';
+    | 'integration_events'
+    | 'chat_messages'
+    | 'conversations'
+    | 'reposts'
+    | 'friendships';
   filter?: string;
   event?: 'INSERT' | 'UPDATE' | 'DELETE';
 }
@@ -61,8 +39,8 @@ export interface Watch {
 export function LiveBadge({ live }: { live: boolean }) {
   return (
     <span className="inline-flex items-center gap-1.5 text-xs font-medium text-faint" aria-live="polite">
-      <span className={cx('size-1.5 rounded-full', live ? 'live-dot bg-done' : 'bg-faint')} />
-      {live ? 'Live' : 'Connecting…'}
+      <span className={cx('size-1.5 rounded-full', live ? 'live-dot bg-done text-done' : 'bg-faint')} />
+      <span className="text-[12.5px]">{live ? 'Live' : 'Connecting'}</span>
     </span>
   );
 }
@@ -75,110 +53,34 @@ export function LiveRefresh({ channel, watch, showBadge = true }: { channel: str
   const key = JSON.stringify(watch);
 
   useEffect(() => {
-    const supabase = createClient();
-    const subscription = supabase.channel(channel);
-    for (const w of JSON.parse(key) as Watch[]) {
-      subscription.on(
-        'postgres_changes',
-        w.filter
-          ? { event: w.event ?? '*', schema: 'public', table: w.table, filter: w.filter }
-          : { event: w.event ?? '*', schema: 'public', table: w.table },
-        () => {
-          if (timer.current) clearTimeout(timer.current);
-          timer.current = setTimeout(() => router.refresh(), 350);
-        },
-      );
-    }
-    subscription.subscribe((status) => setLive(status === 'SUBSCRIBED'));
+    let disposed = false;
+    let stop: (() => void) | null = null;
+    realtime().then((supabase) => {
+      if (disposed) return;
+      const subscription = supabase.channel(channel);
+      for (const w of JSON.parse(key) as Watch[]) {
+        subscription.on(
+          'postgres_changes',
+          w.filter
+            ? { event: w.event ?? '*', schema: 'public', table: w.table, filter: w.filter }
+            : { event: w.event ?? '*', schema: 'public', table: w.table },
+          () => {
+            if (timer.current) clearTimeout(timer.current);
+            timer.current = setTimeout(() => router.refresh(), 350);
+          },
+        );
+      }
+      subscription.subscribe((status) => setLive(status === 'SUBSCRIBED'));
+      stop = () => supabase.removeChannel(subscription);
+    });
     return () => {
+      disposed = true;
       if (timer.current) clearTimeout(timer.current);
-      supabase.removeChannel(subscription);
+      stop?.();
     };
   }, [channel, key, router]);
 
   return showBadge ? <LiveBadge live={live} /> : null;
-}
-
-export const KIND_ICON: Record<string, LucideIcon> = {
-  agent_joined: UserPlus,
-  agent_claimed: ShieldCheck,
-  mission_launched: Rocket,
-  mission_joined: UserPlus,
-  plan_adopted: GitBranch,
-  task_claimed: Hand,
-  task_released: RefreshCw,
-  task_reopened: RefreshCw,
-  task_added: GitBranch,
-  work_submitted: Send,
-  review_submitted: Eye,
-  work_verified: BadgeCheck,
-  work_rejected: CircleX,
-  revision_requested: RefreshCw,
-  approval_requested: Hourglass,
-  approval_decided: ShieldCheck,
-  artifact_added: FileText,
-  mission_review: Hourglass,
-  mission_completed: Sparkles,
-  mission_cancelled: Ban,
-  message: MessageSquare,
-  memory_contributed: BookPlus,
-  memory_verified: BookCheck,
-  post_published: MessagesSquare,
-  org_founded: Orbit,
-  org_joined: UserPlus,
-  org_mission_added: Orbit,
-  listing_posted: Tag,
-  trade_agreed: Handshake,
-  trade_completed: BadgeCheck,
-  github_connected: Plug,
-  github_disconnected: Unplug,
-  github_pr: GitPullRequest,
-  github_ci: CircleCheck,
-};
-
-export const KIND_TONE: Record<string, string> = {
-  work_verified: 'text-done',
-  mission_completed: 'text-done',
-  work_rejected: 'text-danger',
-  approval_requested: 'text-review',
-  approval_decided: 'text-review',
-  mission_review: 'text-review',
-  mission_launched: 'text-accent',
-  plan_adopted: 'text-claimed',
-  task_claimed: 'text-claimed',
-  review_submitted: 'text-open',
-  memory_contributed: 'text-open',
-  memory_verified: 'text-done',
-  post_published: 'text-open',
-  org_founded: 'text-accent',
-  org_mission_added: 'text-claimed',
-  listing_posted: 'text-open',
-  trade_agreed: 'text-claimed',
-  trade_completed: 'text-done',
-  github_connected: 'text-accent',
-  github_pr: 'text-done',
-};
-
-export interface ActivityRow {
-  id: number;
-  kind: string;
-  summary: string;
-  created_at: string;
-  mission_id: string | null;
-  mission?: { slug: string; title: string } | null;
-  data?: Record<string, unknown> | null;
-}
-
-/** Where an activity row leads: the memory entry, thread, trade or listing it is about, then its mission, then its organization. */
-export function activityHref(item: Pick<ActivityRow, 'mission_id' | 'mission' | 'data'>): string | null {
-  const data = item.data ?? {};
-  if (typeof data.knowledge_id === 'string') return `/memory/${data.knowledge_id}`;
-  if (typeof data.post_id === 'string') return `/commons/${data.post_id}`;
-  if (typeof data.trade_id === 'string') return `/trades/${data.trade_id}`;
-  if (typeof data.listing_id === 'string') return `/exchange/${data.listing_id}`;
-  if (item.mission_id) return `/missions/${item.mission?.slug ?? item.mission_id}`;
-  if (typeof data.org_slug === 'string') return `/orgs/${data.org_slug}`;
-  return null;
 }
 
 /** Activity stream that appends new events as they happen. */
@@ -207,27 +109,33 @@ export function LiveActivity({
   const [live, setLive] = useState(false);
 
   useEffect(() => {
-    const supabase = createClient();
-    const channel = supabase
-      .channel(`activity:${missionId ?? 'network'}`)
-      .on(
-        'postgres_changes',
-        missionId
-          ? { event: 'INSERT', schema: 'public', table: 'activity', filter: `mission_id=eq.${missionId}` }
-          : { event: 'INSERT', schema: 'public', table: 'activity' },
-        (payload) => {
-          const row = payload.new as ActivityRow & { is_public?: boolean };
-          if (row.is_public === false) return;
-          setItems((prev) => (prev.some((p) => p.id === row.id) ? prev : [row, ...prev].slice(0, limit)));
-          setFresh((prev) => new Set(prev).add(row.id));
-          setNow(Date.now());
-        },
-      )
-      .subscribe((status) => setLive(status === 'SUBSCRIBED'));
+    let disposed = false;
+    let stop: (() => void) | null = null;
+    realtime().then((supabase) => {
+      if (disposed) return;
+      const channel = supabase
+        .channel(`activity:${missionId ?? 'network'}`)
+        .on(
+          'postgres_changes',
+          missionId
+            ? { event: 'INSERT', schema: 'public', table: 'activity', filter: `mission_id=eq.${missionId}` }
+            : { event: 'INSERT', schema: 'public', table: 'activity' },
+          (payload) => {
+            const row = payload.new as ActivityRow & { is_public?: boolean };
+            if (row.is_public === false) return;
+            setItems((prev) => (prev.some((p) => p.id === row.id) ? prev : [row, ...prev].slice(0, limit)));
+            setFresh((prev) => new Set(prev).add(row.id));
+            setNow(Date.now());
+          },
+        )
+        .subscribe((status) => setLive(status === 'SUBSCRIBED'));
+      stop = () => supabase.removeChannel(channel);
+    });
     const tick = setInterval(() => setNow(Date.now()), 30_000);
     return () => {
+      disposed = true;
       clearInterval(tick);
-      supabase.removeChannel(channel);
+      stop?.();
     };
   }, [missionId, limit]);
 
@@ -246,31 +154,29 @@ export function LiveActivity({
         <p className={cx('py-8 text-center text-sm text-faint', listClassName)}>{empty}</p>
       ) : (
         <ol className={cx('relative', listClassName)}>
-          <span className="absolute bottom-3 left-[19px] top-3 w-px bg-gradient-to-b from-white/[0.08] via-white/[0.05] to-transparent" aria-hidden />
+          <span className="absolute bottom-3 left-[59px] top-3 w-px bg-line" aria-hidden />
           {items.map((item) => {
             const Icon = KIND_ICON[item.kind] ?? Activity;
             const href = activityHref(item);
             const body = (
               <>
-                <span className="relative z-10 mt-px flex size-[22px] shrink-0 items-center justify-center rounded-full bg-panel ring-1 ring-white/[0.08]">
+                <time dateTime={item.created_at} className="numeric w-[38px] shrink-0 pt-[3px] text-right text-[11px] text-faint" title={new Date(item.created_at).toLocaleString('en-US')}>
+                  {timeAgo(item.created_at, now).replace(' ago', '').replace('just now', 'now')}
+                </time>
+                <span className="relative z-10 mt-px flex size-[22px] shrink-0 items-center justify-center bg-ink ring-1 ring-inset ring-line-strong">
                   <Icon className={cx('size-3', KIND_TONE[item.kind] ?? 'text-faint')} aria-hidden />
                 </span>
-                <span className="min-w-0 flex-1 pt-0.5 text-[13px] leading-snug text-muted transition-colors group-hover:text-text">
-                  {item.summary}
-                </span>
-                <time dateTime={item.created_at} className="shrink-0 pt-0.5 text-[11.5px] tabular-nums text-faint">
-                  {timeAgo(item.created_at, now)}
-                </time>
+                <span className="min-w-0 flex-1 pt-0.5 text-[13.5px] leading-snug text-muted transition-colors group-hover:text-text">{item.summary}</span>
               </>
             );
             return (
               <li key={item.id} className={cx(fresh.has(item.id) && 'animate-[rise_700ms_var(--ease-out-expo)_both]')}>
                 {href ? (
-                  <Link href={href} className="group flex items-start gap-3 rounded-[10px] px-2 py-2 transition-colors hover:bg-white/[0.03]">
+                  <Link href={href} className="group flex items-start gap-3 px-2 py-2 transition-colors hover:bg-fg/[0.03]">
                     {body}
                   </Link>
                 ) : (
-                  <div className="group flex items-start gap-3 rounded-[10px] px-2 py-2">{body}</div>
+                  <div className="group flex items-start gap-3 px-2 py-2">{body}</div>
                 )}
               </li>
             );

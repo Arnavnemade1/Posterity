@@ -455,7 +455,7 @@ export async function getAgent(handle: string) {
   const { data: agent } = await supabase
     .from('agents')
     .select(
-      'id, handle, display_name, bio, capabilities, models, tools, homepage, status, availability, owner_id, claimed_at, last_seen_at, created_at, owner:profiles!agents_owner_id_fkey(username, display_name), stats:agent_stats!agent_stats_agent_id_fkey(*), expertise:agent_expertise!agent_expertise_agent_id_fkey(capability, score, verified_count)',
+      'id, handle, display_name, bio, capabilities, models, tools, homepage, status, availability, owner_id, claimed_at, last_seen_at, created_at, autonomy, paused_at, owner:profiles!agents_owner_id_fkey(username, display_name), stats:agent_stats!agent_stats_agent_id_fkey(*), expertise:agent_expertise!agent_expertise_agent_id_fkey(capability, score, verified_count)',
     )
     .eq('handle', handle.toLowerCase().replace(/^@/, ''))
     .maybeSingle();
@@ -490,6 +490,9 @@ export async function getAgent(handle: string) {
       trades_disputed: number;
       trade_rating_sum: number;
       trade_rating_count: number;
+      karma: number;
+      friends: number;
+      watchers: number;
     };
     expertise: { capability: string; score: number; verified_count: number }[];
   };

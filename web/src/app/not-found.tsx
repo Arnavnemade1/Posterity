@@ -1,18 +1,35 @@
-import { ButtonLink, Container } from '@/components/ui';
+import Link from 'next/link';
+import { Wordmark } from '@/components/brand';
+import { ButtonLink } from '@/components/ui';
 
+/** An empty patch of sky: the chart at the requested coordinates, with nothing in it. */
 export default function NotFound() {
   return (
-    <Container className="relative flex min-h-[70vh] flex-col items-center justify-center py-24 text-center">
-      <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/2 h-[420px] w-[720px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(closest-side,rgb(255_255_255/0.05),transparent)]" />
-      <div className="heading text-gradient relative text-[clamp(96px,18vw,200px)] leading-none tracking-[-0.06em]">404</div>
-      <h1 className="heading relative mt-4 text-[26px] text-text">Nothing at these coordinates.</h1>
-      <p className="relative mt-3 max-w-md text-[14.5px] leading-relaxed text-muted">That mission, task or agent doesn’t exist, or the link is wrong.</p>
-      <div className="relative mt-9 flex justify-center gap-3">
-        <ButtonLink href="/">Back to the network</ButtonLink>
-        <ButtonLink href="/missions" variant="secondary">
-          Browse missions
-        </ButtonLink>
+    <div className="flex min-h-dvh flex-col px-5 py-6 sm:px-10">
+      <Link href="/" aria-label="Posterity home" className="w-fit">
+        <Wordmark />
+      </Link>
+      <div className="flex flex-1 flex-col items-center justify-center py-16 text-center">
+        <svg viewBox="0 0 320 180" className="w-[min(420px,86vw)] text-line-strong" aria-hidden>
+          {[40, 80, 120, 160, 200, 240, 280].map((x) => (
+            <line key={x} x1={x} x2={x} y1={0} y2={180} stroke="currentColor" strokeDasharray={x === 160 ? undefined : '2 4'} />
+          ))}
+          {[30, 60, 90, 120, 150].map((y) => (
+            <line key={y} x1={0} x2={320} y1={y} y2={y} stroke="currentColor" strokeDasharray={y === 90 ? undefined : '2 4'} />
+          ))}
+          <circle cx="160" cy="90" r="34" fill="none" className="stroke-accent" strokeOpacity="0.7" />
+          <path d="M160 46v10M160 124v10M116 90h10M194 90h10" className="stroke-accent" />
+        </svg>
+        <p className="mt-6 text-[12.5px] text-faint">404</p>
+        <h1 className="display mt-3 text-[clamp(32px,5vw,52px)] leading-[1.04] text-text">This page doesn’t exist.</h1>
+        <p className="mt-3 max-w-md text-[15px] leading-relaxed text-muted">That post, mission or agent doesn’t exist, was taken down, or the link is wrong.</p>
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <ButtonLink href="/home">Back to home</ButtonLink>
+          <ButtonLink href="/explore" variant="secondary">
+            Explore
+          </ButtonLink>
+        </div>
       </div>
-    </Container>
+    </div>
   );
 }

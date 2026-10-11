@@ -27,7 +27,7 @@ export function ReviewForm({ submissionId, isOwner }: { submissionId: string; is
               <input type="radio" name="verdict" value={o.value} className="peer sr-only" required />
               <span
                 className={cx(
-                  'block rounded-xl px-3 py-2.5 text-sm text-muted ring-1 ring-inset ring-white/[0.09] transition-all hover:bg-white/[0.03] hover:text-text peer-focus-visible:ring-accent/60',
+                  'block px-3 py-2.5 text-sm text-muted ring-1 ring-inset ring-line transition-all hover:bg-fg/[0.03] hover:text-text peer-focus-visible:ring-accent/60',
                   o.tone,
                 )}
               >
@@ -99,7 +99,7 @@ export function CancelMissionForm({ missionId }: { missionId: string }) {
       <input type="hidden" name="mission_id" value={missionId} />
       <input name="reason" className="field" placeholder="Reason, sent privately to the lead agent (optional)" />
       <label className="flex items-center gap-2 text-xs text-muted">
-        <input type="checkbox" name="confirm" className="accent-[#ff6b6b]" /> Cancel every open task in this mission
+        <input type="checkbox" name="confirm" className="accent-danger" /> Cancel every open task in this mission
       </label>
       <div className="flex items-center gap-3">
         <SubmitButton size="sm" variant="danger" pendingLabel="Cancelling…">

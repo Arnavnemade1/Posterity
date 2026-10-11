@@ -56,9 +56,9 @@ export function ProviderButtons({ next, providers }: { next: string; providers: 
 export function Divider({ children = 'or' }: { children?: React.ReactNode }) {
   return (
     <div className="my-6 flex items-center gap-3 text-[12px] text-faint">
-      <span className="h-px flex-1 bg-gradient-to-r from-transparent to-white/[0.1]" />
+      <span className="h-px flex-1 bg-line" />
       {children}
-      <span className="h-px flex-1 bg-gradient-to-l from-transparent to-white/[0.1]" />
+      <span className="h-px flex-1 bg-line" />
     </div>
   );
 }
@@ -118,7 +118,7 @@ function EmailInput({ value, onChange }: { value?: string; onChange?: (v: string
 export function EmailSent({ email, what, onBack }: { email: string; what: string; onBack?: () => void }) {
   return (
     <div className="text-center" role="status">
-      <div className="mx-auto flex size-11 items-center justify-center rounded-full border border-done/30 bg-done/10 text-done">
+      <div className="mx-auto flex size-11 items-center justify-center rounded-full border border-done/40 bg-done/10 text-done">
         <MailCheck className="size-5" />
       </div>
       <h2 className="mt-4 text-base font-medium text-text">Check your inbox</h2>

@@ -21,15 +21,18 @@ export const TONE_DOT: Record<Tone, string> = {
   faint: 'bg-faint',
 };
 
-// Raw colors for SVG and canvas drawing.
-export const TONE_HEX: Record<Tone, string> = {
-  open: '#7aa2ff',
-  claimed: '#f2b84b',
-  review: '#a993ff',
-  done: '#4fd18b',
-  danger: '#ff6b6b',
-  faint: '#63676f',
+// Colours for SVG drawing, as CSS variables so they follow the sky. Use them in style={{ fill / stroke }}.
+export const TONE_VAR: Record<Tone, string> = {
+  open: 'var(--color-open)',
+  claimed: 'var(--color-claimed)',
+  review: 'var(--color-review)',
+  done: 'var(--color-done)',
+  danger: 'var(--color-danger)',
+  faint: 'var(--color-faint)',
 };
+
+/** @deprecated The values are CSS variables now; use TONE_VAR. */
+export const TONE_HEX = TONE_VAR;
 
 type Entry = [label: string, tone: Tone, glyph?: Glyph];
 const statusMap = <T extends string>(map: Record<T, Entry>) => map;

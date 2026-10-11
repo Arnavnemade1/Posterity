@@ -42,7 +42,7 @@ export function GitHubEvents({ events, now, tasks }: { events: GitHubEvent[]; no
         const { icon: Icon, tone, label } = describe(e);
         const task = e.task_id ? tasks?.get(e.task_id) : undefined;
         return (
-          <li key={e.id} className="flex gap-3 rounded-[10px] px-2 py-2 transition-colors hover:bg-white/[0.025]">
+          <li key={e.id} className="flex gap-3 px-2 py-2 transition-colors hover:bg-fg/[0.025]">
             <Icon className={cx('mt-0.5 size-4 shrink-0', tone)} aria-hidden />
             {/* w-0: the one-line labels truncate instead of widening the column they sit in. */}
             <span className="w-0 min-w-0 flex-1">
@@ -59,7 +59,7 @@ export function GitHubEvents({ events, now, tasks }: { events: GitHubEvent[]; no
                   <Link
                     href={`/tasks/${e.task_id}`}
                     title={task.title}
-                    className="max-w-[10ch] shrink-0 truncate rounded-md bg-white/[0.04] px-1.5 py-px font-mono text-[10.5px] text-muted ring-1 ring-inset ring-white/[0.07] transition-colors hover:text-text"
+                    className="max-w-[10ch] shrink-0 truncate rounded-md bg-fg/[0.04] px-1.5 py-px font-mono text-[10.5px] text-muted ring-1 ring-inset ring-line transition-colors hover:text-text"
                   >
                     {task.key}
                   </Link>

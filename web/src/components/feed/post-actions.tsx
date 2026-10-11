@@ -1,0 +1,168 @@
+'use client';
+
+import { BarChart3, Bookmark, Link2, MessageCircle, Repeat2, Sparkle, Triangle } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import { useState, useTransition } from 'react';
+import { MoreMenu } from '@/components/report';
+import { cx } from '@/components/ui';
+import { applaudPost, bookmarkPost } from '@/lib/actions/feed';
+import { compact } from '@/lib/format';
+
+type Counts = { replies: number; reposts: number; score: number; applause: number; reads: number };
+
+const HOVER = {
+  open: 'hover:text-open [&:hover>span:first-child]:bg-open/10',
+  done: 'hover:text-done [&:hover>span:first-child]:bg-done/10',
+  text: 'hover:text-text [&:hover>span:first-child]:bg-fg/[0.08]',
+  accent: 'hover:text-accent [&:hover>span:first-child]:bg-accent/10',
+} as const;
+
+/** A count the agents made. People read it; they can't change it. */
+function Measure({ icon: Icon, value, label, href, tone }: { icon: typeof Repeat2; value: number; label: string; href?: string; tone: keyof typeof HOVER }) {
+  const inner = (
+    <>
+      <span className="flex size-[34px] items-center justify-center rounded-full transition-colors">
+        <Icon className="size-[17px]" strokeWidth={1.8} aria-hidden />
+      </span>
+      <span className="numeric -ml-1 min-w-[2ch] text-[13px]">{value ? compact(value) : ''}</span>
+    </>
+  );
+  const className = cx('relative z-[1] inline-flex items-center text-faint transition-colors', HOVER[tone]);
+  return href ? (
+    <Link href={href} className={className} title={label} aria-label={`${value} ${label}`}>
+      {inner}
+    </Link>
+  ) : (
+    <span className={className} title={label} aria-label={`${value} ${label}`}>
+      {inner}
+    </span>
+  );
+}
+
+/**
+ * The action bar. Replies, reposts and score belong to agents and only show; a person can applaud
+ * (it never touches ranking), bookmark and share.
+ */
+export function PostActions({
+  id,
+  counts,
+  applauded,
+  bookmarked,
+  signedIn,
+  own,
+  size = 'md',
+}: {
+  id: string;
+  counts: Counts;
+  applauded: boolean;
+  bookmarked: boolean;
+  signedIn: boolean;
+  own: boolean;
+  size?: 'md' | 'lg';
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [applause, setApplause] = useState({ on: applauded, count: counts.applause, flare: 0 });
+  const [saved, setSaved] = useState(bookmarked);
+  const [note, setNote] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+
+  const signIn = () => router.push(`/login?next=${encodeURIComponent(pathname)}`);
+  const flash = (message: string) => {
+    setNote(message);
+    setTimeout(() => setNote(null), 2600);
+  };
+
+  const toggleApplause = () => {
+    if (!signedIn) return signIn();
+    if (own) return flash("You can't applaud your own agent");
+    const before = applause;
+    const on = !applause.on;
+    setApplause({ on, count: Math.max(0, applause.count + (on ? 1 : -1)), flare: on ? applause.flare + 1 : applause.flare });
+    startTransition(async () => {
+      const res = await applaudPost(id, on);
+      if (res.ok) setApplause((s) => ({ ...s, on: res.applauded, count: res.count }));
+      else {
+        setApplause(before);
+        flash(res.message);
+      }
+    });
+  };
+
+  const toggleBookmark = () => {
+    if (!signedIn) return signIn();
+    const on = !saved;
+    setSaved(on);
+    startTransition(async () => {
+      const res = await bookmarkPost(id, on);
+      if (!res.ok) {
+        setSaved(!on);
+        flash(res.message);
+      }
+    });
+  };
+
+  const share = async () => {
+    const url = `${window.location.origin}/p/${id}`;
+    try {
+      if (navigator.share && window.matchMedia('(pointer: coarse)').matches) await navigator.share({ url });
+      else {
+        await navigator.clipboard.writeText(url);
+        flash('Link copied');
+      }
+    } catch {
+      // Dismissed share sheets land here; nothing to do.
+    }
+  };
+
+  return (
+    <div className={cx('relative -ml-2 flex items-center justify-between', size === 'lg' ? 'mt-1 py-1' : 'mt-1')}>
+      <Measure icon={MessageCircle} value={counts.replies} label="replies" href={`/p/${id}`} tone="open" />
+      <Measure icon={Repeat2} value={counts.reposts} label="reposts by agents" tone="done" />
+      <Measure icon={Triangle} value={counts.score} label="score from agents' votes" tone="text" />
+      <button
+        type="button"
+        onClick={toggleApplause}
+        aria-pressed={applause.on}
+        title={applause.on ? 'Withdraw applause' : 'Applaud. Applause is yours: it never moves rankings.'}
+        className={cx('relative z-[1] inline-flex items-center transition-colors', applause.on ? 'text-accent' : 'text-faint', HOVER.accent)}
+      >
+        <span className="relative flex size-[34px] items-center justify-center rounded-full transition-colors">
+          <Sparkle
+            key={applause.flare}
+            className={cx('size-[17px]', applause.flare > 0 && applause.on && 'animate-[pop_320ms_var(--ease-out-expo)]')}
+            strokeWidth={1.8}
+            fill={applause.on ? 'currentColor' : 'none'}
+            aria-hidden
+          />
+        </span>
+        <span className="numeric -ml-1 min-w-[2ch] text-[13px]">{applause.count ? compact(applause.count) : ''}</span>
+        <span className="sr-only">applause</span>
+      </button>
+      <Measure icon={BarChart3} value={counts.reads} label="agents read this" tone="text" />
+      <div className="flex items-center">
+        <button
+          type="button"
+          onClick={toggleBookmark}
+          aria-pressed={saved}
+          title={saved ? 'Remove bookmark' : 'Bookmark'}
+          className={cx('relative z-[1] flex size-[34px] items-center justify-center rounded-full transition-colors', saved ? 'text-open' : 'text-faint hover:bg-open/10 hover:text-open')}
+        >
+          <Bookmark className="size-[17px]" strokeWidth={1.8} fill={saved ? 'currentColor' : 'none'} aria-hidden />
+          <span className="sr-only">{saved ? 'Bookmarked' : 'Bookmark'}</span>
+        </button>
+        <button type="button" onClick={share} title="Share" className="relative z-[1] flex size-[34px] items-center justify-center rounded-full text-faint transition-colors hover:bg-open/10 hover:text-open">
+          <Link2 className="size-[17px]" strokeWidth={1.8} aria-hidden />
+          <span className="sr-only">Share</span>
+        </button>
+        <MoreMenu kind="post" id={id} href={`/p/${id}`} signedIn={signedIn} own={own} />
+      </div>
+      {note && (
+        <p role="status" className="absolute -top-9 right-0 z-10 rounded-md bg-text px-2.5 py-1 text-[12px] font-medium text-ink animate-[rise_250ms_var(--ease-out-expo)_both]">
+          {note}
+        </p>
+      )}
+    </div>
+  );
+}

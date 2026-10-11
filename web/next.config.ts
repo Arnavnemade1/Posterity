@@ -23,6 +23,15 @@ const nextConfig: NextConfig = {
     },
   },
   poweredByHeader: false,
+  // The commons became the timeline; /connect became the developer page.
+  async redirects() {
+    return [
+      { source: '/commons', has: [{ type: 'query', key: 'tag', value: '(?<tag>.+)' }], destination: '/explore?tag=:tag', permanent: true },
+      { source: '/commons', destination: '/home', permanent: true },
+      { source: '/commons/:id', destination: '/p/:id', permanent: true },
+      { source: '/connect', destination: '/developers', permanent: true },
+    ];
+  },
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },

@@ -63,7 +63,7 @@ function Terms({ data, trade }: { data: Record<string, unknown>; trade: Trade })
   return (
     <div className="mt-2 grid gap-2 sm:grid-cols-2">
       {sides.map(([handle, items]) => (
-        <div key={handle} className="rounded-lg bg-white/[0.025] px-3 py-2 ring-1 ring-inset ring-white/[0.05]">
+        <div key={handle} className="rounded-lg bg-fg/[0.025] px-3 py-2 ring-1 ring-inset ring-line">
           <div className="text-[11.5px] text-faint">@{handle} gives</div>
           <div className="mt-0.5 text-[12.5px] text-muted">
             {items.length ? items.map((i) => `${i.description}${i.quantity ? ` (${i.quantity})` : ''}`).join('; ') : 'nothing'}
@@ -77,14 +77,14 @@ function Terms({ data, trade }: { data: Record<string, unknown>; trade: Trade })
 export function Timeline({ events, trade, now }: { events: TradeEvent[]; trade: Trade; now: number }) {
   return (
     <ol className="relative">
-      <span className="absolute bottom-3 left-[13px] top-3 w-px bg-gradient-to-b from-white/[0.08] via-white/[0.05] to-transparent" aria-hidden />
+      <span className="absolute bottom-3 left-[13px] top-3 w-px bg-line" aria-hidden />
       {events.map((e) => {
         const meta = EVENT[e.kind] ?? { icon: MessageSquare, label: e.kind };
         const Icon = meta.icon;
         const actor = e.agent?.handle;
         return (
           <li key={e.id} className="relative flex gap-3 py-2.5">
-            <span className="relative z-10 mt-px flex size-[27px] shrink-0 items-center justify-center rounded-full bg-panel ring-1 ring-white/[0.08]">
+            <span className="relative z-10 mt-px flex size-[27px] shrink-0 items-center justify-center rounded-full bg-panel ring-1 ring-line">
               <Icon className={cx('size-3.5', meta.tone ?? 'text-faint')} aria-hidden />
             </span>
             <div className="min-w-0 flex-1 pt-1">
@@ -92,7 +92,7 @@ export function Timeline({ events, trade, now }: { events: TradeEvent[]; trade: 
                 <span className="text-[13px] text-muted">
                   {actor ? (
                     <>
-                      <span className="font-mono text-[12.5px] text-text">@{actor}</span> {meta.label}
+                      <span className="text-[12.5px] text-text">@{actor}</span> {meta.label}
                     </>
                   ) : (
                     meta.label
@@ -105,7 +105,7 @@ export function Timeline({ events, trade, now }: { events: TradeEvent[]; trade: 
                       {e.data.fault && e.data.fault !== 'none' ? `, ${String(e.data.fault)} at fault` : ''}
                     </span>
                   ) : null}
-                  {e.kind === 'arbiter_assigned' && typeof e.data.arbiter === 'string' ? <span className="font-mono text-[12.5px] text-text"> @{e.data.arbiter}</span> : null}
+                  {e.kind === 'arbiter_assigned' && typeof e.data.arbiter === 'string' ? <span className="text-[12.5px] text-text"> @{e.data.arbiter}</span> : null}
                 </span>
                 <Time iso={e.created_at}>
                   <span className="text-[11.5px] tabular-nums text-faint">{timeAgo(e.created_at, now)}</span>
@@ -117,7 +117,7 @@ export function Timeline({ events, trade, now }: { events: TradeEvent[]; trade: 
                 <p
                   className={cx(
                     'mt-1.5 whitespace-pre-wrap break-words text-[13.5px] leading-relaxed',
-                    e.kind === 'message' ? 'rounded-xl bg-white/[0.03] px-3.5 py-2.5 text-text ring-1 ring-inset ring-white/[0.06]' : 'text-muted',
+                    e.kind === 'message' ? 'rounded-xl bg-fg/[0.03] px-3.5 py-2.5 text-text ring-1 ring-inset ring-line' : 'text-muted',
                   )}
                 >
                   {e.body}
@@ -213,10 +213,10 @@ export function ActionPanel({ trade, side, now }: { trade: Trade; side: Side; no
 
   return (
     <section className="card overflow-hidden">
-      <div className="flex items-center gap-2.5 border-b border-white/[0.06] px-5 py-3.5">
+      <div className="flex items-center gap-2.5 border-b border-line px-5 py-3.5">
         <AgentAvatar handle={me.handle} size={22} />
-        <h2 className="text-[13.5px] font-semibold tracking-[-0.01em] text-text">
-          Your agent <span className="font-mono">@{me.handle}</span>
+        <h2 className="display text-[18px] text-text">
+          Your agent <span className="">@{me.handle}</span>
         </h2>
       </div>
       <ul className="space-y-2 px-5 py-4 text-[13.5px] leading-relaxed text-muted">
@@ -224,7 +224,7 @@ export function ActionPanel({ trade, side, now }: { trade: Trade; side: Side; no
           <li key={n}>{n}</li>
         ))}
       </ul>
-      <p className="border-t border-white/[0.06] px-5 py-3 text-[12.5px] text-faint">
+      <p className="border-t border-line px-5 py-3 text-[12.5px] text-faint">
         Agents negotiate, deliver and rate on their own. To steer yours, leave it a directive from your dashboard.
       </p>
     </section>

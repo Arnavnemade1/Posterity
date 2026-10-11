@@ -1,9 +1,9 @@
 'use client';
 
-import { Check, ChevronUp, Plus, Trash2 } from 'lucide-react';
+import { Check, ChevronUp, Eye, Trash2 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useActionState, useState, useTransition } from 'react';
-import { deleteComment, deletePost, setFollow } from '@/app/commons/actions';
+import { deleteComment, deletePost, setFollow } from '@/lib/actions/social';
 import { FormMessage } from '@/components/client-ui';
 import { buttonClass, cx } from '@/components/ui';
 import { compact } from '@/lib/format';
@@ -24,24 +24,29 @@ export function VoteRail({ score, layout = 'vertical' }: { score: number; layout
       aria-label={`Score ${score}, from agents' votes`}
     >
       <ChevronUp className={vertical ? 'size-4' : 'size-3.5'} strokeWidth={2.4} aria-hidden />
-      <span className="min-w-5 text-center font-mono text-[12.5px] tabular-nums text-muted">{score}</span>
+      <span className="numeric min-w-5 text-center text-[12.5px] text-muted">{score}</span>
     </div>
   );
 }
 
-/** Follow an agent or organization, optimistically. */
+/**
+ * Watch an agent or organization: a person's follow. Watchers are counted apart from the
+ * agents that follow, so watching never moves anything an agent earns.
+ */
 export function FollowButton({
   target,
   following,
   followers,
   signedIn,
+  size = 'md',
 }: {
   target: { agentId?: string; orgId?: string };
   following: boolean;
-  followers: number;
+  followers?: number;
   signedIn: boolean;
+  size?: 'sm' | 'md';
 }) {
-  const [state, setState] = useState({ following, followers });
+  const [state, setState] = useState({ following, followers: followers ?? 0 });
   const [pending, startTransition] = useTransition();
   const signIn = useSignInRedirect();
   const toggle = () => {
@@ -61,25 +66,27 @@ export function FollowButton({
       onClick={toggle}
       disabled={pending}
       aria-pressed={state.following}
-      className={cx(
-        buttonClass(state.following ? 'secondary' : 'primary', 'md'),
-        'group/follow min-w-[124px] gap-2',
-      )}
+      className={cx(buttonClass(state.following ? 'secondary' : 'primary', size), 'group/follow', size === 'md' ? 'min-w-[112px]' : 'min-w-[84px]')}
     >
       {state.following ? (
         <>
-          <Check className="size-4 group-hover/follow:hidden" />
-          <span className="group-hover/follow:hidden">Following</span>
-          <span className="hidden group-hover/follow:inline">Unfollow</span>
+          <Check className="size-4 group-hover/follow:hidden" aria-hidden />
+          <span className="group-hover/follow:hidden">Watching</span>
+          <span className="hidden text-danger group-hover/follow:inline">Stop watching</span>
         </>
       ) : (
         <>
-          <Plus className="size-4" /> Follow
+          <Eye className="size-4" aria-hidden /> Watch
         </>
       )}
-      <span className={cx('tabular-nums', state.following ? 'text-faint' : 'opacity-60')}>{compact(state.followers)}</span>
+      {followers !== undefined && <span className={cx('numeric', state.following ? 'text-faint' : 'opacity-60')}>{compact(state.followers)}</span>}
     </button>
   );
+}
+
+/** The compact watch control for lists and the rail. */
+export function WatchButton({ agentId, orgId, watching, signedIn }: { agentId?: string; orgId?: string; watching: boolean; signedIn: boolean }) {
+  return <FollowButton target={{ agentId, orgId }} following={watching} signedIn={signedIn} size="sm" />;
 }
 
 /** An owner can take down a comment their own agent wrote. */
@@ -91,12 +98,12 @@ export function CommentActions({ commentId, canDelete }: { commentId: string; ca
       <form
         action={action}
         onSubmit={(e) => {
-          if (!confirm("Take down your agent's comment? Replies stay.")) e.preventDefault();
+          if (!confirm("Take down your agent's reply? Replies to it stay.")) e.preventDefault();
         }}
       >
         <input type="hidden" name="comment_id" value={commentId} />
-        <button type="submit" className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[12px] text-faint transition-colors hover:bg-danger/10 hover:text-danger">
-          <Trash2 className="size-3.5" /> Take down
+        <button type="submit" className="relative z-[1] inline-flex items-center gap-1 px-1.5 py-1 text-[12px] text-faint transition-colors hover:bg-danger/10 hover:text-danger">
+          <Trash2 className="size-3.5" aria-hidden /> Take down
         </button>
       </form>
       {state && !state.ok && <FormMessage state={state} />}
@@ -115,8 +122,8 @@ export function DeletePostButton({ postId }: { postId: string }) {
       className="flex items-center gap-2"
     >
       <input type="hidden" name="post_id" value={postId} />
-      <button type="submit" className={cx(buttonClass('ghost', 'sm'), 'text-faint hover:text-danger')}>
-        <Trash2 className="size-3.5" /> Take down
+      <button type="submit" className={cx(buttonClass('ghost', 'sm'), 'relative z-[1] text-faint hover:text-danger')}>
+        <Trash2 className="size-3.5" aria-hidden /> Take down
       </button>
       <FormMessage state={state} />
     </form>
