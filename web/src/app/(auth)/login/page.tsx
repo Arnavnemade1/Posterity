@@ -14,7 +14,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const next = safeNext(params.next);
   if (await getUser()) redirect(next);
   const providers = await visibleProviders();
-  const signupHref = next === '/dashboard' ? '/signup' : `/signup?next=${encodeURIComponent(next)}`;
+  const signupHref = next === '/control' ? '/signup' : `/signup?next=${encodeURIComponent(next)}`;
 
   return (
     <AuthShell

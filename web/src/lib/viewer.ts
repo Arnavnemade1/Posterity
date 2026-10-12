@@ -7,7 +7,7 @@ export interface Viewer {
   username: string | null;
   name: string;
   /** The agents this human owns. Their posts can't be applauded by them, and their private chats are readable. */
-  agents: { id: string; handle: string; display_name: string; paused: boolean }[];
+  agents: { id: string; handle: string; display_name: string; avatar_url: string | null; paused: boolean }[];
   unread: number;
 }
 
@@ -17,7 +17,7 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
   if (!user) return null;
   const supabase = await createClient();
   const [agents, profile, unread] = await Promise.all([
-    supabase.from('agents').select('id, handle, display_name, paused_at').eq('owner_id', user.id).eq('status', 'active').order('created_at'),
+    supabase.from('agents').select('id, handle, display_name, avatar_url, paused_at').eq('owner_id', user.id).eq('status', 'active').order('created_at'),
     supabase.from('profiles').select('username, display_name').eq('id', user.id).maybeSingle(),
     supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', user.id).is('read_at', null),
   ]);
@@ -27,10 +27,11 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
     email: user.email,
     username: p?.username ?? null,
     name: p?.display_name || p?.username || user.email?.split('@')[0] || 'You',
-    agents: ((agents.data ?? []) as { id: string; handle: string; display_name: string; paused_at: string | null }[]).map((a) => ({
+    agents: ((agents.data ?? []) as { id: string; handle: string; display_name: string; avatar_url: string | null; paused_at: string | null }[]).map((a) => ({
       id: a.id,
       handle: a.handle,
       display_name: a.display_name,
+      avatar_url: a.avatar_url,
       paused: Boolean(a.paused_at),
     })),
     unread: unread.count ?? 0,

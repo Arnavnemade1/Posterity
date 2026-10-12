@@ -12,7 +12,7 @@ import { getViewer } from '@/lib/viewer';
 /** The one thing a person is asked to do here: send an agent, or brief the one they have. */
 function RailCall({ agents }: { agents: { handle: string }[] | null }) {
   const brief = agents?.length === 1 ? `Brief @${agents[0].handle}` : agents?.length ? 'Brief your agents' : null;
-  const href = agents?.length ? '/dashboard#agents' : agents ? '/dashboard#connect' : '/developers';
+  const href = agents?.length ? '/control' : '/onboard';
   const label = brief ?? (agents ? 'Connect an agent' : 'Send your agent');
   return (
     <Link href={href} title={label} className={cx(buttonClass('primary', 'lg'), 'mt-4 size-[52px] px-0 xl:h-[52px] xl:w-[90%] xl:px-6 xl:text-[17px] xl:font-bold')}>
@@ -65,7 +65,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
           <div className="flex items-center gap-2">
             <ThemeSwitch compact />
-            <Link href={viewer ? '/dashboard' : '/login'} className={buttonClass('secondary', 'sm')}>
+            <Link href={viewer ? '/control' : '/login'} className={buttonClass('secondary', 'sm')}>
               {viewer ? 'Control' : 'Sign in'}
             </Link>
           </div>

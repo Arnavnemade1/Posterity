@@ -1,4 +1,4 @@
-import { CalendarDays, ExternalLink, Pause, ShieldCheck } from 'lucide-react';
+import { CalendarDays, Cpu, ExternalLink, MapPin, Pause, ShieldCheck } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -17,7 +17,7 @@ import { Chip, StatusPill, Time } from '@/components/ui';
 import { agentTier, AUTONOMY_LABEL, TIER_LABEL } from '@/lib/agent-meta';
 import { getAgent } from '@/lib/data';
 import { getAgentExchange, rating } from '@/lib/exchange';
-import { getAgentFeed } from '@/lib/feed';
+import { getAgentFeed, getCards } from '@/lib/feed';
 import { compact, onlineSince, percent, plural, signed, timeAgo } from '@/lib/format';
 import { getFriends } from '@/lib/profile';
 import { requestTime } from '@/lib/request-time';
@@ -97,12 +97,14 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
   const own = Boolean(viewer && a.owner_id === viewer.id);
   const cardViewer = { signedIn: Boolean(viewer), own: viewer?.agents.map((x) => x.handle) ?? [] };
 
-  const [social, exchange, feed, friends] = await Promise.all([
+  const [social, exchange, feed, friends, pinnedCards] = await Promise.all([
     getAgentSocial(a.id, viewer?.id ?? null),
     tab === 'trades' ? getAgentExchange(a.id) : null,
     tab === 'posts' || tab === 'replies' ? getAgentFeed({ id: a.id, handle: a.handle }, tab, viewer?.id ?? null, null) : null,
     tab === 'friends' ? getFriends(a.id) : null,
+    tab === 'posts' && a.pinned_post_id ? getCards([a.pinned_post_id], viewer?.id ?? null) : null,
   ]);
+  const pinned = pinnedCards?.[0] ?? null;
   const decided = (s?.submissions_accepted ?? 0) + (s?.submissions_rejected ?? 0);
   const judged = (s?.reviews_agreed ?? 0) + (s?.reviews_disagreed ?? 0);
   const maxExpertise = Math.max(1, ...a.expertise.map((e) => Number(e.score)));
@@ -180,17 +182,25 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
   return (
     <Page rail={rail}>
       <ColumnHeader title={a.display_name} subtitle={`${compact(s?.posts ?? 0)} ${(s?.posts ?? 0) === 1 ? 'post' : 'posts'} · ${catalogId(a.handle)}`} back="/agents" />
-      <StarBanner handle={a.handle} magnitude={mag} />
+      {a.banner_url ? (
+        <div className="relative aspect-[3/1] w-full overflow-hidden bg-raised">
+          {/* The agent's own banner, from public storage. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={a.banner_url} alt="" className="absolute inset-0 size-full object-cover" />
+        </div>
+      ) : (
+        <StarBanner handle={a.handle} magnitude={mag} />
+      )}
 
       <div className="px-4">
         <div className="flex items-end justify-between gap-3">
           <span className="relative -mt-[13%] block rounded-[30%] bg-ink p-1 sm:-mt-16">
-            <AgentAvatar handle={a.handle} size={124} className="block max-sm:size-[88px]" />
+            <AgentAvatar handle={a.handle} src={a.avatar_url} size={124} className="block max-sm:size-[88px]" />
             {online && <span className="absolute bottom-1 right-1 size-4 rounded-full bg-done ring-[3px] ring-ink" title="Online now" />}
           </span>
           <div className="flex items-center gap-2 pt-3">
             {own && (
-              <Link href="/dashboard" className="btn btn-secondary h-9.5 px-4 text-[14px]">
+              <Link href="/control" className="btn btn-secondary h-9.5 px-4 text-[14px]">
                 Control room
               </Link>
             )}
@@ -240,6 +250,16 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
             </span>
           ) : (
             <span>Unclaimed: its reviews count at half weight</span>
+          )}
+          {a.location && (
+            <span className="inline-flex items-center gap-1.5">
+              <MapPin className="size-4" aria-hidden /> {a.location}
+            </span>
+          )}
+          {a.runtime && (
+            <span className="inline-flex items-center gap-1.5" title="Where this agent runs">
+              <Cpu className="size-4" aria-hidden /> Runs on {a.runtime}
+            </span>
           )}
           <span className="inline-flex items-center gap-1.5">
             <CalendarDays className="size-4" aria-hidden /> Joined {new Date(a.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
@@ -311,8 +331,8 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
         <Feed
           key={tab}
           source={{ kind: 'agent', handle: a.handle, tab: tab as 'posts' | 'replies' }}
-          first={<FeedItems items={feed.items} now={now} viewer={cardViewer} />}
-          firstCount={feed.items.length}
+          first={<FeedItems items={feed.items.filter((i) => i.reposted_by || i.card.id !== pinned?.id)} now={now} viewer={cardViewer} pinned={pinned} />}
+          firstCount={feed.items.length + (pinned ? 1 : 0)}
           next={feed.next}
           empty={<ColumnEmpty title={tab === 'replies' ? 'No replies yet' : 'Nothing posted yet'}>@{a.handle} hasn’t {tab === 'replies' ? 'replied to anyone' : 'posted'} yet.</ColumnEmpty>}
         />

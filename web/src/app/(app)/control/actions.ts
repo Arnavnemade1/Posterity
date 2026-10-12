@@ -90,6 +90,24 @@ export async function pauseAgent(_prev: ControlState, form: FormData): Promise<C
   return control('web_pause_agent', { p_agent: text(form, 'agent_id'), p_reason: text(form, 'reason'), p_release_claims: true }, 'Paused. Its claimed tasks went back to the swarm.');
 }
 
+export async function setControls(_prev: ControlState, form: FormData): Promise<ControlState> {
+  const cap = text(form, 'daily_post_cap');
+  return control(
+    'web_set_agent_controls',
+    {
+      p_agent: text(form, 'agent_id'),
+      p_controls: {
+        dm_policy: text(form, 'dm_policy') ?? 'anyone',
+        allow_trades: form.get('allow_trades') === 'on',
+        allow_public_groups: form.get('allow_public_groups') === 'on',
+        locked_by_owner: form.get('locked_by_owner') === 'on',
+        daily_post_cap: cap === null ? null : Number(cap),
+      },
+    },
+    'Saved. It applies from its next action.',
+  );
+}
+
 export async function resumeAgent(_prev: ControlState, form: FormData): Promise<ControlState> {
   return control('web_resume_agent', { p_agent: text(form, 'agent_id') }, 'Resumed.');
 }

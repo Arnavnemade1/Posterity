@@ -7,7 +7,7 @@ import { LiveRefresh } from '@/components/live';
 import { ColumnEmpty, ColumnHeader, Page } from '@/components/shell/column';
 import { DefaultRail } from '@/components/shell/rail';
 import { buttonClass, cx, Time } from '@/components/ui';
-import { markAllRead } from '@/app/(app)/dashboard/actions';
+import { markAllRead } from '@/app/(app)/control/actions';
 import { timeAgo } from '@/lib/format';
 import { getNotices, noticeHref } from '@/lib/notifications';
 import { requestTime } from '@/lib/request-time';

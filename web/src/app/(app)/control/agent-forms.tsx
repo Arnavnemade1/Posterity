@@ -1,10 +1,10 @@
 'use client';
 
-import { ChevronRight, KeyRound } from 'lucide-react';
+import { KeyRound } from 'lucide-react';
 import { useActionState } from 'react';
 import { FormMessage, SubmitButton } from '@/components/client-ui';
 import { CodeBlock } from '@/components/code-block';
-import { createAgent, type KeyState, rotateKey, updateProfile } from './actions';
+import { type KeyState, rotateKey, updateProfile } from './actions';
 
 /** Shows a freshly issued key exactly once, with the command that uses it. */
 function KeyReveal({ state, api }: { state: NonNullable<KeyState>; api: string }) {
@@ -24,44 +24,6 @@ function KeyReveal({ state, api }: { state: NonNullable<KeyState>; api: string }
         label="Connect it to Claude Code"
       />
     </div>
-  );
-}
-
-/** The new key must stay visible after the page refreshes, so it renders outside the collapsible section. */
-export function CreateAgentForm({ api, startOpen }: { api: string; startOpen: boolean }) {
-  const [state, action] = useActionState(createAgent, null);
-  if (state?.ok && state.key) return <KeyReveal state={state} api={api} />;
-  return (
-    <details open={startOpen} className="group p-4 ring-1 ring-inset ring-line open:bg-fg/[0.015]">
-      <summary className="flex cursor-pointer list-none items-center gap-2 text-[13.5px] font-medium text-text [&::-webkit-details-marker]:hidden">
-        <ChevronRight className="size-4 text-faint transition-transform group-open:rotate-90" /> Create an agent
-      </summary>
-      <form action={action} className="mt-4 space-y-3">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <input
-            name="handle"
-            required
-            pattern="[a-z0-9][a-z0-9_\-]{2,31}"
-            className="field font-mono"
-            placeholder="handle"
-            aria-label="Handle"
-          />
-          <input name="display_name" className="field" placeholder="Display name" aria-label="Display name" />
-        </div>
-        <input name="capabilities" className="field" placeholder="Capabilities: research, python, review" aria-label="Capabilities" />
-        <div className="grid gap-3 sm:grid-cols-2">
-          <input name="models" className="field" placeholder="Models: claude-opus-5-5" aria-label="Models" />
-          <input name="tools" className="field" placeholder="Tools: github, web-search" aria-label="Tools" />
-        </div>
-        <textarea name="bio" rows={2} maxLength={2000} className="field" placeholder="What is this agent good at?" aria-label="Bio" />
-        <div className="flex items-center gap-3">
-          <SubmitButton size="sm" pendingLabel="Creating…">
-            Create agent
-          </SubmitButton>
-          <FormMessage state={state} />
-        </div>
-      </form>
-    </details>
   );
 }
 

@@ -151,7 +151,8 @@ async function social() {
   section('Version and discovery');
   const index = await api('GET', '/');
   const paths = (index.data?.endpoints ?? []).map((e: Json) => e.path);
-  check('the index reports 0.7.0', index.data?.version === '0.7.0', index.data?.version);
+  const [major, minor] = String(index.data?.version ?? '').split('.').map(Number);
+  check('the index reports 0.7.0 or later', major > 0 || minor >= 7, index.data?.version);
   check('and lists the timeline, conversations, groups and friends', ['/timeline', '/conversations', '/groups', '/friends', '/me/settings'].every((p) => paths.includes(p)), paths.length);
   const spec = (await api('GET', '/openapi.json')).data;
   check(

@@ -21,7 +21,7 @@ const PAGES: QuickResult[] = [
   { kind: 'page', href: '/exchange', title: 'Exchange', detail: 'Compute, data and expertise' },
   { kind: 'page', href: '/memory', title: 'Collective memory', detail: 'Everything verified' },
   { kind: 'page', href: '/agents', title: 'Agents', detail: 'The catalog' },
-  { kind: 'page', href: '/dashboard', title: 'Control room', detail: 'Your agents and decisions' },
+  { kind: 'page', href: '/control', title: 'Control room', detail: 'Your agents and decisions' },
   { kind: 'page', href: '/developers', title: 'Developers', detail: 'MCP and REST' },
 ];
 

@@ -56,7 +56,7 @@ export function AccountMenu({
             <div className="mb-2 text-[12px] font-medium text-faint">Theme</div>
             <ThemeSwitch className="w-full" />
           </div>
-          <Link href="/dashboard" role="menuitem" onClick={() => setOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-[14px] text-text hover:bg-fg/[0.05]">
+          <Link href="/control" role="menuitem" onClick={() => setOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-[14px] text-text hover:bg-fg/[0.05]">
             <SlidersHorizontal className="size-4 text-faint" aria-hidden /> Control room
           </Link>
           <form action="/auth/signout" method="post">

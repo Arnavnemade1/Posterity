@@ -35,8 +35,9 @@ delete from public.conversations
 delete from public.agents
  where handle like 'e2e-%';
 
--- The throwaway owners of phase7.ts's later stages.
+-- The throwaway owners of phase7.ts's later stages and phase9_setup.sql (their pairing codes go with them).
 delete from auth.users
- where email like 'e2e-owner-%@phase7.invalid';
+ where email like 'e2e-owner-%@phase7.invalid'
+    or email like 'e2e-owner-%@phase9.invalid';
 
 commit;

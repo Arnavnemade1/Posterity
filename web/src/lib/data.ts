@@ -415,6 +415,7 @@ export interface AgentCard {
   handle: string;
   display_name: string;
   bio: string;
+  avatar_url: string | null;
   capabilities: string[];
   models: string[];
   availability: string;
@@ -434,7 +435,7 @@ export interface AgentCard {
 }
 
 const AGENT_CARD =
-  'id, handle, display_name, bio, capabilities, models, availability, owner_id, last_seen_at, created_at, autonomy, paused_at, stats:agent_stats!agent_stats_agent_id_fkey(reputation, trust, tasks_completed, submissions_accepted, reviews_given, missions_completed)';
+  'id, handle, display_name, bio, avatar_url, capabilities, models, availability, owner_id, last_seen_at, created_at, autonomy, paused_at, stats:agent_stats!agent_stats_agent_id_fkey(reputation, trust, tasks_completed, submissions_accepted, reviews_given, missions_completed)';
 
 export async function listAgents(opts: { q?: string; capability?: string; sort?: string } = {}): Promise<AgentCard[]> {
   const supabase = await db();
@@ -455,7 +456,7 @@ export async function getAgent(handle: string) {
   const { data: agent } = await supabase
     .from('agents')
     .select(
-      'id, handle, display_name, bio, capabilities, models, tools, homepage, status, availability, owner_id, claimed_at, last_seen_at, created_at, autonomy, paused_at, owner:profiles!agents_owner_id_fkey(username, display_name), stats:agent_stats!agent_stats_agent_id_fkey(*), expertise:agent_expertise!agent_expertise_agent_id_fkey(capability, score, verified_count)',
+      'id, handle, display_name, bio, avatar_url, banner_url, location, runtime, pinned_post_id, capabilities, models, tools, homepage, status, availability, owner_id, claimed_at, last_seen_at, created_at, autonomy, paused_at, owner:profiles!agents_owner_id_fkey(username, display_name), stats:agent_stats!agent_stats_agent_id_fkey(*), expertise:agent_expertise!agent_expertise_agent_id_fkey(capability, score, verified_count)',
     )
     .eq('handle', handle.toLowerCase().replace(/^@/, ''))
     .maybeSingle();
@@ -463,6 +464,10 @@ export async function getAgent(handle: string) {
   const a = agent as unknown as AgentCard & {
     tools: string[];
     homepage: string | null;
+    banner_url: string | null;
+    location: string | null;
+    runtime: string | null;
+    pinned_post_id: string | null;
     status: string;
     claimed_at: string | null;
     owner: { username: string; display_name: string } | null;
@@ -544,7 +549,7 @@ export async function getDashboard(userId: string) {
     supabase.rpc('web_my_approvals'),
     supabase.from('notifications').select('id, kind, title, body, data, created_at, read_at').order('created_at', { ascending: false }).limit(30),
     // RLS returns only the caller's own agents' controls, directives and requests.
-    supabase.from('agent_controls').select('agent_id, dm_policy, allow_trades, allow_public_groups, locked_by_owner, pause_reason'),
+    supabase.from('agent_controls').select('agent_id, dm_policy, daily_post_cap, allow_trades, allow_public_groups, locked_by_owner, pause_reason'),
     supabase
       .from('directives')
       .select('id, agent_id, kind, title, body, priority, status, acknowledged_at, agent_note, created_at')
@@ -599,6 +604,7 @@ export async function getDashboard(userId: string) {
 export interface AgentControls {
   agent_id: string;
   dm_policy: string;
+  daily_post_cap: number | null;
   allow_trades: boolean;
   allow_public_groups: boolean;
   locked_by_owner: boolean;
@@ -629,6 +635,63 @@ export interface OwnerRequest {
   created_at: string;
   decided_at: string | null;
   expires_at: string;
+}
+
+export interface AgentSetup {
+  complete: boolean;
+  done: number;
+  total: number;
+  heartbeats: number;
+  steps: { key: string; title: string; how: string; done: boolean }[];
+}
+
+export interface AgentDigest {
+  posts: number;
+  replies: number;
+  messages: number;
+  tasks: number;
+}
+
+/**
+ * What an owner's agents have been up to: each one's setup checklist, a count of the last day's
+ * posts, replies, messages and task work, and their latest public actions.
+ */
+export async function getAgentInsights(agentIds: string[], now: number) {
+  if (!agentIds.length) return { setup: {}, digest: {}, activity: [] } as { setup: Record<string, AgentSetup>; digest: Record<string, AgentDigest>; activity: AgentActivity[] };
+  const supabase = await db();
+  const since = new Date(now - 24 * 3600_000).toISOString();
+  const [setups, posts, messages, activity] = await Promise.all([
+    Promise.all(agentIds.map((id) => supabase.rpc('web_agent_setup', { p_agent: id }).then(({ data }) => [id, data as AgentSetup | null] as const))),
+    supabase.from('posts').select('author_agent_id, parent_id').in('author_agent_id', agentIds).gte('created_at', since).is('deleted_at', null).limit(1000),
+    // Owners can read their own agents' private conversations, so these counts include DMs.
+    supabase.from('chat_messages').select('author_agent_id').in('author_agent_id', agentIds).gte('created_at', since).limit(1000),
+    supabase
+      .from('activity')
+      .select('id, agent_id, kind, summary, created_at')
+      .in('agent_id', agentIds)
+      .order('created_at', { ascending: false })
+      .limit(40),
+  ]);
+  const digest: Record<string, AgentDigest> = Object.fromEntries(agentIds.map((id) => [id, { posts: 0, replies: 0, messages: 0, tasks: 0 }]));
+  for (const p of (posts.data ?? []) as { author_agent_id: string; parent_id: string | null }[]) digest[p.author_agent_id][p.parent_id ? 'replies' : 'posts']++;
+  for (const m of (messages.data ?? []) as { author_agent_id: string }[]) digest[m.author_agent_id].messages++;
+  const rows = (activity.data ?? []) as AgentActivity[];
+  for (const a of rows) {
+    if (a.created_at >= since && /^(task_|work_)/.test(a.kind)) digest[a.agent_id].tasks++;
+  }
+  return {
+    setup: Object.fromEntries(setups.filter(([, s]) => s).map(([id, s]) => [id, s!])) as Record<string, AgentSetup>,
+    digest,
+    activity: rows,
+  };
+}
+
+export interface AgentActivity {
+  id: number;
+  agent_id: string;
+  kind: string;
+  summary: string;
+  created_at: string;
 }
 
 export async function getUnreadCount(): Promise<number> {

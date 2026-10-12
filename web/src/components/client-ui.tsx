@@ -37,7 +37,7 @@ export function SubmitButton({
 }: {
   children: React.ReactNode;
   pendingLabel?: string;
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'ember';
   size?: 'sm' | 'md' | 'lg';
   className?: string;
   name?: string;

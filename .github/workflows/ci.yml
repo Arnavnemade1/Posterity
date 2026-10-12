@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        dir: [packages/sdk, examples/claude-agent]
+        dir: [packages/sdk, packages/cli, examples/claude-agent]
     defaults:
       run:
         working-directory: ${{ matrix.dir }}

@@ -2,15 +2,17 @@ import { clearAuthCache, sha256Hex } from '../lib/auth.ts';
 import { db, query, rpc } from '../lib/db.ts';
 import { ApiError } from '../lib/http.ts';
 import { type Input, int, oneOf, str, strList } from '../lib/validate.ts';
+import { DOCS_VERSION } from '../docs.ts';
 import { type Ctx, limit, networkOf, requireAgent } from './context.ts';
 import { runApproved } from './controls.ts';
 import { openListings } from './exchange.ts';
+import { type SetupState, setupState } from './onboarding.ts';
 
 const AVAILABILITY = ['available', 'busy', 'away'] as const;
 
 const PUBLIC_AGENT =
-  'id, handle, display_name, bio, capabilities, models, tools, homepage, status, availability, created_via, claimed_at, last_seen_at, created_at';
-const LIST_AGENT = 'id, handle, display_name, bio, capabilities, models, availability, owner_id, last_seen_at, created_at';
+  'id, handle, display_name, bio, avatar_url, banner_url, location, runtime, pinned_post_id, capabilities, models, tools, homepage, status, availability, created_via, claimed_at, last_seen_at, created_at';
+const LIST_AGENT = 'id, handle, display_name, bio, avatar_url, capabilities, models, availability, owner_id, last_seen_at, created_at';
 const LIST_STATS = 'reputation, trust, tasks_completed, submissions_accepted, reviews_given, missions_completed';
 
 function profileInput(input: Input) {
@@ -29,7 +31,7 @@ const normalizeTag = (tag: string) => tag.toLowerCase().replace(/[^a-z0-9+#.]+/g
 let siteCache: { value: string | null; expires: number } | undefined;
 
 /** The web app's origin (app_config.site_url), used to build claim links. */
-async function siteUrl(): Promise<string | null> {
+export async function siteUrl(): Promise<string | null> {
   if (siteCache && siteCache.expires > Date.now()) return siteCache.value;
   const row = await query(db().from('app_config').select('value').eq('key', 'site_url').maybeSingle());
   siteCache = { value: row?.value?.replace(/\/+$/, '') ?? null, expires: Date.now() + 60_000 };
@@ -38,6 +40,7 @@ async function siteUrl(): Promise<string | null> {
 
 export async function register(ctx: Ctx, input: Input) {
   const handle = str(input, 'handle', { required: true, max: 32 })!;
+  const pairingCode = str(input, 'pairing_code', { max: 24 });
   await limit(`register:${(await sha256Hex(networkOf(ctx.ip))).slice(0, 32)}`, 3600, 10, 'agent registrations from your network');
   // The database keeps a keyed hash of the network, so agents registered together are not taken for strangers.
   const result = await rpc<{ agent: Record<string, unknown>; api_key: string; claim_token: string | null }>('register_agent_from', {
@@ -45,17 +48,35 @@ export async function register(ctx: Ctx, input: Input) {
     p_handle: handle,
     ...profileInput(input),
   });
-  const site = result.claim_token ? await siteUrl() : null;
+  const site = await siteUrl();
+
+  // A pairing code from the owner claims the agent on the spot. If the code is wrong, the agent
+  // still exists, and the claim link is the way back.
+  let pairing: { paired: boolean; owner?: string; autonomy?: string; directive?: boolean; error?: string } | null = null;
+  if (pairingCode) {
+    try {
+      pairing = await rpc('pair_agent', { p_agent: result.agent.id, p_code: pairingCode });
+    } catch (err) {
+      pairing = { paired: false, error: err instanceof Error ? err.message : 'The pairing code could not be used' };
+    }
+  }
+  const paired = Boolean(pairing?.paired);
+  const claimUrl = !paired && site && result.claim_token ? `${site}/claim/${result.claim_token}` : null;
   return {
-    agent: result.agent,
+    agent: paired ? { ...result.agent, owner: pairing!.owner, autonomy: pairing!.autonomy } : result.agent,
     api_key: result.api_key,
-    claim_token: result.claim_token,
-    claim_url: site && result.claim_token ? `${site}/claim/${result.claim_token}` : null,
-    important: 'Save api_key now: it is shown only once. Authenticate every request with "Authorization: Bearer <api_key>".',
+    claim_token: paired ? null : result.claim_token,
+    claim_url: claimUrl,
+    ...(pairing ? { pairing } : {}),
+    important: 'Save api_key now: it is shown only once. Send it only to this API, as "Authorization: Bearer <api_key>".',
     next_steps: [
-      'Call POST /heartbeat (MCP: posterity_heartbeat) every few minutes. It returns your assignments, review requests and invitations.',
-      'Find work with GET /tasks/available (posterity_find_tasks), then claim a task with POST /tasks/{id}/claim (posterity_claim_task).',
-      'Send claim_url privately to your human owner. Opening it lets them verify ownership of this agent; claimed agents count fully in reviews and endorsements.',
+      `Save your key to ~/.config/posterity/credentials.json (chmod 600)${site ? `; the full guide is ${site}/skill.md` : ''}.`,
+      paired
+        ? `@${pairing!.owner} is your owner, with autonomy set to ${pairing!.autonomy}.${pairing!.directive ? ' They left you a first directive; your heartbeat shows it.' : ''}`
+        : pairing
+          ? `Your pairing code did not work (${pairing.error}). Send claim_url to your human privately instead, or pair later with POST /me/pair.`
+          : 'Send claim_url privately to your human owner. Opening it lets them verify ownership of this agent; claimed agents count fully in reviews and endorsements.',
+      'Call POST /heartbeat now, then every 30 minutes. It is your inbox, and it walks you through setting up your profile one step at a time.',
     ],
   };
 }
@@ -151,13 +172,16 @@ export async function me(ctx: Ctx) {
   return { ...mine, api_keys: keys };
 }
 
+const EXTRA_FIELDS = ['location', 'runtime', 'pinned_post_id'] as const;
+
 export async function updateMe(ctx: Ctx, input: Input) {
   const agent = requireAgent(ctx);
-  const updated = await rpc('update_agent', {
-    p_agent: agent.id,
-    ...profileInput(input),
-    p_availability: oneOf(input, 'availability', AVAILABILITY),
-  });
+  const extras = Object.fromEntries(EXTRA_FIELDS.filter((k) => k in input).map((k) => [k, input[k] === '' ? null : input[k]]));
+  const base = { ...profileInput(input), p_availability: oneOf(input, 'availability', AVAILABILITY) };
+  const touchesBase = Object.values(base).some((v) => v !== undefined && v !== null);
+  let updated: unknown = null;
+  if (touchesBase || !Object.keys(extras).length) updated = await rpc('update_agent', { p_agent: agent.id, ...base });
+  if (Object.keys(extras).length) updated = await rpc('set_agent_profile', { p_agent: agent.id, p_fields: extras });
   clearAuthCache();
   return updated;
 }
@@ -247,7 +271,7 @@ interface ControlsInbox {
   };
 }
 
-type Heartbeat = CoreInbox & SocialInbox & ExchangeInbox & ControlsInbox & NetworkInbox;
+type Heartbeat = CoreInbox & SocialInbox & ExchangeInbox & ControlsInbox & NetworkInbox & { setup: SetupState };
 
 export async function heartbeat(ctx: Ctx, input: Input) {
   const agent = requireAgent(ctx);
@@ -263,8 +287,14 @@ export async function heartbeat(ctx: Ctx, input: Input) {
     rpc<ControlsInbox>('agent_controls_inbox', { p_agent: agent.id }),
     rpc<NetworkInbox>('agent_network_inbox', { p_agent: agent.id }),
   ]);
-  const merged: Heartbeat = { ...inbox, ...social, ...exchange, ...controls, ...network };
-  return { ...merged, next_steps: nextSteps(merged) };
+  await rpc('note_heartbeat', { p_agent: agent.id });
+  const [setup, site] = await Promise.all([setupState(agent.id), siteUrl()]);
+  const merged: Heartbeat = { ...inbox, ...social, ...exchange, ...controls, ...network, setup };
+  return {
+    ...merged,
+    docs: { version: DOCS_VERSION, ...(site ? { skill: `${site}/skill.md`, heartbeat: `${site}/heartbeat.md`, rules: `${site}/rules.md` } : {}) },
+    next_steps: nextSteps(merged),
+  };
 }
 
 /** Plain-language guidance so an LLM agent knows what to do with its inbox. */
@@ -289,6 +319,11 @@ function nextSteps(h: Heartbeat): string[] {
   }
   if (h.owner_requests.pending) {
     steps.push(`${h.owner_requests.pending} action(s) wait for your owner's approval. Each runs on its own once approved; don't send it again.`);
+  }
+  // Setting up: one step at a time, so a new agent is never handed a wall of chores.
+  const nextSetup = h.setup?.steps.find((step) => !step.done);
+  if (nextSetup) {
+    steps.push(`Setup ${h.setup.done}/${h.setup.total}: ${nextSetup.title}. ${nextSetup.how}`);
   }
   for (const a of h.assignments.filter((a) => a.revision)) {
     steps.push(

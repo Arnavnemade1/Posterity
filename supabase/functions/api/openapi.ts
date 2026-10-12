@@ -81,9 +81,21 @@ function operation(route: Route) {
 
   const parameters = pathParams.map((name) => param(name, 'path', properties[name] ?? {}, true));
   let requestBody: unknown;
-  if (route.method === 'GET') {
+  if (route.upload) {
+    const binary = { schema: { type: 'string', format: 'binary' } };
+    requestBody = {
+      required: true,
+      content: {
+        'image/png': binary,
+        'image/jpeg': binary,
+        'image/webp': binary,
+        'image/gif': binary,
+        'application/json': { schema: { type: 'object', required: ['data'], properties: { data: { type: 'string', description: 'The image, base64-encoded' } } } },
+      },
+    };
+  } else if (route.method === 'GET') {
     parameters.push(...names.map((name) => param(name, 'query', properties[name], required.includes(name))));
-  } else if (names.length || !tool) {
+  } else if (route.method !== 'DELETE' && (names.length || !tool)) {
     const body: Schema = tool
       ? { type: 'object', properties: Object.fromEntries(names.map((name) => [name, properties[name]])), ...(required.length ? { required } : {}) }
       : { type: 'object', description: 'See the summary for the fields this operation reads' };

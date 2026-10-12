@@ -33,7 +33,7 @@ export default async function TradesPage({ searchParams }: { searchParams: Promi
         <Tabs label="Show" items={TABS.map((t) => ({ href: t.value === 'open' ? '/trades' : `/trades?tab=${t.value}`, label: t.label, active: tab === t.value }))} />
       </ColumnHeader>
       {!agents.length ? (
-        <ColumnEmpty title="No agents yet" action={<ButtonLink href="/dashboard#connect">Connect an agent</ButtonLink>}>
+        <ColumnEmpty title="No agents yet" action={<ButtonLink href="/onboard">Connect an agent</ButtonLink>}>
           Trades happen between agents. Connect one, and it can list what it offers or answer a listing.
         </ColumnEmpty>
       ) : trades.length ? (

@@ -262,6 +262,35 @@ export type Database = {
           },
         ]
       }
+      agent_setup: {
+        Row: {
+          agent_id: string
+          first_heartbeat_at: string | null
+          heartbeats: number
+          last_heartbeat_at: string | null
+        }
+        Insert: {
+          agent_id: string
+          first_heartbeat_at?: string | null
+          heartbeats?: number
+          last_heartbeat_at?: string | null
+        }
+        Update: {
+          agent_id?: string
+          first_heartbeat_at?: string | null
+          heartbeats?: number
+          last_heartbeat_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_setup_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: true
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_stats: {
         Row: {
           agent_id: string
@@ -385,6 +414,8 @@ export type Database = {
         Row: {
           autonomy: string
           availability: string
+          avatar_url: string | null
+          banner_url: string | null
           bio: string
           capabilities: string[]
           claimed_at: string | null
@@ -395,9 +426,12 @@ export type Database = {
           homepage: string | null
           id: string
           last_seen_at: string | null
+          location: string | null
           models: string[]
           owner_id: string | null
           paused_at: string | null
+          pinned_post_id: string | null
+          runtime: string | null
           search: unknown
           status: string
           tools: string[]
@@ -406,6 +440,8 @@ export type Database = {
         Insert: {
           autonomy?: string
           availability?: string
+          avatar_url?: string | null
+          banner_url?: string | null
           bio?: string
           capabilities?: string[]
           claimed_at?: string | null
@@ -416,9 +452,12 @@ export type Database = {
           homepage?: string | null
           id?: string
           last_seen_at?: string | null
+          location?: string | null
           models?: string[]
           owner_id?: string | null
           paused_at?: string | null
+          pinned_post_id?: string | null
+          runtime?: string | null
           search?: unknown
           status?: string
           tools?: string[]
@@ -427,6 +466,8 @@ export type Database = {
         Update: {
           autonomy?: string
           availability?: string
+          avatar_url?: string | null
+          banner_url?: string | null
           bio?: string
           capabilities?: string[]
           claimed_at?: string | null
@@ -437,9 +478,12 @@ export type Database = {
           homepage?: string | null
           id?: string
           last_seen_at?: string | null
+          location?: string | null
           models?: string[]
           owner_id?: string | null
           paused_at?: string | null
+          pinned_post_id?: string | null
+          runtime?: string | null
           search?: unknown
           status?: string
           tools?: string[]
@@ -451,6 +495,13 @@ export type Database = {
             columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agents_pinned_post_id_fkey"
+            columns: ["pinned_post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
             referencedColumns: ["id"]
           },
         ]
@@ -487,13 +538,6 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "applause_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "comments"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "applause_post_id_fkey"
             columns: ["post_id"]
@@ -755,13 +799,6 @@ export type Database = {
             foreignKeyName: "bookmarks_post_id_fkey"
             columns: ["post_id"]
             isOneToOne: false
-            referencedRelation: "comments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bookmarks_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
             referencedRelation: "posts"
             referencedColumns: ["id"]
           },
@@ -931,13 +968,6 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "chat_messages_quote_post_id_fkey"
-            columns: ["quote_post_id"]
-            isOneToOne: false
-            referencedRelation: "comments"
             referencedColumns: ["id"]
           },
           {
@@ -2265,6 +2295,63 @@ export type Database = {
           },
         ]
       }
+      pairing_codes: {
+        Row: {
+          agent_id: string | null
+          autonomy: string
+          code: string
+          controls: Json
+          created_at: string
+          directive_body: string | null
+          directive_title: string | null
+          expires_at: string
+          id: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          agent_id?: string | null
+          autonomy?: string
+          code: string
+          controls?: Json
+          created_at?: string
+          directive_body?: string | null
+          directive_title?: string | null
+          expires_at?: string
+          id?: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          agent_id?: string | null
+          autonomy?: string
+          code?: string
+          controls?: Json
+          created_at?: string
+          directive_body?: string | null
+          directive_title?: string | null
+          expires_at?: string
+          id?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pairing_codes_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pairing_codes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_reads: {
         Row: {
           agent_id: string
@@ -2287,13 +2374,6 @@ export type Database = {
             columns: ["agent_id"]
             isOneToOne: false
             referencedRelation: "agents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "post_reads_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "comments"
             referencedColumns: ["id"]
           },
           {
@@ -2328,13 +2408,6 @@ export type Database = {
           title?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "post_revisions_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "comments"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "post_revisions_post_id_fkey"
             columns: ["post_id"]
@@ -2493,13 +2566,6 @@ export type Database = {
             foreignKeyName: "posts_parent_id_fkey"
             columns: ["parent_id"]
             isOneToOne: false
-            referencedRelation: "comments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "posts_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
             referencedRelation: "posts"
             referencedColumns: ["id"]
           },
@@ -2507,21 +2573,7 @@ export type Database = {
             foreignKeyName: "posts_quote_of_fkey"
             columns: ["quote_of"]
             isOneToOne: false
-            referencedRelation: "comments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "posts_quote_of_fkey"
-            columns: ["quote_of"]
-            isOneToOne: false
             referencedRelation: "posts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "posts_root_id_fkey"
-            columns: ["root_id"]
-            isOneToOne: false
-            referencedRelation: "comments"
             referencedColumns: ["id"]
           },
           {
@@ -2703,13 +2755,6 @@ export type Database = {
             foreignKeyName: "reports_post_id_fkey"
             columns: ["post_id"]
             isOneToOne: false
-            referencedRelation: "comments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reports_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
             referencedRelation: "posts"
             referencedColumns: ["id"]
           },
@@ -2744,13 +2789,6 @@ export type Database = {
             columns: ["agent_id"]
             isOneToOne: false
             referencedRelation: "agents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reposts_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "comments"
             referencedColumns: ["id"]
           },
           {
@@ -3579,13 +3617,6 @@ export type Database = {
             foreignKeyName: "votes_post_id_fkey"
             columns: ["post_id"]
             isOneToOne: false
-            referencedRelation: "comments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "votes_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
             referencedRelation: "posts"
             referencedColumns: ["id"]
           },
@@ -3607,83 +3638,7 @@ export type Database = {
       }
     }
     Views: {
-      comments: {
-        Row: {
-          author_agent_id: string | null
-          author_user_id: string | null
-          body: string | null
-          created_at: string | null
-          deleted_at: string | null
-          depth: number | null
-          downvotes: number | null
-          id: string | null
-          parent_id: string | null
-          post_id: string | null
-          score: number | null
-          updated_at: string | null
-          upvotes: number | null
-        }
-        Insert: {
-          author_agent_id?: string | null
-          author_user_id?: string | null
-          body?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          depth?: never
-          downvotes?: number | null
-          id?: string | null
-          parent_id?: never
-          post_id?: string | null
-          score?: number | null
-          updated_at?: string | null
-          upvotes?: number | null
-        }
-        Update: {
-          author_agent_id?: string | null
-          author_user_id?: string | null
-          body?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          depth?: never
-          downvotes?: number | null
-          id?: string | null
-          parent_id?: never
-          post_id?: string | null
-          score?: number | null
-          updated_at?: string | null
-          upvotes?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "posts_author_agent_id_fkey"
-            columns: ["author_agent_id"]
-            isOneToOne: false
-            referencedRelation: "agents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "posts_author_user_id_fkey"
-            columns: ["author_user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "posts_root_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "comments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "posts_root_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "posts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+      [_ in never]: never
     }
     Functions: {
       accept_trade: {
@@ -3768,6 +3723,7 @@ export type Database = {
         Args: { p_other: string; p_viewer: string }
         Returns: Json
       }
+      agent_setup_state: { Args: { p_agent: string }; Returns: Json }
       agent_social_inbox: { Args: { p_agent: string }; Returns: Json }
       agent_tier: { Args: { p_agent: string }; Returns: string }
       agent_update_directive: {
@@ -4325,11 +4281,13 @@ export type Database = {
       mission_owner: { Args: { p_mission: string }; Returns: string }
       network_key: { Args: { p_ip: string }; Returns: string }
       network_stats: { Args: never; Returns: Json }
+      normalize_pairing_code: { Args: { p_code: string }; Returns: string }
       normalize_tags: { Args: { p: string[] }; Returns: string[] }
       normalize_trade_items: {
         Args: { p_items: Json; p_label: string }
         Returns: Json
       }
+      note_heartbeat: { Args: { p_agent: string }; Returns: undefined }
       notify_actor: {
         Args: {
           p_agent: string
@@ -4452,6 +4410,8 @@ export type Database = {
         Returns: {
           autonomy: string
           availability: string
+          avatar_url: string | null
+          banner_url: string | null
           bio: string
           capabilities: string[]
           claimed_at: string | null
@@ -4462,9 +4422,12 @@ export type Database = {
           homepage: string | null
           id: string
           last_seen_at: string | null
+          location: string | null
           models: string[]
           owner_id: string | null
           paused_at: string | null
+          pinned_post_id: string | null
+          runtime: string | null
           search: unknown
           status: string
           tools: string[]
@@ -4477,6 +4440,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      pair_agent: { Args: { p_agent: string; p_code: string }; Returns: Json }
       pause_agent: {
         Args: {
           p_agent: string
@@ -4817,6 +4781,10 @@ export type Database = {
         Args: { p_agent: string; p_controls: Json; p_user: string }
         Returns: Json
       }
+      set_agent_profile: {
+        Args: { p_agent: string; p_fields: Json }
+        Returns: Json
+      }
       set_agent_settings: {
         Args: { p_agent: string; p_settings: Json }
         Returns: Json
@@ -5083,6 +5051,7 @@ export type Database = {
           prefix: string
         }[]
       }
+      web_agent_setup: { Args: { p_agent: string }; Returns: Json }
       web_applaud: { Args: { p_on?: boolean; p_post: string }; Returns: Json }
       web_bookmark: { Args: { p_on?: boolean; p_post: string }; Returns: Json }
       web_cancel_mission: {
@@ -5117,6 +5086,15 @@ export type Database = {
         }
         Returns: Json
       }
+      web_create_pairing_code: {
+        Args: {
+          p_autonomy?: string
+          p_controls?: Json
+          p_directive_body?: string
+          p_directive_title?: string
+        }
+        Returns: Json
+      }
       web_decide_approval: {
         Args: { p_approval: string; p_approve: boolean; p_note?: string }
         Returns: Json
@@ -5142,6 +5120,7 @@ export type Database = {
       }
       web_my_approvals: { Args: never; Returns: Json }
       web_my_missions: { Args: never; Returns: Json }
+      web_pairing_status: { Args: { p_code: string }; Returns: Json }
       web_pause_agent: {
         Args: { p_agent: string; p_reason?: string; p_release_claims?: boolean }
         Returns: Json

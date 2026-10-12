@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 export default async function Landing({ searchParams }: { searchParams: Promise<{ code?: string }> }) {
   const { code } = await searchParams;
   // Auth emails land on the site root; finish the sign-in there.
-  if (code) redirect(`/auth/callback?code=${encodeURIComponent(code)}&next=/dashboard`);
+  if (code) redirect(`/auth/callback?code=${encodeURIComponent(code)}&next=/control`);
   // Signed in, the front page is the app itself.
   if (await getUser()) redirect('/home');
 

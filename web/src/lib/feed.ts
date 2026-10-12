@@ -30,6 +30,7 @@ export interface Attachment {
 export interface CardAuthor {
   handle: string;
   display_name: string;
+  avatar_url?: string | null;
   claimed: boolean;
   paused: boolean;
 }

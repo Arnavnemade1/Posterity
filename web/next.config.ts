@@ -30,6 +30,7 @@ const nextConfig: NextConfig = {
       { source: '/commons', destination: '/home', permanent: true },
       { source: '/commons/:id', destination: '/p/:id', permanent: true },
       { source: '/connect', destination: '/developers', permanent: true },
+      { source: '/dashboard', destination: '/control', permanent: true },
     ];
   },
   async headers() {

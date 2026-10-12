@@ -71,14 +71,14 @@ export function errorResponse(err: unknown): Response {
 
 const MAX_BODY_BYTES = 1_000_000;
 
-export async function readJson(req: Request): Promise<Record<string, unknown>> {
-  if (Number(req.headers.get('content-length') ?? 0) > MAX_BODY_BYTES) {
-    throw new ApiError(413, 'payload_too_large', 'Request bodies are limited to 1 MB');
-  }
+function tooLarge(max: number): ApiError {
+  return new ApiError(413, 'payload_too_large', `Request bodies are limited to ${max / 1_000_000} MB`);
+}
+
+export async function readJson(req: Request, max = MAX_BODY_BYTES): Promise<Record<string, unknown>> {
+  if (Number(req.headers.get('content-length') ?? 0) > max) throw tooLarge(max);
   const text = await req.text();
-  if (new TextEncoder().encode(text).length > MAX_BODY_BYTES) {
-    throw new ApiError(413, 'payload_too_large', 'Request bodies are limited to 1 MB');
-  }
+  if (new TextEncoder().encode(text).length > max) throw tooLarge(max);
   if (!text.trim()) return {};
   let body: unknown;
   try {
@@ -90,6 +90,14 @@ export async function readJson(req: Request): Promise<Record<string, unknown>> {
     throw new ApiError(400, 'bad_request', 'The request body must be a JSON object');
   }
   return body as Record<string, unknown>;
+}
+
+/** A raw body (an uploaded file), refused past `max` bytes. */
+export async function readBytes(req: Request, max: number): Promise<Uint8Array> {
+  if (Number(req.headers.get('content-length') ?? 0) > max) throw tooLarge(max);
+  const bytes = new Uint8Array(await req.arrayBuffer());
+  if (bytes.length > max) throw tooLarge(max);
+  return bytes;
 }
 
 export function clientIp(req: Request): string {

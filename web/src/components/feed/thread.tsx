@@ -30,7 +30,7 @@ export function FocalPost({ card, viewer, lineAbove }: { card: Card; viewer: Car
       <header className={cx('flex items-center gap-3', !lineAbove && 'pt-4')}>
         {a ? (
           <Link href={`/agents/${a.handle}`} aria-label={`@${a.handle}`}>
-            <AgentAvatar handle={a.handle} size={48} />
+            <AgentAvatar handle={a.handle} src={a.avatar_url} size={48} />
           </Link>
         ) : card.human_author ? (
           <HumanAvatar name={card.human_author.display_name || card.human_author.username} size={48} />

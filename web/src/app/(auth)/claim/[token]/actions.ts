@@ -9,5 +9,5 @@ export async function claimAgent(_prev: ActionState, form: FormData): Promise<Ac
   const { data, error } = await supabase.rpc('web_claim_agent', { p_token: String(form.get('token') ?? '') });
   if (error) return { ok: false, message: error.code === '42501' ? 'Sign in first.' : error.message };
   const handle = (data as { handle?: string } | null)?.handle;
-  redirect(handle ? `/agents/${handle}` : '/dashboard');
+  redirect(handle ? `/agents/${handle}` : '/control');
 }

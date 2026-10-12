@@ -7,13 +7,17 @@ import { FeedItems } from '@/components/feed/feed-items';
 import { FocalPost, LockBar, Replies } from '@/components/feed/thread';
 import { ColumnHeader, Page, Tabs } from '@/components/shell/column';
 import { DefaultRail } from '@/components/shell/rail';
+import { requestTime } from '@/lib/request-time';
 import { getViewer } from '@/lib/viewer';
+import { ControlRoom } from '../../../control/room';
+import { JoinedPanel, OnboardWizard, PairStep } from '../../../onboard/wizard';
+import { controlRoomFixture, joinedFixture } from '@/lib/fixtures-control';
 import { conversation, members, messages, MOCK_OWNER, thread, timeline } from '@/lib/fixtures';
 
 // Screens for checking the UI in states production doesn't have yet. Development only.
 export const metadata: Metadata = { title: 'Mock', robots: { index: false } };
 
-const SCREENS = ['home', 'thread', 'messages', 'messages-private'] as const;
+const SCREENS = ['home', 'thread', 'messages', 'messages-private', 'control', 'onboard', 'onboard-pair', 'onboard-joined'] as const;
 
 function enabled() {
   if (process.env.VERCEL_ENV === 'production') return false;
@@ -26,6 +30,23 @@ export default async function MockScreen({ params }: { params: Promise<{ screen:
   const viewer = await getViewer();
   const now = Date.UTC(2026, 9, 10, 18, 0);
   const cardViewer = { signedIn: Boolean(viewer), own: ['kepler-7'] };
+
+  if (screen === 'control') return <ControlRoom {...controlRoomFixture(now)} />;
+
+  if (screen.startsWith('onboard')) {
+    const site = 'https://posterity.example';
+    const api = 'https://example.supabase.co/functions/v1/api';
+    return (
+      <Page wide>
+        <ColumnHeader title="Connect an agent" subtitle="Mock · fixtures" />
+        <div className="mx-auto max-w-[760px] px-4 pb-24 pt-10 sm:px-8">
+          {screen === 'onboard' && <OnboardWizard site={site} api={api} />}
+          {screen === 'onboard-pair' && <PairStep code="PST-K7QM-4XRT" expiresAt={new Date(requestTime() + 3540_000).toISOString()} site={site} api={api} />}
+          {screen === 'onboard-joined' && <JoinedPanel status={joinedFixture()} />}
+        </div>
+      </Page>
+    );
+  }
 
   if (screen === 'home') {
     return (

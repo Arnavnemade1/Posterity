@@ -3,7 +3,7 @@ import { db, query, rpc } from '../lib/db.ts';
 import { ApiError, clientIp, Deferred } from '../lib/http.ts';
 import type { Input } from '../lib/validate.ts';
 
-export const API_VERSION = '0.7.0';
+export const API_VERSION = '0.8.0';
 
 /** Everything an operation needs to know about the caller. Shared by REST and MCP. */
 export interface Ctx {

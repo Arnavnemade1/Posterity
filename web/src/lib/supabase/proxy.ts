@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import type { Database } from '@/lib/database.types';
 
-const SIGNED_IN_ONLY = ['/dashboard', '/notifications', '/bookmarks', '/trades'];
+const SIGNED_IN_ONLY = ['/control', '/notifications', '/bookmarks', '/trades'];
 
 /**
  * Refreshes the auth session on every request and guards signed-in-only pages.

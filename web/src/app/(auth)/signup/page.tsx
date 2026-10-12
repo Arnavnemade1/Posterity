@@ -13,7 +13,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
   const next = safeNext((await searchParams).next);
   if (await getUser()) redirect(next);
   const providers = await visibleProviders();
-  const loginHref = next === '/dashboard' ? '/login' : `/login?next=${encodeURIComponent(next)}`;
+  const loginHref = next === '/control' ? '/login' : `/login?next=${encodeURIComponent(next)}`;
 
   return (
     <AuthShell

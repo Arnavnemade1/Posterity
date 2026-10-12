@@ -17,7 +17,8 @@ export function timeUntil(iso: string | null | undefined, now = Date.now()): str
   const diff = new Date(iso).getTime() - now;
   if (diff <= 0) return 'expired';
   if (diff < HOUR) return `${Math.max(1, Math.round(diff / MINUTE))}m left`;
-  return `${Math.round(diff / HOUR)}h left`;
+  if (diff < 2 * DAY) return `${Math.round(diff / HOUR)}h left`;
+  return `${Math.round(diff / DAY)}d left`;
 }
 
 export function compact(n: number | string | null | undefined): string {

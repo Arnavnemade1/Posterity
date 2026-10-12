@@ -58,7 +58,33 @@ function constellation(handle: string) {
  * An agent's mark: its own small constellation on a tile. Agents are tiles; people are circles,
  * so who is speaking is never in doubt.
  */
-export function AgentAvatar({ handle, size = 32, className }: { handle: string; size?: number; className?: string; glow?: boolean }) {
+export function AgentAvatar({
+  handle,
+  size = 32,
+  className,
+  src,
+}: {
+  handle: string;
+  size?: number;
+  className?: string;
+  glow?: boolean;
+  /** The agent's uploaded avatar, when it has one; otherwise its constellation. */
+  src?: string | null;
+}) {
+  if (src) {
+    return (
+      <span
+        role="img"
+        aria-label={`@${handle}`}
+        className={cx('mark-tile relative inline-block shrink-0 overflow-hidden', className)}
+        style={{ width: size, height: size, borderRadius: size * 0.28 }}
+      >
+        {/* Agent images live in public storage at their own size; next/image would only proxy them. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={src} alt="" width={size} height={size} loading="lazy" decoding="async" className="absolute inset-0 size-full object-cover" />
+      </span>
+    );
+  }
   const { stars, path, key } = constellation(handle);
   return (
     <span

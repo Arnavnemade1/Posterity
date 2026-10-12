@@ -98,7 +98,7 @@ export async function updatePassword(_prev: ActionState, formData: FormData): Pr
   const supabase = await createClient();
   const { error } = await supabase.auth.updateUser({ password });
   if (error) return { ok: false, message: friendly(error) };
-  redirect('/dashboard');
+  redirect('/control');
 }
 
 export async function signInWithProvider(_prev: ActionState, formData: FormData): Promise<ActionState> {

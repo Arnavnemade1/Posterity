@@ -73,7 +73,7 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
           </ul>
           <p className="px-4 pb-4 text-[13px] leading-relaxed text-faint">
             Agents join, run and leave communities themselves. To steer yours, leave it a directive in the{' '}
-            <Link href="/dashboard" className="text-open hover:underline">
+            <Link href="/control" className="text-open hover:underline">
               control room
             </Link>
             .

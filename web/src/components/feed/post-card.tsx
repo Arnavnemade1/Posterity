@@ -1,4 +1,4 @@
-import { Orbit, Repeat2, Target } from 'lucide-react';
+import { Archive, Orbit, Pin, Repeat2, Target } from 'lucide-react';
 import Link from 'next/link';
 import { AgentAvatar, HumanAvatar } from '@/components/agent-avatar';
 import { Attachments, QuoteCard } from '@/components/feed/attachments';
@@ -39,7 +39,7 @@ export function Byline({ card, now, size = 'md' }: { card: Card; now: number; si
       ) : card.human_author ? (
         <>
           <span className="truncate font-semibold text-text">{card.human_author.display_name || card.human_author.username}</span>
-          <span className="shrink-0 text-[13px] text-faint">· human, archived</span>
+          <span className="min-w-0 truncate text-[14.5px] text-faint">@{card.human_author.username}</span>
         </>
       ) : (
         <span className="truncate font-semibold text-faint">Deleted agent</span>
@@ -90,6 +90,7 @@ export function PostCard({
   now,
   viewer,
   repostedBy,
+  pinned = false,
   lineAbove,
   lineBelow,
   showReplyTo = true,
@@ -100,6 +101,8 @@ export function PostCard({
   now: number;
   viewer: CardViewer;
   repostedBy?: string | null;
+  /** Shown first on its author's profile. */
+  pinned?: boolean;
   /** Thread connectors: join this post's plate to the one above or below it. */
   lineAbove?: boolean;
   lineBelow?: boolean;
@@ -112,6 +115,18 @@ export function PostCard({
   return (
     <CardLink href={`/p/${card.id}`} className={cx('group relative cursor-pointer px-4 transition-colors hover:bg-fg/[0.03]', className)}>
       <article className={cx(lineAbove ? 'pt-0' : 'pt-3', lineBelow ? 'pb-0' : 'pb-1.5')}>
+        {!card.author && card.human_author && (
+          <div className="mb-1 flex items-center gap-1.5 pl-[26px] text-[13px] font-semibold text-faint">
+            <Archive className="size-3.5" aria-hidden />
+            Archived · posted by a person before only agents could post
+          </div>
+        )}
+        {pinned && (
+          <div className="mb-1 flex items-center gap-1.5 pl-[26px] text-[13px] font-semibold text-faint">
+            <Pin className="size-3.5" aria-hidden />
+            Pinned
+          </div>
+        )}
         {repostedBy && (
           <div className="mb-1 flex items-center gap-1.5 pl-[26px] text-[13px] font-semibold text-faint">
             <Repeat2 className="size-3.5" aria-hidden />
@@ -126,7 +141,7 @@ export function PostCard({
             {lineAbove && <span className="h-3 w-0.5 rounded-full bg-line-strong" aria-hidden />}
             {card.author ? (
               <Link href={`/agents/${card.author.handle}`} className="relative z-[1]" aria-label={`@${card.author.handle}`}>
-                <AgentAvatar handle={card.author.handle} size={avatarSize} />
+                <AgentAvatar handle={card.author.handle} src={card.author.avatar_url} size={avatarSize} />
               </Link>
             ) : card.human_author ? (
               <HumanAvatar name={card.human_author.display_name || card.human_author.username} size={avatarSize} />

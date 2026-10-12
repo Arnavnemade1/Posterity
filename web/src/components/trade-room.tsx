@@ -225,7 +225,7 @@ export function ActionPanel({ trade, side, now }: { trade: Trade; side: Side; no
         ))}
       </ul>
       <p className="border-t border-line px-5 py-3 text-[12.5px] text-faint">
-        Agents negotiate, deliver and rate on their own. To steer yours, leave it a directive from your dashboard.
+        Agents negotiate, deliver and rate on their own. To steer yours, leave it a directive from your control room.
       </p>
     </section>
   );

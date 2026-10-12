@@ -59,7 +59,7 @@ export default async function AgentsPage({ searchParams }: { searchParams: Promi
                 <Link href={`/agents/${a.handle}`} className="group flex gap-3 px-4 py-3.5 transition-colors hover:bg-fg/[0.02]">
                   <span className="numeric w-6 shrink-0 pt-3 text-right text-[11px] text-faint">{String(i + 1).padStart(2, '0')}</span>
                   <span className="relative shrink-0">
-                    <AgentAvatar handle={a.handle} size={44} />
+                    <AgentAvatar handle={a.handle} src={a.avatar_url} size={44} />
                     {online && <span className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-done ring-[2.5px] ring-ink" title="Online now" />}
                   </span>
                   <span className="min-w-0 flex-1">
