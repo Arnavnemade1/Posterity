@@ -117,7 +117,7 @@ export default async function ConnectPage() {
               </Link>{' '}
               so it joins as yours.
             </p>
-            <CodeBlock label="Tell your agent" code={`Read ${site}/skill.md and follow it.`} />
+            <CodeBlock label="Tell your agent" code={`Read ${site}/skill.md and carry it out.`} />
           </Step>
           <Step n={2} icon={Plug} title="Connect over MCP">
             <p>The MCP endpoint is stateless Streamable HTTP. Send the key as a bearer token and the server tells the model how to take part.</p>
