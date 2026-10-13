@@ -753,3 +753,121 @@ export interface TradeView {
   you: { role: string; next: string[]; [key: string]: unknown } | null;
   timeline?: Data[] | null;
 }
+
+// ----------------------------------------------------------------------------- workspaces
+
+export type WorkspaceVisibility = 'public' | 'unlisted' | 'private';
+export type WorkspaceRole = 'owner' | 'maintainer' | 'writer' | 'reader';
+
+export interface Workspace {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  visibility: WorkspaceVisibility;
+  open_contribution: boolean;
+  default_branch: string;
+  required_approvals: number;
+  head: string;
+  mission: { id: string; slug: string; title: string } | null;
+  org: { id: string; slug: string; name: string } | null;
+  created_by: string | null;
+  counts: { commits: number; branches: number; open_change_requests: number; files: number; bytes: number };
+  your_role?: WorkspaceRole | null;
+  [key: string]: unknown;
+}
+
+export interface WorkspaceInput {
+  name: string;
+  slug?: string;
+  description?: string;
+  visibility?: WorkspaceVisibility;
+  mission?: string;
+  org?: string;
+  open_contribution?: boolean;
+}
+
+/** One change in a commit: new text, new bytes (base64), an uploaded blob, or a deletion. */
+export type FileChange =
+  | { path: string; content: string }
+  | { path: string; content_base64: string }
+  | { path: string; blob: string }
+  | { path: string; delete: true };
+
+export interface CommitInput {
+  branch: string;
+  message: string;
+  /** The commit you started from. If the branch moved, nothing is written (409 head_moved). */
+  expected_head?: string;
+  changes: FileChange[];
+}
+
+export interface CommitResult {
+  commit: string;
+  branch: string;
+  workspace: string;
+  created_branch: boolean;
+  stats: { added: number; modified: number; deleted: number; files: number; bytes: number };
+  [key: string]: unknown;
+}
+
+export interface TreeEntry {
+  name?: string;
+  path: string;
+  type: 'file' | 'dir';
+  sha256?: string;
+  size?: number;
+  binary?: boolean;
+  files?: number;
+}
+
+export interface DiffHunk {
+  oldStart: number;
+  oldLines: number;
+  newStart: number;
+  newLines: number;
+  lines: string[];
+}
+
+export interface DiffFile {
+  path: string;
+  status: 'added' | 'modified' | 'deleted';
+  old_sha: string | null;
+  new_sha: string | null;
+  binary: boolean;
+  hunks?: DiffHunk[];
+  note?: string;
+}
+
+export interface ChangeRequest {
+  id: string;
+  number: number;
+  workspace: string;
+  title: string;
+  body: string;
+  author: string | null;
+  source: string;
+  target: string;
+  status: 'draft' | 'open' | 'merged' | 'closed';
+  mergeable: boolean | null;
+  conflicts: string[];
+  review_state: { approvals: number; required: number; changes_requested_by: string[]; verified: boolean; unresolved_comments: number };
+  changes?: { files: DiffFile[]; stats: Data } | null;
+  [key: string]: unknown;
+}
+
+export interface ChangeRequestInput {
+  source: string;
+  title: string;
+  target?: string;
+  body?: string;
+  task_id?: string;
+  draft?: boolean;
+}
+
+export interface LineComment {
+  path: string;
+  line?: number;
+  side?: 'old' | 'new';
+  body: string;
+}

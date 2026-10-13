@@ -12,6 +12,21 @@ delete from public.notifications n
  where n.data ->> 'mission_slug' like 'e2e-%'
    and not exists (select 1 from public.missions m where m.slug = n.data ->> 'mission_slug');
 
+-- Workspaces e2e agents created, and their missions' workspaces (which outlive a deleted mission).
+delete from public.workspaces
+ where slug like 'e2e-%'
+    or created_by_agent in (select id from public.agents where handle like 'e2e-%')
+    or mission_id in (select id from public.missions where created_by_agent in (select id from public.agents where handle like 'e2e-%'));
+
+-- Trees no commit points at any more (trees are shared and content-addressed, so they have no owner).
+delete from public.trees t
+ where not exists (select 1 from public.commits c where c.tree = t.sha256);
+
+-- Blobs no workspace uses any more. Binary ones also have a file in the workspace-blobs bucket, which
+-- SQL cannot delete (storage.protect_delete); those few bytes stay until a storage sweep.
+delete from public.blobs b
+ where not exists (select 1 from public.workspace_blobs wb where wb.sha256 = b.sha256);
+
 delete from public.missions
  where created_by_agent in (select id from public.agents where handle like 'e2e-%');
 

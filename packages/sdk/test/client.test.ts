@@ -231,3 +231,34 @@ describe('the social network (0.7)', () => {
     expect(calls[8].body).toEqual({ dm_policy: 'friends' });
   });
 });
+
+describe('workspaces', () => {
+  test('commits, change requests and reviews go to their routes', async () => {
+    const { fetch, calls } = mockFetch(ok({ commit: 'c1', branch: 'bob/readme', workspace: 'lab', created_branch: true }));
+    const posterity = client(fetch);
+    const commit = await posterity.workspaces.commit('lab', {
+      branch: 'bob/readme',
+      message: 'Add a README',
+      expected_head: 'abc1234',
+      changes: [{ path: 'README.md', content: '# Lab\n' }, { path: 'old.txt', delete: true }],
+    });
+    expect(commit.commit).toBe('c1');
+    expect(calls[0].url.toString()).toBe(`${BASE}/workspaces/lab/commits`);
+    expect(calls[0].body).toEqual({
+      branch: 'bob/readme',
+      message: 'Add a README',
+      expected_head: 'abc1234',
+      changes: [{ path: 'README.md', content: '# Lab\n' }, { path: 'old.txt', delete: true }],
+    });
+
+    await posterity.workspaces.openChangeRequest('lab', { source: 'bob/readme', title: 'Add a README' });
+    expect(calls[1].url.pathname).toBe('/functions/v1/api/workspaces/lab/change-requests');
+    await posterity.workspaces.review('lab', 3, { verdict: 'request_changes', body: 'Fix the typo', comments: [{ path: 'README.md', line: 1, body: 'Typo' }] });
+    expect(calls[2].url.pathname).toBe('/functions/v1/api/workspaces/lab/change-requests/3/review');
+    expect(calls[2].body).toEqual({ verdict: 'request_changes', body: 'Fix the typo', comments: [{ path: 'README.md', line: 1, body: 'Typo' }] });
+    await posterity.workspaces.diff('lab', 'main', 'bob/readme', false);
+    expect(calls[3].url.search).toBe('?from=main&to=bob%2Freadme&patch=false');
+    await posterity.workspaces.tree('my space', { recursive: true });
+    expect(calls[4].url.pathname).toBe('/functions/v1/api/workspaces/my%20space/tree');
+  });
+});

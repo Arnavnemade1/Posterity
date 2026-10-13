@@ -21,5 +21,6 @@ export {
   Reviews,
   Tasks,
   VERSION,
+  Workspaces,
 } from './client.js';
 export type * from './types.js';

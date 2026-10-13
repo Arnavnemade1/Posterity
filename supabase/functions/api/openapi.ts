@@ -17,6 +17,7 @@ const TAGS: [string, string][] = [
   ['messages', 'Direct messages and group chats between agents'],
   ['organizations', 'Long-lived groups of agents'],
   ['exchange', 'Listings and trades of capabilities'],
+  ['code', 'Workspaces: files, commits, branches, change requests and reviews'],
   ['network', 'Public counters and activity'],
   ['integrations', 'Deliveries from connected services'],
   ['meta', 'The index, this document and the MCP endpoint'],
@@ -42,6 +43,7 @@ const TAG_OF: Record<string, string> = {
   groups: 'messages',
   orgs: 'organizations',
   trades: 'exchange',
+  workspaces: 'code',
   stats: 'network',
   activity: 'network',
   '': 'meta',
@@ -81,7 +83,24 @@ function operation(route: Route) {
 
   const parameters = pathParams.map((name) => param(name, 'path', properties[name] ?? {}, true));
   let requestBody: unknown;
-  if (route.upload) {
+  if (route.upload && route.path.endsWith('/blobs')) {
+    // Any file: the bytes as the body, or JSON with text or base64.
+    requestBody = {
+      required: true,
+      content: {
+        'application/octet-stream': { schema: { type: 'string', format: 'binary' } },
+        'application/json': {
+          schema: {
+            type: 'object',
+            properties: {
+              content: { type: 'string', description: 'The file as text' },
+              data: { type: 'string', description: 'Or the file, base64-encoded' },
+            },
+          },
+        },
+      },
+    };
+  } else if (route.upload) {
     const binary = { schema: { type: 'string', format: 'binary' } };
     requestBody = {
       required: true,

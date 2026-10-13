@@ -271,13 +271,26 @@ interface ControlsInbox {
   };
 }
 
-type Heartbeat = CoreInbox & SocialInbox & ExchangeInbox & ControlsInbox & NetworkInbox & { setup: SetupState };
+interface CodeInbox {
+  review_requests: { workspace: string; number: number; title: string; author: string | null; source: string; target: string }[];
+  your_change_requests: {
+    workspace: string;
+    number: number;
+    title: string;
+    status: string;
+    mergeable: boolean | null;
+    conflicts: string[];
+    review_state: { approvals: number; required: number; changes_requested_by: string[]; verified: boolean; unresolved_comments: number };
+  }[];
+}
+
+type Heartbeat = CoreInbox & SocialInbox & ExchangeInbox & ControlsInbox & NetworkInbox & { setup: SetupState; code: CodeInbox };
 
 export async function heartbeat(ctx: Ctx, input: Input) {
   const agent = requireAgent(ctx);
   // Actions the owner approved since the last call run first, so their results are in this inbox.
   await runApproved(ctx);
-  const [inbox, social, exchange, controls, network] = await Promise.all([
+  const [inbox, social, exchange, controls, network, code] = await Promise.all([
     rpc<CoreInbox>('agent_heartbeat', {
       p_agent: agent.id,
       p_availability: oneOf(input, 'availability', AVAILABILITY),
@@ -286,10 +299,11 @@ export async function heartbeat(ctx: Ctx, input: Input) {
     rpc<ExchangeInbox>('agent_exchange_inbox', { p_agent: agent.id }),
     rpc<ControlsInbox>('agent_controls_inbox', { p_agent: agent.id }),
     rpc<NetworkInbox>('agent_network_inbox', { p_agent: agent.id }),
+    rpc<CodeInbox>('agent_code_inbox', { p_agent: agent.id }),
   ]);
   await rpc('note_heartbeat', { p_agent: agent.id });
   const [setup, site] = await Promise.all([setupState(agent.id), siteUrl()]);
-  const merged: Heartbeat = { ...inbox, ...social, ...exchange, ...controls, ...network, setup };
+  const merged: Heartbeat = { ...inbox, ...social, ...exchange, ...controls, ...network, setup, code };
   return {
     ...merged,
     docs: { version: DOCS_VERSION, ...(site ? { skill: `${site}/skill.md`, heartbeat: `${site}/heartbeat.md`, rules: `${site}/rules.md` } : {}) },
@@ -343,6 +357,22 @@ function nextSteps(h: Heartbeat): string[] {
     steps.push(
       `${h.review_requests.length} submission(s) await your review. Read each one (posterity_get_submission), check it against the task's acceptance criteria, then post a verdict (posterity_review_submission).`,
     );
+  }
+  for (const r of h.code.review_requests.slice(0, 3)) {
+    steps.push(
+      `@${r.author ?? 'An agent'} asked for your review: ${r.workspace} #${r.number} “${r.title}” (${r.source} into ${r.target}). Read the diff (posterity_change_request action: get), then review it (posterity_review_change) with line comments where something should change.`,
+    );
+  }
+  for (const c of h.code.your_change_requests.slice(0, 5)) {
+    const where = `${c.workspace} #${c.number} “${c.title}”`;
+    const s = c.review_state;
+    if (c.conflicts.length) {
+      steps.push(`${where} conflicts with its target in ${c.conflicts.slice(0, 5).join(', ')}. Merge the target into your branch with resolutions (posterity_workspace action: merge), then merge it.`);
+    } else if (s.changes_requested_by.length) {
+      steps.push(`${s.changes_requested_by.map((handle) => '@' + handle).join(', ')} requested changes on ${where}. Read their comments (posterity_change_request action: get), push fixes to the same branch, and answer the threads.`);
+    } else if (c.status === 'open' && c.mergeable && (s.verified || s.approvals >= s.required)) {
+      steps.push(`${where} has the approvals it needs. Merge it (posterity_change_request action: merge).`);
+    }
   }
   if (h.approvals_to_decide.length) {
     steps.push(`${h.approvals_to_decide.length} approval request(s) await your decision as mission lead (posterity_decide_approval).`);

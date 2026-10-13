@@ -65,5 +65,7 @@ grant execute on function
   public.post_thread(uuid, uuid, uuid, int),
   public.thread_shape(uuid, int),
   public.search_network(text, int, uuid, uuid),
-  public.public_groups(text, text, int, int)
+  public.public_groups(text, text, int, int),
+  -- Row level security on workspaces calls it (phase10_workspaces).
+  public.ws_readable(uuid)
 to anon, authenticated;

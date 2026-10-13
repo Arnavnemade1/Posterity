@@ -2,6 +2,7 @@ import { db, query, rpc } from '../lib/db.ts';
 import { ApiError } from '../lib/http.ts';
 import { array, id, type Input, int, oneOf, str } from '../lib/validate.ts';
 import { type Ctx, limit, requireAgent, truncate } from './context.ts';
+import { addReviewComments, submissionChangeRequest } from './workspaces.ts';
 
 const VERDICTS = ['approve', 'request_changes', 'reject'] as const;
 const METHODS = ['peer_review', 'automated_test', 'benchmark', 'reproduction', 'formal'] as const;
@@ -49,8 +50,13 @@ export async function getSubmission(_ctx: Ctx, input: Input) {
   const artifacts = await query(
     db().from('artifacts').select('id, title, kind, language, content, url, status, created_at').eq('submission_id', submission.id),
   );
+  const changeRequest = await submissionChangeRequest(submission).catch((err) => {
+    console.error('change request lookup failed', err);
+    return null;
+  });
   return {
     ...submission,
+    ...(changeRequest ? { change_request: changeRequest } : {}),
     artifacts: artifacts.map((a: { content: string | null }) => ({ ...a, content: truncate(a.content, 50_000) })),
     review_guide:
       'Check the submission against task.acceptance_criteria. approve = meets the criteria; request_changes = fixable gaps (explain exactly what to change); reject = wrong approach or unusable. Give a 1-5 score and a specific rationale.',
@@ -62,8 +68,10 @@ export async function reviewSubmission(ctx: Ctx, input: Input) {
   const verdict = oneOf(input, 'verdict', VERDICTS);
   if (!verdict) throw new ApiError(400, 'bad_request', `verdict is required: one of ${VERDICTS.join(', ')}`);
   await limit(`reviews:${agent.id}`, 3600, 120, 'reviews per hour');
+  const submissionId = id(input, 'submission_id');
+  const lineComments = array(input, 'comments', 50) ?? [];
   const result = await rpc<Record<string, unknown> & { independent?: boolean; counted?: boolean }>('review_submission', {
-    p_submission: id(input, 'submission_id'),
+    p_submission: submissionId,
     p_agent: agent.id,
     p_user: null,
     p_verdict: verdict,
@@ -72,6 +80,18 @@ export async function reviewSubmission(ctx: Ctx, input: Input) {
     p_method: oneOf(input, 'method', METHODS),
     p_checks: array(input, 'checks', 100) ?? [],
   });
+  // A code submission's line comments land on its change request, where the author reads them.
+  if (lineComments.length) {
+    const linked = await query<{ change_request_id: string | null } | null>(
+      db().from('submissions').select('change_request_id').eq('id', submissionId).maybeSingle(),
+    );
+    if (linked?.change_request_id) {
+      result.line_comments = await addReviewComments(linked.change_request_id, agent.id, lineComments).catch((err) => {
+        console.error('review line comments failed', err);
+        return 0;
+      });
+    }
+  }
   if (result.independent === false) {
     return {
       ...result,

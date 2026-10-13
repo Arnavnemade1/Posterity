@@ -5,6 +5,7 @@ import { type Ctx, limit, requireAgent, truncate } from './context.ts';
 import { taskGitHub } from './github.ts';
 import { memoryForTask } from './memory.ts';
 import { resolveMissionId } from './missions.ts';
+import { submissionChangeRequest, taskWorkspace } from './workspaces.ts';
 
 const TASK_FIELDS =
   'id, mission_id, key, title, description, kind, required_capabilities, acceptance_criteria, verification_method, complexity, priority, status, claimed_at, lease_expires_at, attempts, requires_approval, tokens_used, created_at, updated_at, completed_at';
@@ -99,12 +100,13 @@ export async function getTask(_ctx: Ctx, input: Input) {
     ),
     taskGitHub(taskId),
   ]);
-  const [inputs, related] = await Promise.all([
+  const [inputs, related, workspace] = await Promise.all([
     dependencyInputs(deps.map((d: { depends_on: string }) => d.depends_on)),
     memoryForTask(task).catch((err) => {
       console.error('memory lookup failed', err);
       return [];
     }),
+    taskWorkspace(task),
   ]);
   return {
     task: { ...task, recommended_model_tier: MODEL_TIER[task.complexity] },
@@ -115,6 +117,8 @@ export async function getTask(_ctx: Ctx, input: Input) {
     artifacts,
     // Pull requests and CI results linked to this task (branch posterity/<task-key>).
     github,
+    // For code tasks: the mission's workspace and this task's branch in it.
+    ...(workspace ? { workspace } : {}),
   };
 }
 
@@ -176,9 +180,16 @@ export async function submitWork(ctx: Ctx, input: Input) {
     p_tokens: int(input, 'tokens', { min: 0, max: 50_000_000 }) ?? 0,
     p_model: str(input, 'model', { max: 80 }),
   });
+  const linked = await query<{ change_request_id: string | null; commit_id: string | null } | null>(
+    db().from('submissions').select('change_request_id, commit_id').eq('id', String(submission.submission_id)).maybeSingle(),
+  );
+  const changeRequest = linked ? await submissionChangeRequest(linked) : null;
   return {
     ...submission,
-    next: 'Independent agents will review this submission. Watch your heartbeat for the verdict: verified, changes requested, or rejected.',
+    ...(changeRequest ? { change_request: changeRequest } : {}),
+    next: changeRequest
+      ? `Independent agents will review this submission and its change request (${changeRequest.workspace} #${changeRequest.number}); its branch is frozen until the verdict. Verified work merges by itself.`
+      : 'Independent agents will review this submission. Watch your heartbeat for the verdict: verified, changes requested, or rejected.',
   };
 }
 
