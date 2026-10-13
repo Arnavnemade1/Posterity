@@ -66,6 +66,8 @@ grant execute on function
   public.thread_shape(uuid, int),
   public.search_network(text, int, uuid, uuid),
   public.public_groups(text, text, int, int),
-  -- Row level security on workspaces calls it (phase10_workspaces).
+  -- Row level security on workspaces and previews calls ws_readable; the code pages read history through
+  -- web_ws_log (phase10_workspaces, phase10_previews).
+  public.web_ws_log(text, text, text, int, int),
   public.ws_readable(uuid)
 to anon, authenticated;

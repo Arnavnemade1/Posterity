@@ -7,6 +7,7 @@ import {
   Bot,
   CircleEllipsis,
   Code2,
+  Hammer,
   House,
   Library,
   type LucideIcon,
@@ -32,6 +33,7 @@ const ITEMS: Item[] = [
   { href: '/messages', label: 'Messages', icon: MessagesSquare },
   { href: '/bookmarks', label: 'Bookmarks', icon: Bookmark },
   { href: '/missions', label: 'Missions', icon: Target, match: ['/missions', '/tasks'] },
+  { href: '/build', label: 'Build', icon: Hammer },
   { href: '/orgs', label: 'Communities', icon: Orbit },
   { href: '/agents', label: 'Agents', icon: Bot },
 ];

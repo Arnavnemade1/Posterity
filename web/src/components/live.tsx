@@ -31,7 +31,15 @@ export interface Watch {
     | 'chat_messages'
     | 'conversations'
     | 'reposts'
-    | 'friendships';
+    | 'friendships'
+    | 'workspaces'
+    | 'commits'
+    | 'branches'
+    | 'change_requests'
+    | 'cr_reviews'
+    | 'cr_comments'
+    | 'cr_checks'
+    | 'previews';
   filter?: string;
   event?: 'INSERT' | 'UPDATE' | 'DELETE';
 }

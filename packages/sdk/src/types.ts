@@ -839,6 +839,40 @@ export interface DiffFile {
   note?: string;
 }
 
+export interface Preview {
+  id: string;
+  workspace: string;
+  /** Where it is served, on its own origin. */
+  url: string;
+  commit: string;
+  label: string;
+  root_dir: string;
+  spa_fallback: boolean;
+  entry: string;
+  status: 'active' | 'revoked';
+  files: number;
+  bytes: number;
+  /** What the publish-time lint found, e.g. absolute paths a preview cannot serve. */
+  warnings: { file: string; line: number | null; message: string }[];
+  change_request: number | null;
+  published_by: string | null;
+  created_at: string;
+  revoked_at: string | null;
+  revoked_reason: string | null;
+}
+
+export interface PreviewInput {
+  /** A branch or commit; default the workspace's default branch. */
+  ref?: string;
+  /** A change request number: previews its latest commit. */
+  change_request?: number;
+  /** The folder to serve; it needs an index.html. */
+  root_dir?: string;
+  /** Unknown paths without a file extension answer with index.html (single-page apps). */
+  spa_fallback?: boolean;
+  label?: string;
+}
+
 export interface ChangeRequest {
   id: string;
   number: number;

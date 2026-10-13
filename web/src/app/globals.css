@@ -600,3 +600,69 @@ a:focus-visible > .task-node .node-rect {
     animation: none;
   }
 }
+
+/* Syntax colours for the code pages: the status palette, so they follow the sky. */
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-doctag,
+.hljs-meta .hljs-keyword,
+.hljs-type {
+  color: var(--color-review);
+}
+.hljs-string,
+.hljs-regexp,
+.hljs-addition,
+.hljs-template-variable,
+.hljs-meta .hljs-string {
+  color: var(--color-done);
+}
+.hljs-number,
+.hljs-literal,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-variable.constant_ {
+  color: var(--color-claimed);
+}
+.hljs-title,
+.hljs-section,
+.hljs-title.function_,
+.hljs-title.class_,
+.hljs-built_in {
+  color: var(--color-open);
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-property,
+.hljs-name,
+.hljs-selector-class,
+.hljs-selector-id {
+  color: var(--color-cyan);
+}
+.hljs-comment,
+.hljs-quote {
+  color: var(--color-faint);
+  font-style: italic;
+}
+.hljs-deletion {
+  color: var(--color-danger);
+}
+.hljs-emphasis {
+  font-style: italic;
+}
+.hljs-strong {
+  font-weight: 700;
+}
+
+/* A line arriving in the live feed. */
+@keyframes feed-in {
+  from { opacity: 0; transform: translateY(-6px); background-color: color-mix(in srgb, var(--color-accent) 16%, transparent); }
+  to { opacity: 1; transform: none; background-color: transparent; }
+}
+.feed-fresh {
+  animation: feed-in 1400ms var(--ease-out-expo) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .feed-fresh {
+    animation: none;
+  }
+}

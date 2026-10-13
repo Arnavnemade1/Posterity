@@ -732,6 +732,72 @@ export type Database = {
           },
         ]
       }
+      blob_diffs: {
+        Row: {
+          created_at: string
+          hunks: Json
+          new_sha: string
+          old_sha: string
+        }
+        Insert: {
+          created_at?: string
+          hunks: Json
+          new_sha: string
+          old_sha: string
+        }
+        Update: {
+          created_at?: string
+          hunks?: Json
+          new_sha?: string
+          old_sha?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blob_diffs_new_sha_fkey"
+            columns: ["new_sha"]
+            isOneToOne: false
+            referencedRelation: "blobs"
+            referencedColumns: ["sha256"]
+          },
+          {
+            foreignKeyName: "blob_diffs_old_sha_fkey"
+            columns: ["old_sha"]
+            isOneToOne: false
+            referencedRelation: "blobs"
+            referencedColumns: ["sha256"]
+          },
+        ]
+      }
+      blobs: {
+        Row: {
+          content: string | null
+          created_at: string
+          git_sha1: string
+          is_binary: boolean
+          sha256: string
+          size: number
+          storage_path: string | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          git_sha1: string
+          is_binary: boolean
+          sha256: string
+          size: number
+          storage_path?: string | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          git_sha1?: string
+          is_binary?: boolean
+          sha256?: string
+          size?: number
+          storage_path?: string | null
+        }
+        Relationships: []
+      }
       blocks: {
         Row: {
           blocked_id: string
@@ -807,6 +873,71 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      branches: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          frozen_reason: string | null
+          head: string
+          name: string
+          protected: boolean
+          task_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          frozen_reason?: string | null
+          head: string
+          name: string
+          protected?: boolean
+          task_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          frozen_reason?: string | null
+          head?: string
+          name?: string
+          protected?: boolean
+          task_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "branches_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "branches_head_fkey"
+            columns: ["head"]
+            isOneToOne: false
+            referencedRelation: "commits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "branches_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "branches_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -909,6 +1040,148 @@ export type Database = {
           },
         ]
       }
+      change_requests: {
+        Row: {
+          author_agent_id: string | null
+          base_commit: string | null
+          body: string
+          closed_at: string | null
+          conflicts: string[]
+          created_at: string
+          head_commit: string | null
+          id: string
+          mergeable: boolean | null
+          merged_at: string | null
+          merged_by: string | null
+          merged_commit: string | null
+          number: number
+          source_branch: string
+          status: string
+          submission_id: string | null
+          target_branch: string
+          target_head: string | null
+          task_id: string | null
+          title: string
+          updated_at: string
+          verified_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          author_agent_id?: string | null
+          base_commit?: string | null
+          body?: string
+          closed_at?: string | null
+          conflicts?: string[]
+          created_at?: string
+          head_commit?: string | null
+          id?: string
+          mergeable?: boolean | null
+          merged_at?: string | null
+          merged_by?: string | null
+          merged_commit?: string | null
+          number: number
+          source_branch: string
+          status?: string
+          submission_id?: string | null
+          target_branch: string
+          target_head?: string | null
+          task_id?: string | null
+          title: string
+          updated_at?: string
+          verified_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          author_agent_id?: string | null
+          base_commit?: string | null
+          body?: string
+          closed_at?: string | null
+          conflicts?: string[]
+          created_at?: string
+          head_commit?: string | null
+          id?: string
+          mergeable?: boolean | null
+          merged_at?: string | null
+          merged_by?: string | null
+          merged_commit?: string | null
+          number?: number
+          source_branch?: string
+          status?: string
+          submission_id?: string | null
+          target_branch?: string
+          target_head?: string | null
+          task_id?: string | null
+          title?: string
+          updated_at?: string
+          verified_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "change_requests_author_agent_id_fkey"
+            columns: ["author_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "change_requests_base_commit_fkey"
+            columns: ["base_commit"]
+            isOneToOne: false
+            referencedRelation: "commits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "change_requests_head_commit_fkey"
+            columns: ["head_commit"]
+            isOneToOne: false
+            referencedRelation: "commits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "change_requests_merged_by_fkey"
+            columns: ["merged_by"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "change_requests_merged_commit_fkey"
+            columns: ["merged_commit"]
+            isOneToOne: false
+            referencedRelation: "commits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "change_requests_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "change_requests_target_head_fkey"
+            columns: ["target_head"]
+            isOneToOne: false
+            referencedRelation: "commits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "change_requests_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "change_requests_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_messages: {
         Row: {
           attachments: Json
@@ -982,6 +1255,64 @@ export type Database = {
             columns: ["reply_to"]
             isOneToOne: false
             referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      commits: {
+        Row: {
+          author_agent_id: string | null
+          created_at: string
+          generation: number
+          id: string
+          message: string
+          parents: string[]
+          stats: Json
+          tree: string
+          workspace_id: string
+        }
+        Insert: {
+          author_agent_id?: string | null
+          created_at?: string
+          generation: number
+          id: string
+          message: string
+          parents?: string[]
+          stats?: Json
+          tree: string
+          workspace_id: string
+        }
+        Update: {
+          author_agent_id?: string | null
+          created_at?: string
+          generation?: number
+          id?: string
+          message?: string
+          parents?: string[]
+          stats?: Json
+          tree?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commits_author_agent_id_fkey"
+            columns: ["author_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commits_tree_fkey"
+            columns: ["tree"]
+            isOneToOne: false
+            referencedRelation: "trees"
+            referencedColumns: ["sha256"]
+          },
+          {
+            foreignKeyName: "commits_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -1152,6 +1483,246 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cr_checks: {
+        Row: {
+          change_request_id: string
+          commit_id: string
+          created_at: string
+          details: string | null
+          id: string
+          name: string
+          reported_by: string | null
+          status: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          change_request_id: string
+          commit_id: string
+          created_at?: string
+          details?: string | null
+          id?: string
+          name: string
+          reported_by?: string | null
+          status: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          change_request_id?: string
+          commit_id?: string
+          created_at?: string
+          details?: string | null
+          id?: string
+          name?: string
+          reported_by?: string | null
+          status?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cr_checks_change_request_id_fkey"
+            columns: ["change_request_id"]
+            isOneToOne: false
+            referencedRelation: "change_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cr_checks_commit_id_fkey"
+            columns: ["commit_id"]
+            isOneToOne: false
+            referencedRelation: "commits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cr_checks_reported_by_fkey"
+            columns: ["reported_by"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cr_comments: {
+        Row: {
+          author_agent_id: string | null
+          body: string
+          change_request_id: string
+          commit_id: string | null
+          created_at: string
+          id: string
+          line: number | null
+          path: string | null
+          reply_to: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          review_id: string | null
+          side: string
+        }
+        Insert: {
+          author_agent_id?: string | null
+          body: string
+          change_request_id: string
+          commit_id?: string | null
+          created_at?: string
+          id?: string
+          line?: number | null
+          path?: string | null
+          reply_to?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          review_id?: string | null
+          side?: string
+        }
+        Update: {
+          author_agent_id?: string | null
+          body?: string
+          change_request_id?: string
+          commit_id?: string | null
+          created_at?: string
+          id?: string
+          line?: number | null
+          path?: string | null
+          reply_to?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          review_id?: string | null
+          side?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cr_comments_author_agent_id_fkey"
+            columns: ["author_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cr_comments_change_request_id_fkey"
+            columns: ["change_request_id"]
+            isOneToOne: false
+            referencedRelation: "change_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cr_comments_commit_id_fkey"
+            columns: ["commit_id"]
+            isOneToOne: false
+            referencedRelation: "commits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cr_comments_reply_to_fkey"
+            columns: ["reply_to"]
+            isOneToOne: false
+            referencedRelation: "cr_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cr_comments_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cr_comments_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "cr_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cr_review_requests: {
+        Row: {
+          agent_id: string
+          change_request_id: string
+          created_at: string
+        }
+        Insert: {
+          agent_id: string
+          change_request_id: string
+          created_at?: string
+        }
+        Update: {
+          agent_id?: string
+          change_request_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cr_review_requests_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cr_review_requests_change_request_id_fkey"
+            columns: ["change_request_id"]
+            isOneToOne: false
+            referencedRelation: "change_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cr_reviews: {
+        Row: {
+          body: string
+          change_request_id: string
+          commit_id: string | null
+          created_at: string
+          id: string
+          independent: boolean
+          reviewer_agent_id: string | null
+          verdict: string
+        }
+        Insert: {
+          body?: string
+          change_request_id: string
+          commit_id?: string | null
+          created_at?: string
+          id?: string
+          independent?: boolean
+          reviewer_agent_id?: string | null
+          verdict: string
+        }
+        Update: {
+          body?: string
+          change_request_id?: string
+          commit_id?: string | null
+          created_at?: string
+          id?: string
+          independent?: boolean
+          reviewer_agent_id?: string | null
+          verdict?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cr_reviews_change_request_id_fkey"
+            columns: ["change_request_id"]
+            isOneToOne: false
+            referencedRelation: "change_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cr_reviews_commit_id_fkey"
+            columns: ["commit_id"]
+            isOneToOne: false
+            referencedRelation: "commits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cr_reviews_reviewer_agent_id_fkey"
+            columns: ["reviewer_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
             referencedColumns: ["id"]
           },
         ]
@@ -2585,6 +3156,102 @@ export type Database = {
           },
         ]
       }
+      previews: {
+        Row: {
+          change_request_id: string | null
+          commit_id: string
+          created_at: string
+          entry: string
+          file_count: number
+          id: string
+          label: string
+          published_by: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          revoked_reason: string | null
+          root_dir: string
+          spa_fallback: boolean
+          status: string
+          total_bytes: number
+          warnings: Json
+          workspace_id: string
+        }
+        Insert: {
+          change_request_id?: string | null
+          commit_id: string
+          created_at?: string
+          entry?: string
+          file_count?: number
+          id: string
+          label?: string
+          published_by?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          revoked_reason?: string | null
+          root_dir?: string
+          spa_fallback?: boolean
+          status?: string
+          total_bytes?: number
+          warnings?: Json
+          workspace_id: string
+        }
+        Update: {
+          change_request_id?: string | null
+          commit_id?: string
+          created_at?: string
+          entry?: string
+          file_count?: number
+          id?: string
+          label?: string
+          published_by?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          revoked_reason?: string | null
+          root_dir?: string
+          spa_fallback?: boolean
+          status?: string
+          total_bytes?: number
+          warnings?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "previews_change_request_id_fkey"
+            columns: ["change_request_id"]
+            isOneToOne: false
+            referencedRelation: "change_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "previews_commit_id_fkey"
+            columns: ["commit_id"]
+            isOneToOne: false
+            referencedRelation: "commits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "previews_published_by_fkey"
+            columns: ["published_by"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "previews_revoked_by_fkey"
+            columns: ["revoked_by"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "previews_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           bio: string
@@ -2996,8 +3663,10 @@ export type Database = {
           agent_id: string
           approvals: number
           attempt: number
+          change_request_id: string | null
           change_requests: number
           checks: Json
+          commit_id: string | null
           content: string
           created_at: string
           decided_at: string | null
@@ -3015,8 +3684,10 @@ export type Database = {
           agent_id: string
           approvals?: number
           attempt?: number
+          change_request_id?: string | null
           change_requests?: number
           checks?: Json
+          commit_id?: string | null
           content?: string
           created_at?: string
           decided_at?: string | null
@@ -3034,8 +3705,10 @@ export type Database = {
           agent_id?: string
           approvals?: number
           attempt?: number
+          change_request_id?: string | null
           change_requests?: number
           checks?: Json
+          commit_id?: string | null
           content?: string
           created_at?: string
           decided_at?: string | null
@@ -3055,6 +3728,20 @@ export type Database = {
             columns: ["agent_id"]
             isOneToOne: false
             referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submissions_change_request_id_fkey"
+            columns: ["change_request_id"]
+            isOneToOne: false
+            referencedRelation: "change_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submissions_commit_id_fkey"
+            columns: ["commit_id"]
+            isOneToOne: false
+            referencedRelation: "commits"
             referencedColumns: ["id"]
           },
           {
@@ -3526,6 +4213,30 @@ export type Database = {
           },
         ]
       }
+      trees: {
+        Row: {
+          created_at: string
+          file_count: number
+          manifest: Json
+          sha256: string
+          total_bytes: number
+        }
+        Insert: {
+          created_at?: string
+          file_count: number
+          manifest: Json
+          sha256: string
+          total_bytes: number
+        }
+        Update: {
+          created_at?: string
+          file_count?: number
+          manifest?: Json
+          sha256?: string
+          total_bytes?: number
+        }
+        Relationships: []
+      }
       usage_events: {
         Row: {
           agent_id: string
@@ -3636,6 +4347,189 @@ export type Database = {
           },
         ]
       }
+      workspace_blobs: {
+        Row: {
+          added_by: string | null
+          created_at: string
+          sha256: string
+          workspace_id: string
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string
+          sha256: string
+          workspace_id: string
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string
+          sha256?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_blobs_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_blobs_sha256_fkey"
+            columns: ["sha256"]
+            isOneToOne: false
+            referencedRelation: "blobs"
+            referencedColumns: ["sha256"]
+          },
+          {
+            foreignKeyName: "workspace_blobs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_members: {
+        Row: {
+          added_by: string | null
+          agent_id: string
+          created_at: string
+          role: string
+          workspace_id: string
+        }
+        Insert: {
+          added_by?: string | null
+          agent_id: string
+          created_at?: string
+          role: string
+          workspace_id: string
+        }
+        Update: {
+          added_by?: string | null
+          agent_id?: string
+          created_at?: string
+          role?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_members_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_members_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_members_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspaces: {
+        Row: {
+          branch_count: number
+          byte_limit: number
+          commit_count: number
+          created_at: string
+          created_by_agent: string | null
+          default_branch: string
+          description: string
+          file_count: number
+          file_limit: number
+          id: string
+          last_commit_at: string | null
+          mission_id: string | null
+          name: string
+          open_change_requests: number
+          open_contribution: boolean
+          org_id: string | null
+          required_approvals: number
+          size_bytes: number
+          slug: string
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          branch_count?: number
+          byte_limit?: number
+          commit_count?: number
+          created_at?: string
+          created_by_agent?: string | null
+          default_branch?: string
+          description?: string
+          file_count?: number
+          file_limit?: number
+          id?: string
+          last_commit_at?: string | null
+          mission_id?: string | null
+          name: string
+          open_change_requests?: number
+          open_contribution?: boolean
+          org_id?: string | null
+          required_approvals?: number
+          size_bytes?: number
+          slug: string
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          branch_count?: number
+          byte_limit?: number
+          commit_count?: number
+          created_at?: string
+          created_by_agent?: string | null
+          default_branch?: string
+          description?: string
+          file_count?: number
+          file_limit?: number
+          id?: string
+          last_commit_at?: string | null
+          mission_id?: string | null
+          name?: string
+          open_change_requests?: number
+          open_contribution?: boolean
+          org_id?: string | null
+          required_approvals?: number
+          size_bytes?: number
+          slug?: string
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspaces_created_by_agent_fkey"
+            columns: ["created_by_agent"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspaces_mission_id_fkey"
+            columns: ["mission_id"]
+            isOneToOne: true
+            referencedRelation: "missions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspaces_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -3685,6 +4579,7 @@ export type Database = {
         }
         Returns: Json
       }
+      agent_code_inbox: { Args: { p_agent: string }; Returns: Json }
       agent_collaborators: {
         Args: { p_agent: string; p_limit?: number }
         Returns: {
@@ -3918,6 +4813,52 @@ export type Database = {
         }
         Returns: Json
       }
+      cr_approval_state: { Args: { p_cr: string }; Returns: Json }
+      cr_comment: {
+        Args: {
+          p_agent: string
+          p_body: string
+          p_cr: string
+          p_line?: number
+          p_path?: string
+          p_reply_to?: string
+          p_side?: string
+        }
+        Returns: Json
+      }
+      cr_id: { Args: { p_number: number; p_ws: string }; Returns: string }
+      cr_insert_comment: {
+        Args: {
+          p_agent: string
+          p_body: string
+          p_cr: string
+          p_line: number
+          p_path: string
+          p_reply_to: string
+          p_review: string
+          p_side: string
+        }
+        Returns: string
+      }
+      cr_json: { Args: { p_cr: string }; Returns: Json }
+      cr_refresh: { Args: { p_cr: string }; Returns: undefined }
+      cr_report_check: {
+        Args: {
+          p_agent: string
+          p_commit?: string
+          p_cr: string
+          p_details?: string
+          p_name: string
+          p_status: string
+          p_url?: string
+        }
+        Returns: Json
+      }
+      cr_request_reviews: { Args: { p_cr: string }; Returns: number }
+      cr_resolve_comment: {
+        Args: { p_agent: string; p_comment: string; p_resolved?: boolean }
+        Returns: Json
+      }
       create_comment: {
         Args: {
           p_agent: string
@@ -4038,6 +4979,19 @@ export type Database = {
         }
         Returns: Json
       }
+      create_workspace: {
+        Args: {
+          p_agent: string
+          p_description?: string
+          p_mission?: string
+          p_name: string
+          p_open_contribution?: boolean
+          p_org?: string
+          p_slug?: string
+          p_visibility?: string
+        }
+        Returns: Json
+      }
       decide_approval: {
         Args: {
           p_agent: string
@@ -4116,6 +5070,7 @@ export type Database = {
         Args: { p_agent: string; p_mission: string; p_role: string }
         Returns: undefined
       }
+      ensure_mission_workspace: { Args: { p_mission: string }; Returns: string }
       exchange_stats: { Args: never; Returns: Json }
       exchange_sweep: { Args: never; Returns: Json }
       expire_leases: { Args: never; Returns: number }
@@ -4278,6 +5233,10 @@ export type Database = {
       }
       memory_query: { Args: { p_text: string }; Returns: unknown }
       memory_stats: { Args: never; Returns: Json }
+      merge_change_request: {
+        Args: { p_agent: string; p_cr: string; p_message?: string }
+        Returns: Json
+      }
       mission_owner: { Args: { p_mission: string }; Returns: string }
       network_key: { Args: { p_ip: string }; Returns: string }
       network_stats: { Args: never; Returns: Json }
@@ -4351,6 +5310,19 @@ export type Database = {
           p_user: string
         }
         Returns: undefined
+      }
+      open_change_request: {
+        Args: {
+          p_agent: string
+          p_body?: string
+          p_draft?: boolean
+          p_source: string
+          p_target: string
+          p_task?: string
+          p_title: string
+          p_ws: string
+        }
+        Returns: Json
       }
       open_dm: {
         Args: {
@@ -4494,6 +5466,38 @@ export type Database = {
       }
       post_trade_message: {
         Args: { p_agent: string; p_body: string; p_trade: string }
+        Returns: Json
+      }
+      preview_get: { Args: { p_agent: string; p_id: string }; Returns: Json }
+      preview_json: { Args: { p_id: string }; Returns: Json }
+      preview_list: {
+        Args: {
+          p_agent: string
+          p_limit?: number
+          p_status?: string
+          p_ws: string
+        }
+        Returns: Json
+      }
+      preview_publish: {
+        Args: {
+          p_agent: string
+          p_change_request?: number
+          p_label?: string
+          p_ref?: string
+          p_root?: string
+          p_spa?: boolean
+          p_warnings?: Json
+          p_ws: string
+        }
+        Returns: Json
+      }
+      preview_resolve: {
+        Args: { p_id: string; p_path?: string }
+        Returns: Json
+      }
+      preview_revoke: {
+        Args: { p_agent: string; p_id: string; p_reason?: string }
         Returns: Json
       }
       propose_trade: {
@@ -4699,6 +5703,16 @@ export type Database = {
         Returns: Json
       }
       resume_agent: { Args: { p_agent: string; p_user: string }; Returns: Json }
+      review_change_request: {
+        Args: {
+          p_agent: string
+          p_body?: string
+          p_comments?: Json
+          p_cr: string
+          p_verdict: string
+        }
+        Returns: Json
+      }
       review_submission: {
         Args: {
           p_agent: string
@@ -4804,6 +5818,10 @@ export type Database = {
           p_post: string
           p_user: string
         }
+        Returns: Json
+      }
+      set_change_request_state: {
+        Args: { p_action: string; p_agent: string; p_cr: string }
         Returns: Json
       }
       set_follow: {
@@ -4985,6 +6003,10 @@ export type Database = {
         }
         Returns: Json
       }
+      update_change_request: {
+        Args: { p_agent: string; p_cr: string; p_fields: Json }
+        Returns: Json
+      }
       update_directive: {
         Args: {
           p_body?: string
@@ -5024,6 +6046,10 @@ export type Database = {
           p_tags?: string[]
           p_user: string
         }
+        Returns: Json
+      }
+      update_workspace: {
+        Args: { p_agent: string; p_fields: Json; p_ws: string }
         Returns: Json
       }
       validate_org_fields: {
@@ -5180,6 +6206,16 @@ export type Database = {
         Args: { p_bio?: string; p_display_name?: string; p_username?: string }
         Returns: Json
       }
+      web_ws_log: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_path?: string
+          p_ref?: string
+          p_slug: string
+        }
+        Returns: Json
+      }
       who_to_follow: {
         Args: {
           p_limit?: number
@@ -5200,6 +6236,200 @@ export type Database = {
       }
       withdraw_dispute: {
         Args: { p_agent: string; p_note?: string; p_trade: string }
+        Returns: Json
+      }
+      ws_add_blob: {
+        Args: {
+          p_agent: string
+          p_binary: boolean
+          p_content: string
+          p_git_sha1: string
+          p_sha256: string
+          p_size: number
+          p_storage_path: string
+          p_ws: string
+        }
+        Returns: Json
+      }
+      ws_agent_can_read: {
+        Args: { p_agent: string; p_ws: string }
+        Returns: boolean
+      }
+      ws_ancestors: {
+        Args: { p_commit: string }
+        Returns: {
+          generation: number
+          id: string
+        }[]
+      }
+      ws_assert_read: {
+        Args: { p_agent: string; p_ws: string }
+        Returns: undefined
+      }
+      ws_blobs_in: {
+        Args: { p_shas: string[]; p_ws: string }
+        Returns: string[]
+      }
+      ws_can_push: {
+        Args: { p_agent: string; p_branch: string; p_ws: string }
+        Returns: boolean
+      }
+      ws_commit: {
+        Args: {
+          p_agent: string
+          p_branch: string
+          p_changes: Json
+          p_expected_head: string
+          p_message: string
+          p_ws: string
+        }
+        Returns: Json
+      }
+      ws_count_open: { Args: { p_ws: string }; Returns: undefined }
+      ws_create_branch: {
+        Args: { p_agent: string; p_from: string; p_name: string; p_ws: string }
+        Returns: Json
+      }
+      ws_create_internal: {
+        Args: {
+          p_agent: string
+          p_description: string
+          p_mission: string
+          p_name: string
+          p_open?: boolean
+          p_org: string
+          p_protect: boolean
+          p_required: number
+          p_slug: string
+          p_visibility: string
+        }
+        Returns: string
+      }
+      ws_delete_branch: {
+        Args: { p_agent: string; p_name: string; p_ws: string }
+        Returns: Json
+      }
+      ws_detail: { Args: { p_agent: string; p_ws: string }; Returns: Json }
+      ws_diff: {
+        Args: { p_agent: string; p_from: string; p_to: string; p_ws: string }
+        Returns: Json
+      }
+      ws_dir_conflict: { Args: { p_manifest: Json }; Returns: string }
+      ws_file: {
+        Args: { p_agent: string; p_path: string; p_ref: string; p_ws: string }
+        Returns: Json
+      }
+      ws_handle: { Args: { p_agent: string }; Returns: string }
+      ws_id: { Args: { p_ref: string }; Returns: string }
+      ws_is_ancestor: { Args: { p_a: string; p_b: string }; Returns: boolean }
+      ws_json: { Args: { p_ws: string }; Returns: Json }
+      ws_list: {
+        Args: {
+          p_agent: string
+          p_limit?: number
+          p_mine?: boolean
+          p_mission?: string
+          p_offset?: number
+          p_q?: string
+        }
+        Returns: Json
+      }
+      ws_log: {
+        Args: {
+          p_agent: string
+          p_limit?: number
+          p_offset?: number
+          p_path?: string
+          p_ref: string
+          p_ws: string
+        }
+        Returns: Json
+      }
+      ws_manifest: { Args: { p_commit: string }; Returns: Json }
+      ws_merge_base: { Args: { p_a: string; p_b: string }; Returns: string }
+      ws_merge_branches: {
+        Args: {
+          p_agent: string
+          p_from: string
+          p_into: string
+          p_message?: string
+          p_resolutions?: Json
+          p_ws: string
+        }
+        Returns: Json
+      }
+      ws_missing_blobs: {
+        Args: { p_agent: string; p_shas: string[]; p_ws: string }
+        Returns: string[]
+      }
+      ws_move_branch: {
+        Args: {
+          p_branch: string
+          p_expected: string
+          p_new_head: string
+          p_ws: string
+        }
+        Returns: undefined
+      }
+      ws_protect_branch: {
+        Args: {
+          p_agent: string
+          p_name: string
+          p_protected: boolean
+          p_ws: string
+        }
+        Returns: Json
+      }
+      ws_rank: { Args: { p_role: string }; Returns: number }
+      ws_read_blobs: {
+        Args: { p_agent: string; p_shas: string[]; p_ws: string }
+        Returns: Json
+      }
+      ws_readable: { Args: { p_ws: string }; Returns: boolean }
+      ws_refresh_crs: {
+        Args: { p_branch: string; p_ws: string }
+        Returns: undefined
+      }
+      ws_resolve_ref: { Args: { p_ref: string; p_ws: string }; Returns: string }
+      ws_role: { Args: { p_agent: string; p_ws: string }; Returns: string }
+      ws_set_member: {
+        Args: {
+          p_agent: string
+          p_handle: string
+          p_role: string
+          p_ws: string
+        }
+        Returns: Json
+      }
+      ws_store_tree: { Args: { p_manifest: Json }; Returns: string }
+      ws_three_way: {
+        Args: { p_base: Json; p_ours: Json; p_theirs: Json }
+        Returns: Json
+      }
+      ws_tree: {
+        Args: {
+          p_agent: string
+          p_path: string
+          p_recursive?: boolean
+          p_ref: string
+          p_ws: string
+        }
+        Returns: Json
+      }
+      ws_tree_hash: { Args: { p_manifest: Json }; Returns: string }
+      ws_unique_slug: { Args: { p_text: string }; Returns: string }
+      ws_valid_branch: { Args: { p: string }; Returns: boolean }
+      ws_valid_path: { Args: { p: string }; Returns: boolean }
+      ws_write_commit: {
+        Args: {
+          p_author: string
+          p_branch: string
+          p_expected: string
+          p_manifest: Json
+          p_message: string
+          p_parents: string[]
+          p_ws: string
+        }
         Returns: Json
       }
     }

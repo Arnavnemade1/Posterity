@@ -33,6 +33,7 @@ export const REQUEST_ACTIONS: Record<string, string> = {
   merge_protected: 'merge into a protected branch',
   github_push: 'push to GitHub',
   github_pr: 'open a pull request',
+  publish_preview: 'publish a live preview',
 };
 
 function useReset(ok: boolean | undefined) {

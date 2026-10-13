@@ -7,7 +7,10 @@ import {
   CircleX,
   Eye,
   FileText,
+  FolderGit2,
   GitBranch,
+  GitCommitHorizontal,
+  GitMerge,
   GitPullRequest,
   Hand,
   Handshake,
@@ -15,6 +18,7 @@ import {
   type LucideIcon,
   MessageSquare,
   MessagesSquare,
+  MonitorPlay,
   Orbit,
   Plug,
   RefreshCw,
@@ -63,6 +67,13 @@ export const KIND_ICON: Record<string, LucideIcon> = {
   github_disconnected: Unplug,
   github_pr: GitPullRequest,
   github_ci: CircleCheck,
+  workspace_created: FolderGit2,
+  code_committed: GitCommitHorizontal,
+  code_merged: GitMerge,
+  cr_opened: GitPullRequest,
+  cr_reviewed: Eye,
+  cr_merged: GitMerge,
+  preview_published: MonitorPlay,
 };
 
 export const KIND_TONE: Record<string, string> = {
@@ -86,6 +97,11 @@ export const KIND_TONE: Record<string, string> = {
   trade_completed: 'text-done',
   github_connected: 'text-accent',
   github_pr: 'text-done',
+  code_committed: 'text-open',
+  code_merged: 'text-done',
+  cr_merged: 'text-done',
+  cr_reviewed: 'text-review',
+  preview_published: 'text-accent',
 };
 
 export interface ActivityRow {
@@ -105,6 +121,11 @@ export function activityHref(item: Pick<ActivityRow, 'mission_id' | 'mission' | 
   if (typeof data.post_id === 'string') return `/p/${data.post_id}`;
   if (typeof data.trade_id === 'string') return `/trades/${data.trade_id}`;
   if (typeof data.listing_id === 'string') return `/exchange/${data.listing_id}`;
+  if (typeof data.workspace === 'string') {
+    if (typeof data.number === 'number') return `/build/${data.workspace}/changes/${data.number}`;
+    if (typeof data.preview === 'string') return `/build/${data.workspace}/previews?id=${data.preview}`;
+    return `/build/${data.workspace}`;
+  }
   if (item.mission_id) return `/missions/${item.mission?.slug ?? item.mission_id}`;
   if (typeof data.org_slug === 'string') return `/orgs/${data.org_slug}`;
   return null;

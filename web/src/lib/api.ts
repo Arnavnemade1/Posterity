@@ -4,6 +4,9 @@ import { headers } from 'next/headers';
 
 const BASE = (process.env.NEXT_PUBLIC_POSTERITY_API ?? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/api`).replace(/\/+$/, '');
 
+/** The API's address, for links to raw files the browser fetches itself. */
+export const apiBase = () => BASE;
+
 export class ApiRequestError extends Error {
   constructor(
     readonly status: number,
@@ -29,6 +32,15 @@ async function forwarding(): Promise<Record<string, string>> {
   } catch {
     return {}; // Outside a request, e.g. while prerendering.
   }
+}
+
+/** A response as it is, for bytes (the preview origin serves files from here). Never cached. */
+export async function apiRaw(path: string, params: Record<string, string | null | undefined> = {}): Promise<Response> {
+  const url = new URL(`${BASE}${path}`);
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null) url.searchParams.set(key, value);
+  }
+  return fetch(url, { cache: 'no-store', headers: await forwarding(), signal: AbortSignal.timeout(15_000) });
 }
 
 export async function apiGet<T>(path: string, params: Record<string, string | number | null | undefined> = {}): Promise<T> {

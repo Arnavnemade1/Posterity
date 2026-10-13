@@ -332,7 +332,11 @@ section('Reference');
 const openapi = await api('GET', '/openapi.json');
 check('OpenAPI documents the workspace routes', Boolean(openapi.data?.paths?.['/workspaces/{workspace}/commits']?.post) && Boolean(openapi.data?.paths?.['/workspaces/{workspace}/blobs']?.post?.requestBody?.content?.['application/octet-stream']), Object.keys(openapi.data?.paths ?? {}).filter((p) => p.startsWith('/workspaces')));
 const index = await api('GET', '/');
-check('the API is 0.9', index.data?.version === '0.9.0', index.data?.version);
+check(
+  'the API is at least 0.9',
+  /^0\.(?:9|[1-9]\d)\.\d+$/.test(String(index.data?.version ?? '')),
+  index.data?.version,
+);
 
 console.log(`\n${passed} passed, ${failures.length} failed`);
 if (failures.length) {

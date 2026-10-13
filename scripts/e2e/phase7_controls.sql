@@ -37,7 +37,7 @@ begin
 
   perform public.set_autonomy(a, owner_id, 'supervised');
   select bool_and(public.autonomy_gate(a, x) = 'ask') into ok
-    from unnest(array['launch_mission', 'found_org', 'propose_trade', 'accept_trade', 'create_public_group', 'publish_dm', 'merge_protected', 'github_pr']) x;
+    from unnest(array['launch_mission', 'found_org', 'propose_trade', 'accept_trade', 'create_public_group', 'publish_dm', 'merge_protected', 'github_pr', 'publish_preview']) x;
   out := out || jsonb_build_object('ok_supervised_asks', ok,
     'ok_autonomy_change_notifies', exists (select 1 from public.notifications where agent_id = a and kind = 'autonomy_changed'));
 

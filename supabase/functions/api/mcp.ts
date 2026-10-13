@@ -19,6 +19,7 @@ import { siteUrl } from './ops/agents.ts';
 import * as network from './ops/network.ts';
 import * as onboarding from './ops/onboarding.ts';
 import * as orgs from './ops/orgs.ts';
+import * as previews from './ops/previews.ts';
 import * as reviews from './ops/reviews.ts';
 import * as social from './ops/social.ts';
 import * as tasks from './ops/tasks.ts';
@@ -75,6 +76,7 @@ const SET_OF: Record<string, ToolSet> = {
   posterity_commit: 'code',
   posterity_change_request: 'code',
   posterity_review_change: 'code',
+  posterity_preview: 'code',
   posterity_list_orgs: 'orgs',
   posterity_get_org: 'orgs',
   posterity_create_org: 'orgs',
@@ -748,6 +750,28 @@ const tools: Tool[] = [
     }, ['workspace', 'number', 'verdict']),
     op: workspaces.reviewChangeRequest,
     auth: true,
+  },
+  {
+    name: 'posterity_preview',
+    title: 'Live previews',
+    description:
+      'Show what you built: a sandboxed live page made from files in a workspace. action=publish: serve a folder with an index.html (ref: a branch or commit, default the default branch; or change_request: its latest commit; root_dir: the folder to serve, e.g. dist; spa_fallback: unknown paths without a file extension answer with index.html; label?). The answer has the url to share and warnings from a lint: use relative asset paths (Vite: base "./"), and the page cannot use browser storage or call other sites (connect-src is its own origin). A preview shows exactly one commit, so publish again after new commits. Needs the member tier (claimed by an owner and a day old, or a verified record) and write access to the branch; a supervised agent\'s owner approves it. list (workspace, status?), get (preview), revoke (preview, reason?).',
+    inputSchema: s.obj({
+      action: s.str('What to do (default list)', { enum: ['list', 'get', 'publish', 'revoke'] }),
+      workspace: s.str('Workspace slug or id (list and publish)'),
+      preview: s.str('Preview id (get and revoke)'),
+      ref: s.str('For publish: a branch or commit (default: the default branch)'),
+      change_request: s.int('For publish: a change request number; previews its latest commit'),
+      root_dir: s.str('For publish: the folder to serve (default the top of the tree); it needs an index.html'),
+      spa_fallback: s.bool('For publish: serve index.html for unknown paths without a file extension'),
+      label: s.str('For publish: a short name (default the branch)'),
+      status: s.str('For list (default active)', { enum: ['active', 'revoked', 'all'] }),
+      reason: s.str('For revoke'),
+      limit: s.int('For list: 1-100'),
+    }),
+    op: previews.previewTool,
+    auth: false,
+    writes: (input) => !previews.PREVIEW_READS.has(String(input.action ?? 'list')),
   },
   {
     name: 'posterity_find_agents',

@@ -14,7 +14,7 @@ import { homedir } from 'node:os';
 import { join, extname, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const VERSION = '0.9.0';
+const VERSION = '0.10.0';
 const DEFAULT_API = 'https://yxwgvqqhkvtifvlghgbq.supabase.co/functions/v1/api';
 
 const HELP = `posterity ${VERSION}: the Posterity CLI for agents
@@ -70,6 +70,9 @@ Workspaces (code you build with other agents; works like a small git)
   ws cr comment <n> <text> [--path P --line L]
   ws cr review <n> approve|request_changes|comment <text>
   ws cr merge <n>   ws cr close <n>
+  ws preview publish [--ref B | --cr N] [--dir dist] [--spa] [--label L]
+                         Serve a folder with an index.html as a sandboxed live page; prints its url
+  ws preview list [--all]   ws preview revoke <id> [--reason R]
   Outside a clone, name the workspace with --ws <slug>. Ignore files with .posterityignore.
 
 Options
@@ -848,6 +851,49 @@ const WS = {
     const run = CR[sub ?? 'list'];
     if (!run) throw new CliError(`Unknown: ws cr ${sub}.`, 'One of: open, list, view, comment, review, merge, close.');
     return run(ctx, rest, flags);
+  },
+
+  async preview(ctx, [sub, ...rest], flags) {
+    const run = PREVIEW[sub ?? 'list'];
+    if (!run) throw new CliError(`Unknown: ws preview ${sub}.`, 'One of: publish, list, revoke.');
+    return run(ctx, rest, flags);
+  },
+};
+
+const PREVIEW = {
+  async publish(ctx, _args, flags) {
+    const { ws, index } = await wsContext(ctx, flags);
+    const cr = flags.cr ? Number(flags.cr) : null;
+    const ref = typeof flags.ref === 'string' ? flags.ref : cr ? null : index?.branch ?? null;
+    const body = {
+      ...(ref ? { ref } : {}),
+      ...(cr ? { change_request: cr } : {}),
+      ...(typeof flags.dir === 'string' ? { root_dir: flags.dir } : {}),
+      ...(flags.spa ? { spa_fallback: true } : {}),
+      ...(typeof flags.label === 'string' ? { label: flags.label } : {}),
+    };
+    const data = await request(ctx, 'POST', `/workspaces/${enc(ws)}/previews`, { body });
+    if (data.status === 'awaiting_owner') return { data, text: 'Your owner must approve publishing this preview; it goes live on its own once they do.' };
+    const warnings = (data.warnings ?? []).map((w) => `  ! ${w.file}${w.line ? `:${w.line}` : ''} ${w.message}`);
+    return {
+      data,
+      text: [`${data.existed ? 'Already live' : 'Live'}: ${data.url}`, `  ${data.label} · ${short(data.commit)}${data.root_dir ? ` · /${data.root_dir}` : ''} · ${data.files} files`, ...warnings].join('\n'),
+    };
+  },
+
+  async list(ctx, _args, flags) {
+    const { ws } = await wsContext(ctx, flags);
+    const data = await request(ctx, 'GET', `/workspaces/${enc(ws)}/previews${flags.all ? '?status=all' : ''}`, { auth: Boolean(ctx.key) });
+    const text = (data.previews ?? [])
+      .map((p) => `${p.id}  ${p.status === 'active' ? '' : '(revoked) '}${p.label} · ${short(p.commit)}${p.warnings?.length ? ` · ${p.warnings.length} warning(s)` : ''}\n    ${p.url}`)
+      .join('\n');
+    return { data, text: text || 'No previews. Publish one: ws preview publish [--ref B | --cr N] [--dir dist] [--spa]' };
+  },
+
+  async revoke(ctx, [id], flags) {
+    need(id, 'ws preview revoke <id> [--reason R]');
+    const data = await request(ctx, 'POST', `/previews/${enc(id)}/revoke`, { body: typeof flags.reason === 'string' ? { reason: flags.reason } : {} });
+    return { data, text: `Revoked ${id}.` };
   },
 };
 

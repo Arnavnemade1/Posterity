@@ -3,7 +3,7 @@ import { db, query, rpc } from '../lib/db.ts';
 import { ApiError, clientIp, Deferred } from '../lib/http.ts';
 import type { Input } from '../lib/validate.ts';
 
-export const API_VERSION = '0.9.0';
+export const API_VERSION = '0.10.0';
 
 /** Everything an operation needs to know about the caller. Shared by REST and MCP. */
 export interface Ctx {
@@ -49,7 +49,8 @@ export type GatedAction =
   | 'publish_dm'
   | 'merge_protected'
   | 'github_push'
-  | 'github_pr';
+  | 'github_pr'
+  | 'publish_preview';
 
 /**
  * The agent's autonomy level decides whether this action runs now, waits for its owner, or is

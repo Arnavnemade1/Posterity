@@ -11,6 +11,7 @@ import { array, bool, id, type Input, int, object, oneOf, optionalId, str, strLi
 import { type Ctx, gate, limit, requireAgent } from './context.ts';
 import { resolveMissionId } from './missions.ts';
 import { resolveOrgId } from './orgs.ts';
+import { previewUrl } from './previews.ts';
 
 const BUCKET = 'workspace-blobs';
 const TEXT_MAX = 1_048_576;
@@ -213,9 +214,10 @@ export async function workspaceTool(ctx: Ctx, input: Input) {
   }
   if (action === 'get') {
     const ws = await wsId(input);
-    const [detail, log] = await Promise.all([
+    const [detail, log, previews] = await Promise.all([
       rpc<Record<string, unknown> & { slug: string; your_role: string | null; open_contribution: boolean }>('ws_detail', { p_ws: ws, p_agent: ctx.agent?.id ?? null }),
       rpc<{ commits: unknown[] }>('ws_log', { p_ws: ws, p_agent: ctx.agent?.id ?? null, p_ref: null, p_path: null, p_limit: 10, p_offset: 0 }),
+      rpc<{ id: string }[]>('preview_list', { p_ws: ws, p_agent: ctx.agent?.id ?? null, p_status: 'active', p_limit: 5 }),
     ]);
     const role = detail.your_role;
     const contribute = role === 'owner' || role === 'maintainer' || role === 'writer'
@@ -223,7 +225,13 @@ export async function workspaceTool(ctx: Ctx, input: Input) {
       : detail.open_contribution && ctx.agent
         ? `Push to a branch named "${ctx.agent.handle}/<topic>", then open a change request into ${detail.default_branch}.`
         : 'Read-only for you. Ask a maintainer to add you as a writer.';
-    return { ...detail, recent_commits: log.commits, how_to_contribute: contribute, ...pathHint(detail.slug) };
+    return {
+      ...detail,
+      recent_commits: log.commits,
+      previews: previews.map((p) => ({ ...p, url: previewUrl(p.id) })),
+      how_to_contribute: contribute,
+      ...pathHint(detail.slug),
+    };
   }
 
   const agent = requireAgent(ctx);
@@ -672,7 +680,7 @@ interface CrJson {
 /** A change request with its reviews, comments, checks and the files it changes. */
 async function crDetail(ws: string, agent: string | null, cr: string, patch: boolean) {
   const json = await rpc<CrJson>('cr_json', { p_cr: cr });
-  const [reviews, comments, checks, changes] = await Promise.all([
+  const [reviews, comments, checks, previews, changes] = await Promise.all([
     query(
       db().from('cr_reviews')
         .select('id, verdict, body, commit_id, independent, created_at, reviewer:agents!cr_reviews_reviewer_agent_id_fkey(handle)')
@@ -684,6 +692,9 @@ async function crDetail(ws: string, agent: string | null, cr: string, patch: boo
         .eq('change_request_id', cr).order('created_at').limit(500),
     ),
     query(db().from('cr_checks').select('name, status, details, url, commit_id, updated_at').eq('change_request_id', cr).order('name')),
+    query<{ id: string }[]>(
+      db().from('previews').select('id, label, commit_id, warnings, created_at').eq('change_request_id', cr).eq('status', 'active').order('created_at', { ascending: false }).limit(5),
+    ),
     json.base_commit && json.head_commit ? diff(ws, agent, json.base_commit, json.head_commit, patch) : Promise.resolve(null),
   ]);
   const flat = <T extends Record<string, unknown>>(rows: T[], key: string) =>
@@ -694,6 +705,7 @@ async function crDetail(ws: string, agent: string | null, cr: string, patch: boo
     reviews: flat(reviews as Record<string, unknown>[], 'reviewer'),
     comments: flat(comments as Record<string, unknown>[], 'author'),
     checks,
+    previews: previews.map((p) => ({ ...p, url: previewUrl(p.id) })),
     review_guide:
       'Read the changes (files[].hunks), then review with posterity_review_change (approve, request_changes with what to fix, or comment). Comment on a line with {path, line, body}; side "old" refers to the base version.',
   };

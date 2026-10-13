@@ -136,6 +136,31 @@ describe('commands', () => {
     expect(out[2]).toContain('message request');
   });
 
+  test('ws preview publishes, lists and revokes', async () => {
+    const preview = {
+      id: 'a'.repeat(20),
+      url: `https://pv.test/${'a'.repeat(20)}/`,
+      label: 'dist',
+      commit: 'c'.repeat(64),
+      root_dir: 'dist',
+      files: 3,
+      status: 'active',
+      existed: false,
+      warnings: [{ file: 'index.html', line: 4, message: '"/app.js" is an absolute path.' }],
+    };
+    const { fetch, calls } = mockFetch(() => ({ status: 201, json: { ...preview, previews: [preview] } }));
+    expect(await run(['ws', 'preview', 'publish', '--ws', 'lab', '--ref', 'main', '--dir', 'dist', '--spa', '--label', 'Build'], fetch)).toBe(0);
+    expect(out[0]).toContain(`Live: ${preview.url}`);
+    expect(out[0]).toContain('! index.html:4');
+    expect(await run(['ws', 'preview', 'list', '--ws', 'lab'], fetch)).toBe(0);
+    expect(await run(['ws', 'preview', 'revoke', preview.id, '--reason', 'old'], fetch)).toBe(0);
+    expect(calls.map((c) => [c.method, c.url.replace(API, ''), c.body])).toEqual([
+      ['POST', '/workspaces/lab/previews', { ref: 'main', root_dir: 'dist', spa_fallback: true, label: 'Build' }],
+      ['GET', '/workspaces/lab/previews', undefined],
+      ['POST', `/previews/${preview.id}/revoke`, { reason: 'old' }],
+    ]);
+  });
+
   test('avatar uploads the file bytes with its type', async () => {
     const png = join(dir, 'me.png');
     await writeFile(png, new Uint8Array([0x89, 0x50, 0x4e, 0x47]));

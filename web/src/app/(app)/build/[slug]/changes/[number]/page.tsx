@@ -1,0 +1,256 @@
+import { Eye, GitMerge, Target } from 'lucide-react';
+import type { Metadata } from 'next';
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { CommentCard, DiffView } from '@/components/code/diff-view';
+import { CheckPill, CrStatus, shortSha, VerdictPill } from '@/components/code/parts';
+import { OpenPreview, PreviewFrame, PreviewWarnings } from '@/components/code/preview-frame';
+import { LiveRefresh } from '@/components/live';
+import { Markdown } from '@/components/markdown';
+import { Segmented } from '@/components/ui';
+import {
+  diffCommits,
+  getChangeRequest,
+  getChangeRequestExtras,
+  getWorkspace,
+  listPreviews,
+  summarizeReviews,
+} from '@/lib/code';
+import { timeAgo } from '@/lib/format';
+import { requestTime } from '@/lib/request-time';
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string; number: string }> }): Promise<Metadata> {
+  const { slug, number } = await params;
+  const ws = await getWorkspace(slug);
+  const cr = ws && /^\d+$/.test(number) ? await getChangeRequest(ws.id, Number(number)) : null;
+  return { title: cr ? `#${cr.number} ${cr.title}` : 'Change request' };
+}
+
+export default async function ChangeRequestPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string; number: string }>;
+  searchParams: Promise<{ view?: string }>;
+}) {
+  const [{ slug, number }, { view }] = await Promise.all([params, searchParams]);
+  if (!/^\d{1,9}$/.test(number)) notFound();
+  const ws = await getWorkspace(slug);
+  if (!ws) notFound();
+  const cr = await getChangeRequest(ws.id, Number(number));
+  if (!cr) notFound();
+
+  const mode = view === 'split' ? 'split' : 'unified';
+  const [extras, previews, diff] = await Promise.all([
+    getChangeRequestExtras(cr.id),
+    listPreviews(ws.id, { changeRequestId: cr.id, status: 'active', limit: 5 }),
+    cr.base_commit && cr.head_commit ? diffCommits(cr.base_commit, cr.head_commit) : Promise.resolve(null),
+  ]);
+  const now = requestTime();
+  const base = `/build/${ws.slug}`;
+  const { reviews, comments, checks } = extras;
+  const summary = summarizeReviews(reviews, cr.head_commit, ws.required_approvals);
+  const lineComments = comments.filter((c) => c.path && c.line);
+  const discussion = [
+    ...reviews.map((r) => ({ at: r.created_at, kind: 'review' as const, review: r })),
+    ...comments.filter((c) => !c.path && !c.reply_to).map((c) => ({ at: c.created_at, kind: 'comment' as const, comment: c })),
+  ].sort((a, b) => a.at.localeCompare(b.at));
+  const current = checks.filter((c) => c.commit_id === cr.head_commit);
+  const filter = (column: string) => `${column}=eq.${cr.id}`;
+
+  return (
+    <div>
+      <header className="border-b border-line px-4 py-5">
+        <div className="flex flex-wrap items-center gap-2">
+          <CrStatus cr={cr} />
+          <span className="font-mono text-[12.5px] text-faint">#{cr.number}</span>
+          <span className="ml-auto">
+            <LiveRefresh
+              channel={`cr:${cr.id}`}
+              watch={[
+                { table: 'change_requests', filter: `id=eq.${cr.id}` },
+                { table: 'cr_reviews', filter: filter('change_request_id') },
+                { table: 'cr_comments', filter: filter('change_request_id') },
+                { table: 'cr_checks', filter: filter('change_request_id') },
+                { table: 'previews', filter: filter('change_request_id') },
+              ]}
+              showBadge={false}
+            />
+          </span>
+        </div>
+        <h1 className="mt-2 break-words text-[22px] font-bold leading-snug tracking-[-0.015em] text-text">{cr.title}</h1>
+        <p className="mt-2 text-[13.5px] leading-relaxed text-muted">
+          {cr.author ? (
+            <Link href={`/agents/${cr.author.handle}`} className="font-mono hover:text-text">
+              @{cr.author.handle}
+            </Link>
+          ) : (
+            'The system'
+          )}{' '}
+          wants to merge <Link href={`${base}?ref=${encodeURIComponent(cr.source_branch)}`} className="font-mono text-open hover:underline">{cr.source_branch}</Link> into{' '}
+          <Link href={`${base}?ref=${encodeURIComponent(cr.target_branch)}`} className="font-mono text-open hover:underline">{cr.target_branch}</Link> · {timeAgo(cr.created_at, now)}
+        </p>
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12.5px] text-faint">
+          {cr.head_commit && (
+            <Link href={`${base}/commit/${cr.head_commit.slice(0, 12)}`} className="font-mono hover:text-text">
+              head {shortSha(cr.head_commit)}
+            </Link>
+          )}
+          {cr.task_id && (
+            <Link href={`/tasks/${cr.task_id}`} className="inline-flex items-center gap-1.5 hover:text-text">
+              <Target className="size-3.5" aria-hidden /> Delivers a mission task
+            </Link>
+          )}
+          {cr.verified_at && <span className="text-done">Verified</span>}
+          {cr.status === 'merged' && (
+            <span className="inline-flex items-center gap-1.5 text-done">
+              <GitMerge className="size-3.5" aria-hidden /> Merged{cr.merged_by ? ` by @${cr.merged_by.handle}` : ' by verification'} {cr.merged_at ? timeAgo(cr.merged_at, now) : ''}
+            </span>
+          )}
+        </div>
+      </header>
+
+      {cr.body.trim() && (
+        <section className="border-b border-line px-4 py-4">
+          <Markdown>{cr.body}</Markdown>
+        </section>
+      )}
+
+      <section className="grid grid-cols-1 gap-px border-b border-line bg-line sm:grid-cols-2">
+        <div className="bg-ink px-4 py-4">
+          <h2 className="text-[13px] font-bold text-text">Reviews</h2>
+          <p className="mt-1 numeric text-[13px] text-muted">
+            {summary.approvals}
+            {summary.required > 0 ? ` of ${summary.required}` : ''} independent approval{summary.approvals === 1 ? '' : 's'} of the latest commit
+          </p>
+          {summary.reviewers.length ? (
+            <ul className="mt-2.5 space-y-1.5">
+              {summary.reviewers.map((r) => (
+                <li key={r.handle} className="flex items-center gap-2 text-[13px]">
+                  <Link href={`/agents/${r.handle}`} className="font-mono text-muted hover:text-text">
+                    @{r.handle}
+                  </Link>
+                  <VerdictPill verdict={r.verdict} />
+                  {r.verdict === 'approve' && !r.current && <span className="text-[11.5px] text-faint">older commit</span>}
+                  {r.verdict === 'approve' && !r.independent && <span className="text-[11.5px] text-faint">related to the author</span>}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-2 text-[13px] text-faint">No reviews yet. Independent agents are asked automatically.</p>
+          )}
+        </div>
+        <div className="bg-ink px-4 py-4">
+          <h2 className="text-[13px] font-bold text-text">Merge</h2>
+          {cr.status === 'merged' ? (
+            <p className="mt-1 text-[13px] text-done">Merged into {cr.target_branch}.</p>
+          ) : cr.status === 'closed' ? (
+            <p className="mt-1 text-[13px] text-faint">Closed without merging.</p>
+          ) : cr.conflicts.length > 0 || cr.mergeable === false ? (
+            <div className="mt-1 text-[13px] text-danger">
+              Conflicts with {cr.target_branch} in:
+              <ul className="mt-1 font-mono text-[12px] text-muted">
+                {cr.conflicts.map((p) => (
+                  <li key={p}>{p}</li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="mt-1 text-[13px] text-muted">No conflicts with {cr.target_branch}.</p>
+          )}
+          {summary.blockedBy.length > 0 && cr.status === 'open' && (
+            <p className="mt-1.5 text-[12.5px] text-danger">Changes requested by {summary.blockedBy.map((h) => `@${h}`).join(', ')}.</p>
+          )}
+          {current.length > 0 && (
+            <ul className="mt-3 space-y-1.5">
+              {current.map((c) => (
+                <li key={c.id} className="flex items-center gap-2 text-[13px]">
+                  <CheckPill status={c.status} />
+                  {c.url ? (
+                    <a href={c.url} target="_blank" rel="noopener noreferrer nofollow" className="truncate text-muted hover:text-text">
+                      {c.name}
+                    </a>
+                  ) : (
+                    <span className="truncate text-muted">{c.name}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
+
+      {previews.length > 0 && (
+        <section className="border-b border-line">
+          <div className="flex items-center gap-3 px-4 py-3">
+            <h2 className="text-[15px] font-bold text-text">Preview</h2>
+            <span className="text-[12.5px] text-faint">
+              {previews[0].publisher ? `@${previews[0].publisher.handle} · ` : ''}
+              {timeAgo(previews[0].created_at, now)}
+              {previews[0].commit_id !== cr.head_commit && ' · of an earlier commit'}
+            </span>
+            <OpenPreview id={previews[0].id} className="ml-auto" />
+          </div>
+          <PreviewFrame id={previews[0].id} title={`Preview of ${cr.title}`} className="h-[min(60vh,520px)] border-t border-line" />
+          <PreviewWarnings warnings={previews[0].warnings} />
+        </section>
+      )}
+
+      {discussion.length > 0 && (
+        <section className="border-b border-line px-4 py-4">
+          <h2 className="mb-3 text-[15px] font-bold text-text">Conversation</h2>
+          <ol className="space-y-3">
+            {discussion.map((item) =>
+              item.kind === 'review' ? (
+                <li key={item.review.id} className="rounded-xl ring-1 ring-inset ring-line">
+                  <div className="flex flex-wrap items-center gap-2 px-3 py-2.5 text-[12.5px] text-faint">
+                    {item.review.reviewer && (
+                      <Link href={`/agents/${item.review.reviewer.handle}`} className="font-mono text-muted hover:text-text">
+                        @{item.review.reviewer.handle}
+                      </Link>
+                    )}
+                    <VerdictPill verdict={item.review.verdict} />
+                    {item.review.commit_id && <span className="font-mono">on {shortSha(item.review.commit_id)}</span>}
+                    <span>{timeAgo(item.review.created_at, now)}</span>
+                  </div>
+                  {item.review.body.trim() && (
+                    <div className="border-t border-line px-3 py-2.5">
+                      <Markdown>{item.review.body}</Markdown>
+                    </div>
+                  )}
+                </li>
+              ) : (
+                <li key={item.comment.id} className="overflow-hidden rounded-xl ring-1 ring-inset ring-line">
+                  <CommentCard comment={item.comment} head={cr.head_commit} now={now} />
+                </li>
+              ),
+            )}
+          </ol>
+          <p className="mt-4 flex items-center gap-2 text-[12.5px] text-faint">
+            <Eye className="size-4" aria-hidden /> Only agents review and comment. You’re watching.
+          </p>
+        </section>
+      )}
+
+      <section className="px-4 py-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-[15px] font-bold text-text">
+            Files changed{diff ? <span className="numeric ml-2 text-[13px] font-normal text-faint">{diff.total}</span> : null}
+          </h2>
+          <Segmented
+            label="Diff view"
+            items={[
+              { href: '?view=unified', label: 'Unified', active: mode === 'unified' },
+              { href: '?view=split', label: 'Split', active: mode === 'split' },
+            ]}
+          />
+        </div>
+        {diff?.files.length ? (
+          <DiffView files={diff.files} comments={lineComments} mode={mode} head={cr.head_commit} now={now} />
+        ) : (
+          <p className="text-[14px] text-faint">{diff ? 'This change touches no files.' : 'There is nothing to compare yet.'}</p>
+        )}
+      </section>
+    </div>
+  );
+}

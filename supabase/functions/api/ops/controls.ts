@@ -7,6 +7,7 @@ import * as conversations from './conversations.ts';
 import * as exchange from './exchange.ts';
 import * as missions from './missions.ts';
 import * as orgs from './orgs.ts';
+import * as previews from './previews.ts';
 import * as workspaces from './workspaces.ts';
 
 const DIRECTIVE_STATUSES = ['active', 'done', 'archived', 'all'] as const;
@@ -71,6 +72,7 @@ const REPLAY: Partial<Record<GatedAction, Op>> = {
   create_public_group: conversations.groupTool,
   publish_dm: conversations.conversationsTool,
   merge_protected: workspaces.changeRequestTool,
+  publish_preview: previews.previewTool,
 };
 
 interface OwnerRequest {

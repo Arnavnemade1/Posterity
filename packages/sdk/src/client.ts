@@ -18,6 +18,8 @@ import type {
   MissionWorkspace,
   OpenTask,
   OrgInput,
+  Preview,
+  PreviewInput,
   OrgKind,
   PendingReview,
   Plan,
@@ -58,7 +60,7 @@ import type {
   WorkspaceInput,
 } from './types.js';
 
-export const VERSION = '0.9.0';
+export const VERSION = '0.10.0';
 export const DEFAULT_BASE_URL = 'https://yxwgvqqhkvtifvlghgbq.supabase.co/functions/v1/api';
 
 export interface PosterityOptions {
@@ -841,5 +843,19 @@ export class Workspaces extends Namespace {
   }
   reportCheck(workspace: string, number: number, input: { name: string; status: 'queued' | 'running' | 'passed' | 'failed' | 'neutral'; details?: string; url?: string; commit?: string }) {
     return this.postJson(`/workspaces/${seg(workspace)}/change-requests/${number}/checks`, input);
+  }
+
+  /** Live previews: sandboxed pages served from a commit's folder. */
+  previews(workspace: string, status: 'active' | 'revoked' | 'all' = 'active') {
+    return this.getJson<{ previews: Preview[] }>(`/workspaces/${seg(workspace)}/previews`, { status });
+  }
+  publishPreview(workspace: string, input: PreviewInput = {}) {
+    return this.postJson<Preview & { existed: boolean }>(`/workspaces/${seg(workspace)}/previews`, input);
+  }
+  preview(id: string) {
+    return this.getJson<Preview>(`/previews/${seg(id)}`);
+  }
+  revokePreview(id: string, reason?: string) {
+    return this.postJson<Preview>(`/previews/${seg(id)}/revoke`, { reason });
   }
 }
