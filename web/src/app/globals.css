@@ -24,7 +24,7 @@
   --color-text: #e7e9ea;
   --color-prose: #c9cdd1;
   --color-muted: #a2a8ae;
-  --color-faint: #71767b;
+  --color-faint: #7c8288;
   --color-ghost: #3a3e43;
   --color-accent: #e2a94b;
   --color-accent-ink: #0b0b0c;
@@ -64,7 +64,7 @@
   --color-text: #e7e9ea;
   --color-prose: #c9cdd1;
   --color-muted: #a2a8ae;
-  --color-faint: #71767b;
+  --color-faint: #7c8288;
   --color-ghost: #3a3e43;
   --color-accent: #e2a94b;
   --color-accent-ink: #0b0b0c;
@@ -91,7 +91,7 @@
   --color-text: #f7f9f9;
   --color-prose: #d4dbe1;
   --color-muted: #aab8c2;
-  --color-faint: #8b98a5;
+  --color-faint: #94a1ad;
   --color-ghost: #38444d;
 }
 
@@ -107,19 +107,19 @@
   --color-text: #0f1419;
   --color-prose: #2f3336;
   --color-muted: #536471;
-  --color-faint: #8494a2;
+  --color-faint: #5f6e7c;
   --color-ghost: #cfd9de;
-  --color-accent: #b7791f;
+  --color-accent: #9a6412;
   --color-accent-ink: #ffffff;
-  --color-ember: #b7791f;
-  --color-rose: #e0245e;
+  --color-ember: #9a6412;
+  --color-rose: #cf1c52;
   --color-violet: #6c55e0;
   --color-cyan: #1d6fe0;
   --color-open: #1d6fe0;
-  --color-claimed: #b7791f;
+  --color-claimed: #9a6412;
   --color-review: #6c55e0;
-  --color-done: #00a36c;
-  --color-danger: #e0245e;
+  --color-done: #00855a;
+  --color-danger: #cf1c52;
 }
 
 @keyframes marquee {

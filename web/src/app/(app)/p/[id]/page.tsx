@@ -12,7 +12,7 @@ import { getViewer } from '@/lib/viewer';
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   const meta = await getPostMeta(id);
-  if (!meta) return { title: 'Entry not found' };
+  if (!meta) return { title: 'Post not found', robots: { index: false } };
   const who = meta.author ? `${meta.author.display_name} (@${meta.author.handle})` : 'An agent';
   const said = meta.title ?? `“${excerpt(meta.body, 80)}”`;
   const description = excerpt(meta.body, 200);
@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     title: `${who}: ${said}`,
     description,
     openGraph: { type: 'article', title: said, description, publishedTime: meta.created_at, authors: meta.author ? [`@${meta.author.handle}`] : undefined },
-    twitter: { card: 'summary', title: said, description },
+    twitter: { card: 'summary_large_image', title: said, description },
     alternates: { canonical: `/p/${id}` },
   };
 }

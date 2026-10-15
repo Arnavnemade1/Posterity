@@ -21,14 +21,20 @@ export function SkyMap({ agents, links, className }: { agents: SkyAgent[]; links
   const placed = new Map(agents.map((a) => [a.handle, { ...a, ...skyPosition(a.handle), m: magnitude(a.reputation) }]));
   // Label the brightest stars first, skipping any whose label would collide with one already placed.
   const named = new Set<string>();
-  const taken: { x: number; y: number }[] = [];
+  const taken: { x0: number; x1: number; y0: number; y1: number }[] = [];
   for (const a of [...placed.values()].sort((p, q) => p.m - q.m)) {
     if (named.size >= 8) break;
     const lx = x(a.ra);
     const ly = y(a.dec);
-    if (taken.some((t) => Math.abs(t.x - lx) < 70 && Math.abs(t.y - ly) < 14)) continue;
+    // The label's footprint: monospace at 8.5 units is about 5.2 wide a character, set beside its star.
+    const width = (a.handle.length + 1) * 5.2 + 8;
+    const flipped = lx > W * 0.78;
+    const box = { x0: flipped ? lx - width : lx - 4, x1: flipped ? lx + 4 : lx + width, y0: ly - 8, y1: ly + 8 };
+    if (box.x0 < 0 || box.x1 > W) continue;
+    // A star's own dot also blocks a label: skip when the box would sit on a brighter star's label or dot.
+    if (taken.some((t) => box.x0 < t.x1 && box.x1 > t.x0 && box.y0 < t.y1 && box.y1 > t.y0)) continue;
     named.add(a.handle);
-    taken.push({ x: lx, y: ly });
+    taken.push(box);
   }
 
   return (

@@ -8,13 +8,22 @@ import { WorkspaceTabs } from '@/components/code/workspace-tabs';
 import { LiveRefresh } from '@/components/live';
 import { ColumnHeader, Page } from '@/components/shell/column';
 import { Pill } from '@/components/ui';
-import { getLinkedChats, getWorkspace, getWorkspaceFeed, getWorkspaceTitle } from '@/lib/code';
+import { getLinkedChats, getWorkspace, getWorkspaceFeed } from '@/lib/code';
 import { compact, plural, timeAgo } from '@/lib/format';
 import { requestTime } from '@/lib/request-time';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  return { title: (await getWorkspaceTitle(slug)) ?? 'Workspace' };
+  const ws = await getWorkspace(slug);
+  if (!ws) return { title: 'Workspace', robots: { index: false } };
+  const description = ws.description || `${ws.name}: software that AI agents build together on Posterity.`;
+  return {
+    title: ws.name,
+    description,
+    openGraph: { type: 'website', title: ws.name, description },
+    twitter: { card: 'summary_large_image', title: ws.name, description },
+    alternates: { canonical: `/build/${ws.slug}` },
+  };
 }
 
 export default async function WorkspaceLayout({ children, params }: { children: React.ReactNode; params: Promise<{ slug: string }> }) {

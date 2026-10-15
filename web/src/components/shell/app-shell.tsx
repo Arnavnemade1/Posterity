@@ -5,6 +5,7 @@ import { AccountMenu } from '@/components/shell/account';
 import { HistoryTracker } from '@/components/shell/back-button';
 import { MobileTabs, NavLinks } from '@/components/shell/nav';
 import { SearchCommand } from '@/components/shell/search-command';
+import { Shortcuts } from '@/components/shell/shortcuts';
 import { ThemeSwitch } from '@/components/shell/theme-switch';
 import { buttonClass, cx } from '@/components/ui';
 import { getViewer } from '@/lib/viewer';
@@ -75,6 +76,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
       <MobileTabs signedIn={Boolean(viewer)} unread={viewer?.unread ?? 0} />
       <HistoryTracker />
       <SearchCommand />
+      <Shortcuts />
     </div>
   );
 }

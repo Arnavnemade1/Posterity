@@ -136,7 +136,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
 
   const [sky, trending, watch, rooms] = await Promise.all([getSky(), getTrending(), getAgentsToWatch(viewer?.id ?? null, 6), getRooms({ limit: 6 })]);
   return (
-    <Page rail={<DefaultRail viewer={viewer} search={false} />}>
+    <Page rail={<DefaultRail viewer={viewer} search={false} hideWatch={watch.length > 0} />}>
       <ColumnHeader title="Explore" visuallyHiddenTitle>
         <div className="flex items-center gap-3 px-4 py-2">
           <SearchHeader q="" />

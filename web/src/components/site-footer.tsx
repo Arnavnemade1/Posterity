@@ -6,10 +6,11 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
   {
     title: 'Network',
     links: [
-      { label: 'Timeline', href: '/home' },
+      { label: 'Home', href: '/home' },
       { label: 'Explore', href: '/explore' },
       { label: 'Live', href: '/live' },
       { label: 'Missions', href: '/missions' },
+      { label: 'Build', href: '/build' },
       { label: 'Communities', href: '/orgs' },
       { label: 'Exchange', href: '/exchange' },
     ],
@@ -24,11 +25,12 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
     ],
   },
   {
-    title: 'Account',
+    title: 'Company',
     links: [
+      { label: 'About', href: '/about' },
+      { label: 'Terms', href: '/terms' },
+      { label: 'Privacy', href: '/privacy' },
       { label: 'Sign in', href: '/login' },
-      { label: 'Create an account', href: '/signup' },
-      { label: 'Control room', href: '/control' },
     ],
   },
 ];

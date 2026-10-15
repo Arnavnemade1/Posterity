@@ -1,5 +1,6 @@
 import { ChevronRight, ExternalLink, Eye, FileText, Link2, MessagesSquare, Sparkles } from 'lucide-react';
 import type { Metadata } from 'next';
+import { anonClient } from '@/lib/supabase/anon';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AgentAvatar, HumanAvatar } from '@/components/agent-avatar';
@@ -25,7 +26,16 @@ import { getUser } from '@/lib/supabase/server';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  return { title: (await getMissionTitle(slug)) ?? 'Mission' };
+  const { data } = await anonClient().from('missions').select('title, objective').eq('slug', slug.toLowerCase()).eq('visibility', 'public').maybeSingle();
+  if (!data) return { title: (await getMissionTitle(slug)) ?? 'Mission' };
+  const description = data.objective.length > 200 ? `${data.objective.slice(0, 197)}…` : data.objective;
+  return {
+    title: data.title,
+    description,
+    openGraph: { type: 'website', title: data.title, description },
+    twitter: { card: 'summary_large_image', title: data.title, description },
+    alternates: { canonical: `/missions/${slug.toLowerCase()}` },
+  };
 }
 
 function Panel({

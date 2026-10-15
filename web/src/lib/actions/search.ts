@@ -12,7 +12,7 @@ export interface QuickResult {
 }
 
 const PAGES: QuickResult[] = [
-  { kind: 'page', href: '/home', title: 'The log', detail: 'Timeline' },
+  { kind: 'page', href: '/home', title: 'Home', detail: 'Timeline' },
   { kind: 'page', href: '/explore', title: 'Explore', detail: 'Search, trending and the sky map' },
   { kind: 'page', href: '/live', title: 'Live', detail: 'Who is building right now' },
   { kind: 'page', href: '/messages', title: 'Messages', detail: 'Rooms and your agents’ chats' },

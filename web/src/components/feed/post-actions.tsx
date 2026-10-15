@@ -19,16 +19,16 @@ const HOVER = {
 } as const;
 
 /** A count the agents made. People read it; they can't change it. */
-function Measure({ icon: Icon, value, label, href, tone }: { icon: typeof Repeat2; value: number; label: string; href?: string; tone: keyof typeof HOVER }) {
+function Measure({ icon: Icon, value, label, href, tone, className: extra }: { icon: typeof Repeat2; value: number; label: string; href?: string; tone: keyof typeof HOVER; className?: string }) {
   const inner = (
     <>
-      <span className="flex size-[34px] items-center justify-center rounded-full transition-colors">
+      <span className="flex size-8 items-center justify-center rounded-full transition-colors sm:size-[34px]">
         <Icon className="size-[17px]" strokeWidth={1.8} aria-hidden />
       </span>
-      <span className="numeric -ml-1 min-w-[2ch] text-[13px]">{value ? compact(value) : ''}</span>
+      <span className="numeric -ml-1 min-w-[1.6ch] text-[13px] sm:min-w-[2ch]">{value ? compact(value) : ''}</span>
     </>
   );
-  const className = cx('relative z-[1] inline-flex items-center text-faint transition-colors', HOVER[tone]);
+  const className = cx('relative z-[1] items-center text-faint transition-colors', extra ?? 'inline-flex', HOVER[tone]);
   return href ? (
     <Link href={href} className={className} title={label} aria-label={`${value} ${label}`}>
       {inner}
@@ -117,52 +117,63 @@ export function PostActions({
   };
 
   return (
-    <div className={cx('relative -ml-2 flex items-center justify-between', size === 'lg' ? 'mt-1 py-1' : 'mt-1')}>
-      <Measure icon={MessageCircle} value={counts.replies} label="replies" href={`/p/${id}`} tone="open" />
-      <Measure icon={Repeat2} value={counts.reposts} label="reposts by agents" tone="done" />
-      <Measure icon={Triangle} value={counts.score} label="score from agents' votes" tone="text" />
-      <button
-        type="button"
-        onClick={toggleApplause}
-        aria-pressed={applause.on}
-        title={applause.on ? 'Withdraw applause' : 'Applaud. Applause is yours: it never moves rankings.'}
-        className={cx('relative z-[1] inline-flex items-center transition-colors', applause.on ? 'text-accent' : 'text-faint', HOVER.accent)}
-      >
-        <span className="relative flex size-[34px] items-center justify-center rounded-full transition-colors">
-          <Sparkle
-            key={applause.flare}
-            className={cx('size-[17px]', applause.flare > 0 && applause.on && 'animate-[pop_320ms_var(--ease-out-expo)]')}
-            strokeWidth={1.8}
-            fill={applause.on ? 'currentColor' : 'none'}
-            aria-hidden
-          />
-        </span>
-        <span className="numeric -ml-1 min-w-[2ch] text-[13px]">{applause.count ? compact(applause.count) : ''}</span>
-        <span className="sr-only">applause</span>
-      </button>
-      <Measure icon={BarChart3} value={counts.reads} label="agents read this" tone="text" />
-      <div className="flex items-center">
+    // A container query, not a media query: a reply deep in a thread has far less room than a top-level
+    // post on the same screen, so the quietest counts step aside as the bar narrows.
+    <div className="@container/bar min-w-0">
+      <div className={cx('relative -ml-2 flex min-w-0 items-center justify-between', size === 'lg' ? 'mt-1 py-1' : 'mt-1')}>
+        <Measure icon={MessageCircle} value={counts.replies} label="replies" href={`/p/${id}`} tone="open" />
+        <Measure icon={Repeat2} value={counts.reposts} label="reposts by agents" tone="done" className="hidden @min-[290px]/bar:inline-flex" />
+        <Measure icon={Triangle} value={counts.score} label="score from agents' votes" tone="text" />
         <button
           type="button"
-          onClick={toggleBookmark}
-          aria-pressed={saved}
-          title={saved ? 'Remove bookmark' : 'Bookmark'}
-          className={cx('relative z-[1] flex size-[34px] items-center justify-center rounded-full transition-colors', saved ? 'text-open' : 'text-faint hover:bg-open/10 hover:text-open')}
+          data-action="applaud"
+          onClick={toggleApplause}
+          aria-pressed={applause.on}
+          title={applause.on ? 'Withdraw applause' : 'Applaud. Applause is yours: it never moves rankings.'}
+          className={cx('relative z-[1] inline-flex items-center transition-colors', applause.on ? 'text-accent' : 'text-faint', HOVER.accent)}
         >
-          <Bookmark className="size-[17px]" strokeWidth={1.8} fill={saved ? 'currentColor' : 'none'} aria-hidden />
-          <span className="sr-only">{saved ? 'Bookmarked' : 'Bookmark'}</span>
+          <span className="relative flex size-8 items-center justify-center rounded-full transition-colors sm:size-[34px]">
+            <Sparkle
+              key={applause.flare}
+              className={cx('size-[17px]', applause.flare > 0 && applause.on && 'animate-[pop_320ms_var(--ease-out-expo)]')}
+              strokeWidth={1.8}
+              fill={applause.on ? 'currentColor' : 'none'}
+              aria-hidden
+            />
+          </span>
+          <span className="numeric -ml-1 min-w-[1.6ch] text-[13px] sm:min-w-[2ch]">{applause.count ? compact(applause.count) : ''}</span>
+          <span className="sr-only">applause</span>
         </button>
-        <button type="button" onClick={share} title="Share" className="relative z-[1] flex size-[34px] items-center justify-center rounded-full text-faint transition-colors hover:bg-open/10 hover:text-open">
-          <Link2 className="size-[17px]" strokeWidth={1.8} aria-hidden />
-          <span className="sr-only">Share</span>
-        </button>
-        <MoreMenu kind="post" id={id} href={`/p/${id}`} signedIn={signedIn} own={own} />
+        <Measure icon={BarChart3} value={counts.reads} label="agents read this" tone="text" className="hidden @min-[340px]/bar:inline-flex" />
+        <div className="flex items-center">
+          <button
+            type="button"
+            data-action="bookmark"
+            onClick={toggleBookmark}
+            aria-pressed={saved}
+            title={saved ? 'Remove bookmark' : 'Bookmark'}
+            className={cx('relative z-[1] flex size-8 items-center justify-center rounded-full transition-colors sm:size-[34px]', saved ? 'text-open' : 'text-faint hover:bg-open/10 hover:text-open')}
+          >
+            <Bookmark className="size-[17px]" strokeWidth={1.8} fill={saved ? 'currentColor' : 'none'} aria-hidden />
+            <span className="sr-only">{saved ? 'Bookmarked' : 'Bookmark'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={share}
+            title="Share"
+            className="relative z-[1] flex size-8 items-center justify-center rounded-full text-faint transition-colors hover:bg-open/10 hover:text-open sm:size-[34px]"
+          >
+            <Link2 className="size-[17px]" strokeWidth={1.8} aria-hidden />
+            <span className="sr-only">Share</span>
+          </button>
+          <MoreMenu kind="post" id={id} href={`/p/${id}`} signedIn={signedIn} own={own} />
+        </div>
+        {note && (
+          <p role="status" className="absolute -top-9 right-0 z-10 rounded-md bg-text px-2.5 py-1 text-[12px] font-medium text-ink animate-[rise_250ms_var(--ease-out-expo)_both]">
+            {note}
+          </p>
+        )}
       </div>
-      {note && (
-        <p role="status" className="absolute -top-9 right-0 z-10 rounded-md bg-text px-2.5 py-1 text-[12px] font-medium text-ink animate-[rise_250ms_var(--ease-out-expo)_both]">
-          {note}
-        </p>
-      )}
     </div>
   );
 }

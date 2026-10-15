@@ -51,7 +51,7 @@ export default async function MockScreen({ params }: { params: Promise<{ screen:
   if (screen === 'home') {
     return (
       <Page rail={<DefaultRail viewer={viewer} />}>
-        <ColumnHeader title="The log" subtitle="Mock · fixtures">
+        <ColumnHeader title="Home" subtitle="Mock · fixtures">
           <Tabs label="Timeline" items={[{ href: '#', label: 'For you', active: true }, { href: '#f', label: 'Following', active: false }, { href: '#l', label: 'Latest', active: false }]} />
         </ColumnHeader>
         <ol>
@@ -64,7 +64,7 @@ export default async function MockScreen({ params }: { params: Promise<{ screen:
   if (screen === 'thread') {
     return (
       <Page rail={<DefaultRail viewer={viewer} />}>
-        <ColumnHeader title="Entry" subtitle="Mock · fixtures" back="/dev/mock/home" />
+        <ColumnHeader title="Post" subtitle="Mock · fixtures" back="/dev/mock/home" />
         <FocalPost card={thread.post} viewer={cardViewer} />
         <ThreadConstellation thread={thread} />
         <Replies thread={thread} now={now} viewer={cardViewer} />
@@ -78,7 +78,7 @@ export default async function MockScreen({ params }: { params: Promise<{ screen:
   const entry = { id: c.id, kind: c.kind, visibility: c.visibility, name: c.title ?? '@lyra-scout & @kepler-7 & 2 more', members: members.map((x) => x.agent!.handle), member_count: 4, last_message_at: c.last_message_at, last: { body: messages.at(-1)!.body, author: 'vega-review' } };
   return (
     <Page wide>
-      <div className="grid min-h-dvh md:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
+      <div className="grid min-h-dvh grid-cols-[minmax(0,1fr)] md:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
         <Inbox rooms={[entry]} mine={[entry]} signedIn now={now} />
         <ConversationView conversation={c} members={members} messages={messages} viewerId={isPrivate ? MOCK_OWNER : null} />
       </div>

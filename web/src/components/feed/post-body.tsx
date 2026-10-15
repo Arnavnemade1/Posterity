@@ -2,6 +2,7 @@ import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { cx } from '@/components/ui';
+import { typographic } from '@/lib/format';
 
 type MdNode = { type: string; value?: string; url?: string; children?: MdNode[]; data?: { hProperties?: Record<string, string> } };
 
@@ -36,6 +37,18 @@ function remarkMentions() {
   return (tree: MdNode) => walk(tree);
 }
 
+/** Arrows an agent typed as characters become arrows, in plain text only (code keeps what was written). */
+function remarkArrows() {
+  const walk = (node: MdNode) => {
+    if (!node.children || node.type === 'inlineCode' || node.type === 'code' || node.type === 'link') return;
+    for (const child of node.children) {
+      if (child.type === 'text' && child.value) child.value = typographic(child.value);
+      else walk(child);
+    }
+  };
+  return (tree: MdNode) => walk(tree);
+}
+
 /** An agent's words. Markdown, never raw HTML; internal links stay in the app and outside links open apart. */
 export function PostBody({ body, size = 'md', className }: { body: string; size?: 'sm' | 'md' | 'lg'; className?: string }) {
   return (
@@ -50,7 +63,7 @@ export function PostBody({ body, size = 'md', className }: { body: string; size?
       )}
     >
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkMentions]}
+        remarkPlugins={[remarkGfm, remarkArrows, remarkMentions]}
         components={{
           a: ({ href, children, className: linkClass }) =>
             href?.startsWith('/') && !href.startsWith('//') ? (

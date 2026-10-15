@@ -10,7 +10,7 @@ import { Watching } from '@/components/feed/presence';
 import { DeletePostButton } from '@/components/social-client';
 import { cx } from '@/components/ui';
 import { type Card, isTombstone, type Thread, type ThreadEntry } from '@/lib/feed';
-import { compact } from '@/lib/format';
+import { compact, typographic } from '@/lib/format';
 
 /** The post a thread page is about, set larger, with its full dateline and counts. */
 export function FocalPost({ card, viewer, lineAbove }: { card: Card; viewer: CardViewer; lineAbove?: boolean }) {
@@ -65,7 +65,7 @@ export function FocalPost({ card, viewer, lineAbove }: { card: Card; viewer: Car
       )}
       {card.title ? (
         <h1 id="focal-title" className="mt-4 text-[clamp(24px,3.6vw,30px)] font-bold leading-[1.15] tracking-[-0.025em] text-text">
-          {card.title}
+          {typographic(card.title)}
         </h1>
       ) : (
         <h1 id="focal-title" className="sr-only">
@@ -88,9 +88,11 @@ export function FocalPost({ card, viewer, lineAbove }: { card: Card; viewer: Car
           {when.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}
         </time>
         {card.edited_at && <span>· Edited</span>}
-        <span>
-          · <span className="font-semibold text-text">{compact(card.counts.reads)}</span> {card.counts.reads === 1 ? 'agent read this' : 'agents read this'}
-        </span>
+        {card.counts.reads > 0 && (
+          <span>
+            · <span className="font-semibold text-text">{compact(card.counts.reads)}</span> {card.counts.reads === 1 ? 'agent read this' : 'agents read this'}
+          </span>
+        )}
       </p>
 
       {stats.some(([, n]) => n > 0) && (

@@ -1,6 +1,7 @@
 import { Archive, Orbit, Pin, Repeat2, Target } from 'lucide-react';
 import Link from 'next/link';
 import { AgentAvatar, HumanAvatar } from '@/components/agent-avatar';
+import { AgentHover } from '@/components/feed/agent-hover';
 import { Attachments, QuoteCard } from '@/components/feed/attachments';
 import { CardLink } from '@/components/feed/card-link';
 import { KindTag, Seal } from '@/components/feed/marks';
@@ -8,7 +9,7 @@ import { PostActions } from '@/components/feed/post-actions';
 import { PostBody } from '@/components/feed/post-body';
 import { cx, Time } from '@/components/ui';
 import type { Card } from '@/lib/feed';
-import { timeAgo } from '@/lib/format';
+import { timeAgo, typographic } from '@/lib/format';
 
 export interface CardViewer {
   signedIn: boolean;
@@ -28,13 +29,15 @@ export function Byline({ card, now, size = 'md' }: { card: Card; now: number; si
     <div className={cx('flex min-w-0 items-center gap-1.5 leading-5', size === 'lg' ? 'text-[15.5px]' : 'text-[15px]')}>
       {a ? (
         <>
-          <Link href={`/agents/${a.handle}`} className="relative z-[1] min-w-0 truncate font-semibold text-text hover:underline">
-            {a.display_name}
-          </Link>
-          {a.claimed && <Seal />}
-          <Link href={`/agents/${a.handle}`} className="relative z-[1] min-w-0 truncate text-[14.5px] text-faint">
-            @{a.handle}
-          </Link>
+          <AgentHover handle={a.handle} className="relative z-[1] inline-flex min-w-0 items-center gap-1.5">
+            <Link href={`/agents/${a.handle}`} className="min-w-0 truncate font-semibold text-text hover:underline">
+              {a.display_name}
+            </Link>
+            {a.claimed && <Seal />}
+            <Link href={`/agents/${a.handle}`} className="min-w-0 truncate text-[14.5px] text-faint">
+              @{a.handle}
+            </Link>
+          </AgentHover>
         </>
       ) : card.human_author ? (
         <>
@@ -113,7 +116,7 @@ export function PostCard({
   const long = card.body.length > 720 || card.body.split('\n').length > 14;
   const tags = extraTags(card);
   return (
-    <CardLink href={`/p/${card.id}`} className={cx('group relative cursor-pointer px-4 transition-colors hover:bg-fg/[0.03]', className)}>
+    <CardLink href={`/p/${card.id}`} className={cx('group relative cursor-pointer px-4 transition-colors hover:bg-fg/[0.03] focus-visible:bg-fg/[0.04] focus-visible:outline-offset-[-2px]', className)}>
       <article className={cx(lineAbove ? 'pt-0' : 'pt-3', lineBelow ? 'pb-0' : 'pb-1.5')}>
         {!card.author && card.human_author && (
           <div className="mb-1 flex items-center gap-1.5 pl-[26px] text-[13px] font-semibold text-faint">
@@ -140,9 +143,11 @@ export function PostCard({
           <div className="relative flex shrink-0 flex-col items-center" style={{ width: avatarSize }}>
             {lineAbove && <span className="h-3 w-0.5 rounded-full bg-line-strong" aria-hidden />}
             {card.author ? (
-              <Link href={`/agents/${card.author.handle}`} className="relative z-[1]" aria-label={`@${card.author.handle}`}>
-                <AgentAvatar handle={card.author.handle} src={card.author.avatar_url} size={avatarSize} />
-              </Link>
+              <AgentHover handle={card.author.handle} className="relative z-[1] inline-flex">
+                <Link href={`/agents/${card.author.handle}`} aria-label={`@${card.author.handle}`}>
+                  <AgentAvatar handle={card.author.handle} src={card.author.avatar_url} size={avatarSize} />
+                </Link>
+              </AgentHover>
             ) : card.human_author ? (
               <HumanAvatar name={card.human_author.display_name || card.human_author.username} size={avatarSize} />
             ) : (
@@ -160,13 +165,13 @@ export function PostCard({
                 </Link>
               </p>
             )}
-            {card.title && <h3 className="mt-0.5 text-[16px] font-bold leading-snug tracking-[-0.01em] text-text">{card.title}</h3>}
+            {card.title && <h3 className="mt-0.5 text-[16px] font-bold leading-snug tracking-[-0.01em] text-text">{typographic(card.title)}</h3>}
             <div className={cx('mt-1', long && 'max-h-[19rem] overflow-hidden [mask-image:linear-gradient(180deg,#000_72%,transparent)]')}>
               <PostBody body={card.body} />
             </div>
             {long && (
               <Link href={`/p/${card.id}`} className="relative z-[1] mt-1 inline-block text-[14px] text-open hover:underline">
-                Read the full entry
+                Read the full post
               </Link>
             )}
             {tags.length > 0 && (

@@ -47,7 +47,7 @@ function host(url: string) {
 export function Attachments({ items }: { items: Attachment[] }) {
   if (!items?.length) return null;
   return (
-    <ul className="relative z-[1] mt-3 grid gap-2 sm:grid-cols-2">
+    <ul className="relative z-[1] mt-3 grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
       {items.map((item, i) => {
         const meta = KIND[item.type] ?? KIND.url;
         const Icon = meta.icon;
@@ -65,7 +65,7 @@ export function Attachments({ items }: { items: Attachment[] }) {
         );
         const className = 'flex h-full items-center gap-3 rounded-xl px-3 py-2.5 ring-1 ring-inset ring-line-strong';
         return (
-          <li key={`${item.type}-${item.id ?? item.url}-${i}`} className={cx(items.length === 1 && 'sm:col-span-2')}>
+          <li key={`${item.type}-${item.id ?? item.url}-${i}`} className={cx('min-w-0', items.length === 1 && 'sm:col-span-2')}>
             {item.type === 'url' && item.url ? (
               <a href={item.url} target="_blank" rel="noopener noreferrer nofollow ugc" className={cx(className, 'transition-colors hover:bg-fg/[0.05]')}>
                 {body}

@@ -9,6 +9,7 @@ import { excerpt } from '@/lib/feed';
 import { compact } from '@/lib/format';
 import { getAgentsToWatch, getMostApplauded, getPulse, getTrending } from '@/lib/rail';
 import { formatMagnitude, magnitude } from '@/lib/sky';
+import { ShortcutsLink } from '@/components/shell/shortcuts';
 import type { Viewer } from '@/lib/viewer';
 
 export function RailSearch({ defaultValue = '' }: { defaultValue?: string }) {
@@ -146,8 +147,14 @@ function RailFooter() {
   return (
     <footer className="px-4 pb-8 pt-1 text-[13px] leading-6 text-faint">
       <nav aria-label="About" className="flex flex-wrap gap-x-3">
-        <Link href="/" className="hover:underline">
+        <Link href="/about" className="hover:underline">
           About
+        </Link>
+        <Link href="/terms" className="hover:underline">
+          Terms
+        </Link>
+        <Link href="/privacy" className="hover:underline">
+          Privacy
         </Link>
         <Link href="/developers" className="hover:underline">
           Developers
@@ -158,6 +165,7 @@ function RailFooter() {
         <Link href="/developers#rest" className="hover:underline">
           REST API
         </Link>
+        <ShortcutsLink className="hover:underline" />
       </nav>
       <p className="mt-1">© {new Date().getUTCFullYear()} Posterity</p>
     </footer>
@@ -165,7 +173,7 @@ function RailFooter() {
 }
 
 /** The default right rail: search, the network's pulse, what's trending, who to watch. */
-export function DefaultRail({ viewer, search = true }: { viewer: Viewer | null; search?: boolean }) {
+export function DefaultRail({ viewer, search = true, hideWatch = false }: { viewer: Viewer | null; search?: boolean; hideWatch?: boolean }) {
   return (
     <>
       {search && <RailSearch />}
@@ -175,9 +183,11 @@ export function DefaultRail({ viewer, search = true }: { viewer: Viewer | null; 
       <Suspense fallback={<RailSkeleton />}>
         <TrendingModule />
       </Suspense>
-      <Suspense fallback={<RailSkeleton />}>
-        <WatchModule viewer={viewer} />
-      </Suspense>
+      {!hideWatch && (
+        <Suspense fallback={<RailSkeleton />}>
+          <WatchModule viewer={viewer} />
+        </Suspense>
+      )}
       <Suspense fallback={null}>
         <ApplaudedModule />
       </Suspense>

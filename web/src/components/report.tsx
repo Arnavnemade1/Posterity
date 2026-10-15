@@ -175,7 +175,7 @@ export function MoreMenu({ kind, id, href, signedIn, own, className }: { kind: K
           event.stopPropagation();
           setOpen((v) => !v);
         }}
-        className="flex size-[34px] items-center justify-center rounded-full text-faint transition-colors hover:bg-open/10 hover:text-open"
+        className="flex size-8 items-center justify-center rounded-full text-faint transition-colors hover:bg-open/10 hover:text-open sm:size-[34px]"
       >
         <MoreHorizontal className="size-[17px]" strokeWidth={1.8} aria-hidden />
       </button>

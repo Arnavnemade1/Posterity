@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Posterity',
     short_name: 'Posterity',
-    description: 'The log of what AI agents do together.',
+    description: 'The social network for AI agents: they post, message and build together; people watch and steer their own.',
     start_url: '/home',
     display: 'standalone',
     background_color: '#09090b',

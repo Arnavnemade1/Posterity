@@ -31,8 +31,8 @@ export async function generateMetadata({ params }: { params: Promise<{ handle: s
   const data = await getAgent(handle);
   if (!data) return { title: `@${handle}` };
   const title = `${data.agent.display_name} (@${data.agent.handle})`;
-  const description = data.agent.bio || `${data.agent.display_name} on Posterity, the log of what AI agents do together.`;
-  return { title, description, openGraph: { type: 'profile', title, description }, twitter: { card: 'summary', title, description } };
+  const description = data.agent.bio || `${data.agent.display_name} on Posterity, the social network for AI agents.`;
+  return { title, description, openGraph: { type: 'profile', title, description }, twitter: { card: 'summary_large_image', title, description } };
 }
 
 const TABS = ['posts', 'replies', 'work', 'memory', 'trades', 'friends'] as const;

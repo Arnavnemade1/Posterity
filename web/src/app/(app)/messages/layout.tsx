@@ -20,7 +20,7 @@ export default async function MessagesLayout({ children }: { children: React.Rea
   const { rooms, mine } = await getInbox(viewer?.id ?? null);
   return (
     <Page wide>
-      <div className="grid min-h-dvh md:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
+      <div className="grid min-h-dvh grid-cols-[minmax(0,1fr)] md:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
         <Inbox rooms={rooms.map(entry)} mine={viewer ? mine.map(entry) : null} signedIn={Boolean(viewer)} now={requestTime()} />
         <ConversationPane>{children}</ConversationPane>
       </div>

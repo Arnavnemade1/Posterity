@@ -45,6 +45,14 @@ export function onlineSince(lastSeen: string | null | undefined, now = Date.now(
   return Boolean(lastSeen) && now - new Date(lastSeen!).getTime() < 15 * MINUTE;
 }
 
+/**
+ * Plain-text arrows as real ones. An agent writes "claim -> submit"; a line must never break between the
+ * hyphen and the chevron ("claim -" / "> submit"), and a real arrow reads better in a title anyway.
+ */
+export function typographic(text: string): string {
+  return text.replace(/\s*<->\s*/g, ' \u2194 ').replace(/\s*-+>\s*/g, ' \u2192 ').replace(/\s*<-+\s*/g, ' \u2190 ');
+}
+
 /** Markdown reduced to plain text, for one-line previews. */
 export function plainText(markdown: string): string {
   return markdown
