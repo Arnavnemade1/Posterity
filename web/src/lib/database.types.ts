@@ -1259,6 +1259,41 @@ export type Database = {
           },
         ]
       }
+      commit_mirrors: {
+        Row: {
+          commit_id: string
+          created_at: string
+          direction: string
+          git_sha: string
+          git_tree: string
+          repo_id: number
+        }
+        Insert: {
+          commit_id: string
+          created_at?: string
+          direction: string
+          git_sha: string
+          git_tree: string
+          repo_id: number
+        }
+        Update: {
+          commit_id?: string
+          created_at?: string
+          direction?: string
+          git_sha?: string
+          git_tree?: string
+          repo_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commit_mirrors_commit_id_fkey"
+            columns: ["commit_id"]
+            isOneToOne: false
+            referencedRelation: "commits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commits: {
         Row: {
           author_agent_id: string | null
@@ -1266,6 +1301,7 @@ export type Database = {
           generation: number
           id: string
           message: string
+          origin: Json | null
           parents: string[]
           stats: Json
           tree: string
@@ -1277,6 +1313,7 @@ export type Database = {
           generation: number
           id: string
           message: string
+          origin?: Json | null
           parents?: string[]
           stats?: Json
           tree: string
@@ -1288,6 +1325,7 @@ export type Database = {
           generation?: number
           id?: string
           message?: string
+          origin?: Json | null
           parents?: string[]
           stats?: Json
           tree?: string
@@ -1639,6 +1677,50 @@ export type Database = {
           },
         ]
       }
+      cr_pull_requests: {
+        Row: {
+          base_ref: string
+          change_request_id: string
+          created_at: string
+          head_ref: string
+          number: number
+          repo_id: number
+          state: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          base_ref: string
+          change_request_id: string
+          created_at?: string
+          head_ref: string
+          number: number
+          repo_id: number
+          state: string
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          base_ref?: string
+          change_request_id?: string
+          created_at?: string
+          head_ref?: string
+          number?: number
+          repo_id?: number
+          state?: string
+          updated_at?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cr_pull_requests_change_request_id_fkey"
+            columns: ["change_request_id"]
+            isOneToOne: true
+            referencedRelation: "change_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cr_review_requests: {
         Row: {
           agent_id: string
@@ -1894,6 +1976,115 @@ export type Database = {
             columns: ["requested_by"]
             isOneToOne: false
             referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      github_deliveries: {
+        Row: {
+          event: string
+          id: string
+          received_at: string
+        }
+        Insert: {
+          event: string
+          id: string
+          received_at?: string
+        }
+        Update: {
+          event?: string
+          id?: string
+          received_at?: string
+        }
+        Relationships: []
+      }
+      github_installations: {
+        Row: {
+          account_id: number | null
+          account_login: string
+          account_type: string
+          claimed_at: string | null
+          created_at: string
+          deleted_at: string | null
+          github_login: string | null
+          id: number
+          repository_selection: string
+          suspended_at: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          account_id?: number | null
+          account_login: string
+          account_type?: string
+          claimed_at?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          github_login?: string | null
+          id: number
+          repository_selection?: string
+          suspended_at?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          account_id?: number | null
+          account_login?: string
+          account_type?: string
+          claimed_at?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          github_login?: string | null
+          id?: number
+          repository_selection?: string
+          suspended_at?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "github_installations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      github_repos: {
+        Row: {
+          archived: boolean
+          default_branch: string | null
+          full_name: string
+          installation_id: number
+          private: boolean
+          repo_id: number
+          updated_at: string
+        }
+        Insert: {
+          archived?: boolean
+          default_branch?: string | null
+          full_name: string
+          installation_id: number
+          private?: boolean
+          repo_id: number
+          updated_at?: string
+        }
+        Update: {
+          archived?: boolean
+          default_branch?: string | null
+          full_name?: string
+          installation_id?: number
+          private?: boolean
+          repo_id?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "github_repos_installation_id_fkey"
+            columns: ["installation_id"]
+            isOneToOne: false
+            referencedRelation: "github_installations"
             referencedColumns: ["id"]
           },
         ]
@@ -3760,6 +3951,101 @@ export type Database = {
           },
         ]
       }
+      sync_jobs: {
+        Row: {
+          attempts: number
+          branch: string | null
+          change_request_id: string | null
+          created_at: string
+          finished_at: string | null
+          id: number
+          kind: string
+          last_error: string | null
+          locked_until: string | null
+          payload: Json
+          result: Json | null
+          run_after: string
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          attempts?: number
+          branch?: string | null
+          change_request_id?: string | null
+          created_at?: string
+          finished_at?: string | null
+          id?: never
+          kind: string
+          last_error?: string | null
+          locked_until?: string | null
+          payload?: Json
+          result?: Json | null
+          run_after?: string
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          attempts?: number
+          branch?: string | null
+          change_request_id?: string | null
+          created_at?: string
+          finished_at?: string | null
+          id?: never
+          kind?: string
+          last_error?: string | null
+          locked_until?: string | null
+          payload?: Json
+          result?: Json | null
+          run_after?: string
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_jobs_change_request_id_fkey"
+            columns: ["change_request_id"]
+            isOneToOne: false
+            referencedRelation: "change_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sync_jobs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sync_leases: {
+        Row: {
+          lease_until: string
+          token: string
+          workspace_id: string
+        }
+        Insert: {
+          lease_until: string
+          token: string
+          workspace_id: string
+        }
+        Update: {
+          lease_until?: string
+          token?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_leases_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_dependencies: {
         Row: {
           depends_on: string
@@ -4436,6 +4722,102 @@ export type Database = {
           },
         ]
       }
+      workspace_remotes: {
+        Row: {
+          bootstrap_sha: string | null
+          created_at: string
+          installation_id: number
+          last_synced_at: string | null
+          linked_by_agent: string | null
+          linked_by_user: string | null
+          mode: string
+          open_prs: boolean
+          remote_default_branch: string
+          repo_full_name: string
+          repo_id: number
+          repo_private: boolean
+          status: string
+          status_detail: string | null
+          sync_change_request: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          bootstrap_sha?: string | null
+          created_at?: string
+          installation_id: number
+          last_synced_at?: string | null
+          linked_by_agent?: string | null
+          linked_by_user?: string | null
+          mode: string
+          open_prs?: boolean
+          remote_default_branch?: string
+          repo_full_name: string
+          repo_id: number
+          repo_private: boolean
+          status?: string
+          status_detail?: string | null
+          sync_change_request?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          bootstrap_sha?: string | null
+          created_at?: string
+          installation_id?: number
+          last_synced_at?: string | null
+          linked_by_agent?: string | null
+          linked_by_user?: string | null
+          mode?: string
+          open_prs?: boolean
+          remote_default_branch?: string
+          repo_full_name?: string
+          repo_id?: number
+          repo_private?: boolean
+          status?: string
+          status_detail?: string | null
+          sync_change_request?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_remotes_installation_id_fkey"
+            columns: ["installation_id"]
+            isOneToOne: false
+            referencedRelation: "github_installations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_remotes_linked_by_agent_fkey"
+            columns: ["linked_by_agent"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_remotes_linked_by_user_fkey"
+            columns: ["linked_by_user"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_remotes_sync_change_request_fkey"
+            columns: ["sync_change_request"]
+            isOneToOne: false
+            referencedRelation: "change_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workspace_remotes_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workspaces: {
         Row: {
           branch_count: number
@@ -4448,6 +4830,7 @@ export type Database = {
           file_count: number
           file_limit: number
           id: string
+          import_state: Json | null
           last_commit_at: string | null
           mission_id: string | null
           name: string
@@ -4471,6 +4854,7 @@ export type Database = {
           file_count?: number
           file_limit?: number
           id?: string
+          import_state?: Json | null
           last_commit_at?: string | null
           mission_id?: string | null
           name: string
@@ -4494,6 +4878,7 @@ export type Database = {
           file_count?: number
           file_limit?: number
           id?: string
+          import_state?: Json | null
           last_commit_at?: string | null
           mission_id?: string | null
           name?: string
@@ -5098,6 +5483,189 @@ export type Database = {
         Args: { p_ok: boolean; p_request: string; p_result: Json }
         Returns: undefined
       }
+      gh_add_blobs: { Args: { p_blobs: Json; p_ws: string }; Returns: number }
+      gh_agent_repos: { Args: { p_agent: string }; Returns: Json }
+      gh_agent_sees: {
+        Args: { p_agent: string; p_ws: string }
+        Returns: boolean
+      }
+      gh_blobs_by_git: {
+        Args: { p_git_shas: string[]; p_ws: string }
+        Returns: Json
+      }
+      gh_claim: { Args: { p_limit?: number }; Returns: Json }
+      gh_claim_installation: {
+        Args: { p_github_login: string; p_installation: number; p_user: string }
+        Returns: Json
+      }
+      gh_delivery: { Args: { p_event: string; p_id: string }; Returns: boolean }
+      gh_enqueue: {
+        Args: {
+          p_branch?: string
+          p_cr?: string
+          p_delay_seconds?: number
+          p_kind: string
+          p_payload?: Json
+          p_ws: string
+        }
+        Returns: number
+      }
+      gh_enqueue_unsynced: { Args: { p_ws: string }; Returns: number }
+      gh_extend_lease: {
+        Args: { p_token: string; p_ws: string }
+        Returns: boolean
+      }
+      gh_finish_import: { Args: { p_state: Json; p_ws: string }; Returns: Json }
+      gh_finish_job: {
+        Args: {
+          p_error?: string
+          p_job: number
+          p_outcome: string
+          p_result?: Json
+          p_retry_seconds?: number
+        }
+        Returns: undefined
+      }
+      gh_import_commit: {
+        Args: {
+          p_branch: string
+          p_expected: string
+          p_force?: boolean
+          p_manifest: Json
+          p_message: string
+          p_origin: Json
+          p_parents: string[]
+          p_repo?: number
+          p_sha?: string
+          p_tree?: string
+          p_ws: string
+        }
+        Returns: Json
+      }
+      gh_job_context: { Args: { p_ws: string }; Returns: Json }
+      gh_last_synced: {
+        Args: { p_branch: string; p_repo: number; p_ws: string }
+        Returns: Json
+      }
+      gh_link: {
+        Args: {
+          p_agent: string
+          p_mode?: string
+          p_open_prs?: boolean
+          p_repo: string
+          p_user: string
+          p_ws: string
+        }
+        Returns: Json
+      }
+      gh_open_sync_cr: {
+        Args: {
+          p_body: string
+          p_source: string
+          p_title: string
+          p_ws: string
+        }
+        Returns: Json
+      }
+      gh_pr_context: { Args: { p_cr: string }; Returns: Json }
+      gh_pr_event: {
+        Args: {
+          p_actor: string
+          p_number: number
+          p_repo: number
+          p_state: string
+        }
+        Returns: number
+      }
+      gh_prune: { Args: never; Returns: undefined }
+      gh_public_json: { Args: { p_ws: string }; Returns: Json }
+      gh_push_plan: {
+        Args: {
+          p_branch: string
+          p_limit?: number
+          p_repo: number
+          p_ws: string
+        }
+        Returns: Json
+      }
+      gh_read_blobs: {
+        Args: { p_shas: string[]; p_ws: string }
+        Returns: {
+          content: string
+          git_sha1: string
+          is_binary: boolean
+          sha256: string
+          size: number
+          storage_path: string
+        }[]
+      }
+      gh_record_check: {
+        Args: {
+          p_details?: string
+          p_name: string
+          p_repo: number
+          p_sha: string
+          p_status: string
+          p_url?: string
+        }
+        Returns: number
+      }
+      gh_record_mirrors: {
+        Args: { p_repo: number; p_rows: Json }
+        Returns: number
+      }
+      gh_record_pr: {
+        Args: {
+          p_base: string
+          p_cr: string
+          p_head: string
+          p_number: number
+          p_repo: number
+          p_state: string
+          p_url: string
+        }
+        Returns: undefined
+      }
+      gh_release_lease: {
+        Args: { p_token: string; p_ws: string }
+        Returns: undefined
+      }
+      gh_remote_json: { Args: { p_ws: string }; Returns: Json }
+      gh_resync: {
+        Args: { p_agent: string; p_user: string; p_ws: string }
+        Returns: Json
+      }
+      gh_set_remote: { Args: { p_patch: Json; p_ws: string }; Returns: Json }
+      gh_start_import: {
+        Args: {
+          p_agent: string
+          p_description?: string
+          p_link?: Json
+          p_mission?: string
+          p_name?: string
+          p_org?: string
+          p_slug?: string
+          p_source: Json
+          p_visibility?: string
+        }
+        Returns: Json
+      }
+      gh_status: { Args: { p_agent: string; p_ws: string }; Returns: Json }
+      gh_sweep: { Args: never; Returns: undefined }
+      gh_sync_installation: {
+        Args: {
+          p_action?: string
+          p_installation: Json
+          p_repos?: Json
+          p_repos_mode?: string
+        }
+        Returns: Json
+      }
+      gh_unlink: {
+        Args: { p_agent: string; p_user: string; p_ws: string }
+        Returns: Json
+      }
+      gh_user_sees: { Args: { p_user: string; p_ws: string }; Returns: boolean }
       github_repo: { Args: { p_repo: string }; Returns: string }
       github_targets: {
         Args: { p_repo: string }
@@ -5132,6 +5700,7 @@ export type Database = {
         Returns: Json
       }
       kick_embedder: { Args: never; Returns: undefined }
+      kick_github_sync: { Args: never; Returns: undefined }
       leave_org: { Args: { p_agent: string; p_org: string }; Returns: Json }
       listing_matches: {
         Args: { p_agent: string; p_limit?: number }
@@ -6140,6 +6709,16 @@ export type Database = {
         Args: { p_agent?: string; p_follow?: boolean; p_org?: string }
         Returns: Json
       }
+      web_github_overview: { Args: never; Returns: Json }
+      web_link_workspace_github: {
+        Args: {
+          p_mode: string
+          p_open_prs: boolean
+          p_repo_id: number
+          p_ws: string
+        }
+        Returns: Json
+      }
       web_mark_notifications_read: {
         Args: { p_ids?: number[] }
         Returns: number
@@ -6149,6 +6728,10 @@ export type Database = {
       web_pairing_status: { Args: { p_code: string }; Returns: Json }
       web_pause_agent: {
         Args: { p_agent: string; p_reason?: string; p_release_claims?: boolean }
+        Returns: Json
+      }
+      web_release_github_installation: {
+        Args: { p_installation: number }
         Returns: Json
       }
       web_report: {
@@ -6161,6 +6744,7 @@ export type Database = {
         Returns: Json
       }
       web_resume_agent: { Args: { p_agent: string }; Returns: Json }
+      web_resync_workspace_github: { Args: { p_ws: string }; Returns: Json }
       web_review_submission: {
         Args: {
           p_rationale: string
@@ -6179,6 +6763,7 @@ export type Database = {
         Args: { p_agent: string; p_autonomy: string }
         Returns: Json
       }
+      web_unlink_workspace_github: { Args: { p_ws: string }; Returns: Json }
       web_update_agent: {
         Args: {
           p_agent: string
@@ -6206,6 +6791,7 @@ export type Database = {
         Args: { p_bio?: string; p_display_name?: string; p_username?: string }
         Returns: Json
       }
+      web_workspace_github: { Args: { p_ws: string }; Returns: Json }
       web_ws_log: {
         Args: {
           p_limit?: number

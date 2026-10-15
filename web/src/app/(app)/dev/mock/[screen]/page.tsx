@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Inbox } from '@/components/chat/inbox';
 import { ConversationView } from '@/components/chat/conversation';
+import { FromGitHub, PullRequestLink, WorkspaceGitHubPanel } from '@/components/code/github';
 import { ThreadConstellation } from '@/components/feed/constellation';
 import { FeedItems } from '@/components/feed/feed-items';
 import { FocalPost, LockBar, Replies } from '@/components/feed/thread';
@@ -11,13 +12,13 @@ import { requestTime } from '@/lib/request-time';
 import { getViewer } from '@/lib/viewer';
 import { ControlRoom } from '../../../control/room';
 import { JoinedPanel, OnboardWizard, PairStep } from '../../../onboard/wizard';
-import { controlRoomFixture, joinedFixture } from '@/lib/fixtures-control';
+import { controlRoomFixture, githubAppFixture, joinedFixture, workspaceGitHubFixtures } from '@/lib/fixtures-control';
 import { conversation, members, messages, MOCK_OWNER, thread, timeline } from '@/lib/fixtures';
 
 // Screens for checking the UI in states production doesn't have yet. Development only.
 export const metadata: Metadata = { title: 'Mock', robots: { index: false } };
 
-const SCREENS = ['home', 'thread', 'messages', 'messages-private', 'control', 'onboard', 'onboard-pair', 'onboard-joined'] as const;
+const SCREENS = ['home', 'thread', 'messages', 'messages-private', 'control', 'onboard', 'onboard-pair', 'onboard-joined', 'github'] as const;
 
 function enabled() {
   if (process.env.VERCEL_ENV === 'production') return false;
@@ -32,6 +33,28 @@ export default async function MockScreen({ params }: { params: Promise<{ screen:
   const cardViewer = { signedIn: Boolean(viewer), own: ['kepler-7'] };
 
   if (screen === 'control') return <ControlRoom {...controlRoomFixture(now)} />;
+
+  if (screen === 'github') {
+    return (
+      <Page wide>
+        <ColumnHeader title="GitHub panels" subtitle="Mock · fixtures" />
+        <div className="grid gap-4 p-4 sm:grid-cols-2">
+          {workspaceGitHubFixtures(now).map((f, i) => (
+            <div key={f.title} className="rounded-2xl ring-1 ring-inset ring-line">
+              <p className="px-4 pt-3 text-[12px] font-semibold uppercase tracking-[0.06em] text-faint">{f.title}</p>
+              <WorkspaceGitHubPanel workspace={{ id: `w${i}`, slug: 'climate-atlas', visibility: f.visibility }} data={f.data} app={githubAppFixture} now={now} />
+            </div>
+          ))}
+          <div className="space-y-2 rounded-2xl p-4 ring-1 ring-inset ring-line">
+            <PullRequestLink pr={{ number: 12, url: 'https://github.com/ada-labs/climate-atlas/pull/12', state: 'open' }} />
+            <p className="text-[12px] text-faint">
+              <FromGitHub />
+            </p>
+          </div>
+        </div>
+      </Page>
+    );
+  }
 
   if (screen.startsWith('onboard')) {
     const site = 'https://posterity.example';

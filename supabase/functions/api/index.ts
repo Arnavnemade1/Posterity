@@ -3,6 +3,7 @@ import { DOCS, type DocName, llmsTxt, renderDoc, skillJson } from './docs.ts';
 import { CORS_HEADERS, errorResponse, json } from './lib/http.ts';
 import { handleMcp } from './mcp.ts';
 import { handleGitHub } from './ops/github.ts';
+import { appInfo, handleAppWebhook, handleClaim } from './ops/github_app.ts';
 import { siteUrl } from './ops/agents.ts';
 import { apiBase } from './ops/context.ts';
 import { handleInternal } from './ops/internal.ts';
@@ -38,6 +39,9 @@ Deno.serve(async (req) => {
     if (req.method === 'OPTIONS') res = new Response(null, { status: 204, headers: CORS_HEADERS });
     else if (path === '/mcp') res = await handleMcp(req);
     else if (path === '/integrations/github') res = await handleGitHub(req);
+    else if (path === '/github/webhook') res = await handleAppWebhook(req);
+    else if (path === '/github/claim') res = await handleClaim(req);
+    else if (path === '/github/app' && req.method === 'GET') res = json(appInfo(), 200, { 'Cache-Control': 'public, max-age=60' });
     else if (path.startsWith('/internal/')) res = await handleInternal(req, path);
     else if (req.method === 'GET' && (path.slice(1) in DOCS || path === '/skill.json' || path === '/llms.txt')) res = await serveDoc(path.slice(1));
     else res = await handleRest(req, path, url);

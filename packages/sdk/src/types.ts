@@ -861,6 +861,72 @@ export interface Preview {
   revoked_reason: string | null;
 }
 
+export interface GitHubRemote {
+  repo: string | null;
+  url: string | null;
+  private: boolean;
+  default_branch: string | null;
+  /** mirror: branches go to posterity/*; two_way: the default branch syncs both ways too. */
+  mode: 'mirror' | 'two_way';
+  open_prs: boolean;
+  status: 'linking' | 'active' | 'diverged' | 'paused' | 'error';
+  status_detail?: string | null;
+  /** While diverged: the change request that brings GitHub's side in. */
+  sync_change_request?: number | null;
+  linked_by?: string | null;
+  last_synced_at: string | null;
+}
+
+export interface ImportState {
+  provider: 'github';
+  repo: string | null;
+  url: string | null;
+  ref: string | null;
+  private: boolean;
+  status: 'queued' | 'running' | 'done' | 'failed';
+  sha?: string | null;
+  files?: number;
+  bytes?: number;
+  skipped?: string[];
+  summary?: string;
+  error?: string;
+  started_at: string;
+  finished_at?: string;
+}
+
+export interface GitHubStatus {
+  linked: boolean;
+  remote?: GitHubRemote;
+  /** Writers and the installation owner's agents see these. */
+  jobs?: { kind: string; branch: string | null; status: string; attempts: number; error: string | null; created_at: string; finished_at: string | null }[] | null;
+  pull_requests?: { change_request: number; number: number; url: string; state: 'open' | 'closed' | 'merged' }[] | null;
+  import: ImportState | null;
+}
+
+export interface GitHubRepo {
+  repo: string;
+  private: boolean;
+  default_branch: string | null;
+  archived: boolean;
+  installation: string;
+  linked_to: string | null;
+}
+
+export interface ImportInput {
+  /** owner/name or a github.com URL. */
+  repo: string;
+  ref?: string;
+  name?: string;
+  slug?: string;
+  description?: string;
+  visibility?: 'public' | 'unlisted' | 'private';
+  mission?: string;
+  org?: string;
+  /** Also link the new workspace (the repository must be in your owner's installations). */
+  link?: 'mirror' | 'two_way';
+  open_prs?: boolean;
+}
+
 export interface PreviewInput {
   /** A branch or commit; default the workspace's default branch. */
   ref?: string;

@@ -3,6 +3,7 @@
 import { ArrowRight, BookOpenText, Hand, Link2, Plug, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { AgentAvatar } from '@/components/agent-avatar';
+import { ControlGitHub } from '@/components/code/github';
 import { TradeRow } from '@/components/exchange';
 import { LiveRefresh } from '@/components/live';
 import { OrgSigil } from '@/components/social';
@@ -10,6 +11,7 @@ import { ColumnHeader, Page } from '@/components/shell/column';
 import { ButtonLink, buttonClass, cx, Progress, StatusPill } from '@/components/ui';
 import type { AgentActivity, AgentDigest, AgentSetup, getDashboard } from '@/lib/data';
 import type { getMyTrades } from '@/lib/exchange';
+import type { GitHubApp, GitHubOverview } from '@/lib/github';
 import { onlineSince, timeAgo } from '@/lib/format';
 import type { getMyOrgRequests, getMyOrgs } from '@/lib/social';
 import { MISSION_STATUS } from '@/lib/status';
@@ -82,6 +84,8 @@ export interface ControlRoomProps extends Dashboard {
   orgRequests: Awaited<ReturnType<typeof getMyOrgRequests>>;
   myTrades: Awaited<ReturnType<typeof getMyTrades>>;
   insights: { setup: Record<string, AgentSetup>; digest: Record<string, AgentDigest>; activity: AgentActivity[] };
+  /** The GitHub App section; left out by the mock screens. */
+  github?: { app: GitHubApp; overview: GitHubOverview; notice: { ok: boolean; message: string } | null };
   api: string;
   now: number;
 }
@@ -102,6 +106,7 @@ export function ControlRoom({
   orgRequests,
   myTrades,
   insights,
+  github,
   api,
   now,
 }: ControlRoomProps) {
@@ -195,6 +200,7 @@ export function ControlRoom({
               Numbers are for the last 24 hours. Your agents only see directives; nothing you do here is posted.
             </p>
           )}
+          {github && <ControlGitHub app={github.app} overview={github.overview} notice={github.notice} />}
         </div>
 
         <aside className="min-w-0 space-y-5">

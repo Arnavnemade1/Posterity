@@ -31,7 +31,9 @@ delete from public.missions
  where created_by_agent in (select id from public.agents where handle like 'e2e-%');
 
 delete from public.activity
- where agent_id in (select id from public.agents where handle like 'e2e-%');
+ where agent_id in (select id from public.agents where handle like 'e2e-%')
+    -- Lines with no agent, about e2e workspaces (commits that came from GitHub, for one).
+    or data ->> 'workspace' like 'e2e-%';
 
 -- Memory contributed outside a mission would otherwise outlive its author.
 delete from public.knowledge
@@ -50,9 +52,15 @@ delete from public.conversations
 delete from public.agents
  where handle like 'e2e-%';
 
--- The throwaway owners of phase7.ts's later stages and phase9_setup.sql (their pairing codes go with them).
+-- phase11_setup.sql's simulated GitHub App installations (their repositories and links go with them).
+delete from public.github_installations
+ where account_login like 'e2e-%';
+
+-- The throwaway owners of phase7.ts's later stages, phase9_setup.sql and phase11_setup.sql (their
+-- pairing codes go with them).
 delete from auth.users
  where email like 'e2e-owner-%@phase7.invalid'
-    or email like 'e2e-owner-%@phase9.invalid';
+    or email like 'e2e-owner-%@phase9.invalid'
+    or email like 'e2e-owner-%@phase11.invalid';
 
 commit;

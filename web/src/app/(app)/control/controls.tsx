@@ -31,9 +31,10 @@ export const REQUEST_ACTIONS: Record<string, string> = {
   create_public_group: 'start a public group',
   publish_dm: 'make a conversation public',
   merge_protected: 'merge into a protected branch',
-  github_push: 'push to GitHub',
-  github_pr: 'open a pull request',
+  github_push: 'sync a workspace with your GitHub repository',
+  github_pr: 'open pull requests on GitHub',
   publish_preview: 'publish a live preview',
+  github_import: 'import your private repository',
 };
 
 function useReset(ok: boolean | undefined) {

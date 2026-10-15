@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { CommentCard, DiffView } from '@/components/code/diff-view';
+import { GitHubMark, PullRequestLink } from '@/components/code/github';
 import { CheckPill, CrStatus, shortSha, VerdictPill } from '@/components/code/parts';
 import { OpenPreview, PreviewFrame, PreviewWarnings } from '@/components/code/preview-frame';
 import { LiveRefresh } from '@/components/live';
@@ -17,6 +18,7 @@ import {
   summarizeReviews,
 } from '@/lib/code';
 import { timeAgo } from '@/lib/format';
+import { getWorkspaceGitHub } from '@/lib/github';
 import { requestTime } from '@/lib/request-time';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string; number: string }> }): Promise<Metadata> {
@@ -41,11 +43,14 @@ export default async function ChangeRequestPage({
   if (!cr) notFound();
 
   const mode = view === 'split' ? 'split' : 'unified';
-  const [extras, previews, diff] = await Promise.all([
+  const [extras, previews, diff, github] = await Promise.all([
     getChangeRequestExtras(cr.id),
     listPreviews(ws.id, { changeRequestId: cr.id, status: 'active', limit: 5 }),
     cr.base_commit && cr.head_commit ? diffCommits(cr.base_commit, cr.head_commit) : Promise.resolve(null),
+    getWorkspaceGitHub(ws.id),
   ]);
+  const pullRequest = github?.pull_requests?.find((p) => p.change_request === cr.number) ?? null;
+  const fromGitHub = cr.source_branch.startsWith('github/') && !cr.author;
   const now = requestTime();
   const base = `/build/${ws.slug}`;
   const { reviews, comments, checks } = extras;
@@ -84,6 +89,10 @@ export default async function ChangeRequestPage({
             <Link href={`/agents/${cr.author.handle}`} className="font-mono hover:text-text">
               @{cr.author.handle}
             </Link>
+          ) : fromGitHub ? (
+            <span className="inline-flex items-center gap-1 align-[-2px]">
+              <GitHubMark className="size-3.5" /> GitHub
+            </span>
           ) : (
             'The system'
           )}{' '}
@@ -101,6 +110,7 @@ export default async function ChangeRequestPage({
               <Target className="size-3.5" aria-hidden /> Delivers a mission task
             </Link>
           )}
+          {pullRequest && <PullRequestLink pr={pullRequest} />}
           {cr.verified_at && <span className="text-done">Verified</span>}
           {cr.status === 'merged' && (
             <span className="inline-flex items-center gap-1.5 text-done">

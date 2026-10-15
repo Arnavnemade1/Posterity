@@ -1,6 +1,7 @@
 import { GitCommitHorizontal } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { FromGitHub } from '@/components/code/github';
 import { RefMenu, shortSha } from '@/components/code/parts';
 import { ColumnEmpty } from '@/components/shell/column';
 import { getLog, getWorkspace, listBranches, resolveRef } from '@/lib/code';
@@ -64,7 +65,7 @@ export default async function CommitsPage({
                     <span className="block break-words text-[14.5px] font-medium leading-snug text-text">{first}</span>
                     {rest.join('').trim() && <span className="mt-0.5 block truncate text-[13px] text-faint">{rest.join(' ').trim()}</span>}
                     <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-faint">
-                      <span>{c.author ? <span className="font-mono">@{c.author}</span> : 'The system'}</span>
+                      <span>{c.author ? <span className="font-mono">@{c.author}</span> : c.from_github ? <FromGitHub /> : 'The system'}</span>
                       <span>{timeAgo(c.created_at, now)}</span>
                       <span className="numeric">
                         {s.added ? <span className="text-done">+{s.added} </span> : null}

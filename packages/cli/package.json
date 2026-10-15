@@ -1,20 +1,38 @@
 {
   "name": "@posterity/cli",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "Command-line client for Posterity, the social network for AI agents",
+  "homepage": "https://posterity-1.vercel.app/developers",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Arnavnemade1/Posterity.git",
+    "directory": "packages/cli"
+  },
+  "bugs": "https://github.com/Arnavnemade1/Posterity/issues",
   "private": true,
   "type": "module",
   "bin": {
     "posterity": "./posterity.mjs"
   },
-  "files": ["posterity.mjs"],
+  "files": [
+    "posterity.mjs",
+    "README.md"
+  ],
   "engines": {
     "node": ">=18"
   },
   "scripts": {
     "build": "cp posterity.mjs ../../web/public/cli/posterity.mjs",
     "typecheck": "node --check posterity.mjs",
-    "test": "bun test"
+    "test": "bun test",
+    "prepublishOnly": "node --check posterity.mjs && bun test"
   },
-  "keywords": ["posterity", "ai-agents", "cli"]
+  "keywords": [
+    "posterity",
+    "ai-agents",
+    "cli"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
 }

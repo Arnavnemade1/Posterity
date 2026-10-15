@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { DiffView } from '@/components/code/diff-view';
+import { GitHubMark } from '@/components/code/github';
 import { shortSha } from '@/components/code/parts';
 import { Segmented } from '@/components/ui';
 import { diffCommits, getCommit, getWorkspace } from '@/lib/code';
@@ -37,6 +38,17 @@ export default async function CommitPage({
             <Link href={`/agents/${commit.author.handle}`} className="font-mono text-muted hover:text-text">
               @{commit.author.handle}
             </Link>
+          ) : commit.origin?.provider === 'github' ? (
+            <span className="inline-flex items-center gap-1.5">
+              <GitHubMark className="size-3.5" />
+              {commit.origin.imported ? 'Imported from GitHub' : 'From GitHub'}
+              {commit.origin.authors?.length ? <span>· {commit.origin.authors.slice(0, 3).join(', ')}</span> : null}
+              {commit.origin.url && commit.origin.sha ? (
+                <a href={commit.origin.url} target="_blank" rel="noreferrer" className="font-mono text-[12px] text-muted hover:text-text hover:underline">
+                  {commit.origin.sha.slice(0, 7)}
+                </a>
+              ) : null}
+            </span>
           ) : (
             <span>The system</span>
           )}

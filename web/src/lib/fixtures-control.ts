@@ -2,6 +2,7 @@
 // Never presented as real activity.
 import type { ControlRoomProps } from '@/app/(app)/control/room';
 import type { PairingStatus } from '@/app/(app)/onboard/actions';
+import type { GitHubApp, GitHubOverview, WorkspaceGitHub } from '@/lib/github';
 
 const HOUR = 3600_000;
 
@@ -118,9 +119,118 @@ export function controlRoomFixture(now: number): ControlRoomProps {
         { id: 3, agent_id: 'a2', kind: 'work_submitted', summary: '@kepler-7 submitted work on “Benchmark recall at 120k chunks”', created_at: at(5) },
       ],
     },
+    github: { app: githubAppFixture, overview: githubOverviewFixture(), notice: { ok: true, message: 'Connected ada-labs. Link a workspace from its page to start syncing.' } },
     api: 'https://example.supabase.co/functions/v1/api',
     now,
   };
+}
+
+export const githubAppFixture: GitHubApp = {
+  configured: true,
+  slug: 'posterity-network',
+  install_url: 'https://github.com/apps/posterity-network/installations/new',
+  client_id: 'Iv1.example',
+};
+
+export function githubOverviewFixture(): GitHubOverview {
+  return {
+    installations: [
+      {
+        id: 1,
+        account: 'ada-labs',
+        account_type: 'Organization',
+        selection: 'selected',
+        suspended: false,
+        removed: false,
+        github_login: 'ada',
+        repositories: [
+          { id: 11, repo: 'ada-labs/climate-atlas', private: false, archived: false, default_branch: 'main', linked: { workspace: 'climate-atlas', name: 'Climate atlas', mode: 'two_way', status: 'active' } },
+          { id: 12, repo: 'ada-labs/recall-bench', private: true, archived: false, default_branch: 'main', linked: { workspace: 'recall-bench', name: 'Recall bench', mode: 'mirror', status: 'diverged' } },
+          { id: 13, repo: 'ada-labs/site', private: false, archived: false, default_branch: 'main', linked: null },
+        ],
+      },
+    ],
+    workspaces: [
+      { id: 'w3', slug: 'muse-notes', name: 'Muse notes', visibility: 'public', agent: 'muse', remote: null },
+    ],
+  };
+}
+
+/** A workspace's GitHub panel in each state worth seeing. */
+export function workspaceGitHubFixtures(now: number): { title: string; visibility: string; data: WorkspaceGitHub }[] {
+  const at = (hoursAgo: number) => new Date(now - hoursAgo * HOUR).toISOString();
+  return [
+    {
+      title: 'Two-way, both sides changed (owner)',
+      visibility: 'public',
+      data: {
+        linked: true,
+        can_manage: true,
+        remote: {
+          repo: 'ada-labs/climate-atlas',
+          url: 'https://github.com/ada-labs/climate-atlas',
+          private: false,
+          default_branch: 'main',
+          mode: 'two_way',
+          open_prs: true,
+          status: 'diverged',
+          status_detail: 'main changed on both sides. Merge change request #4 (github/main into main) to bring them together.',
+          sync_change_request: 4,
+          linked_by: '@kepler-7',
+          last_synced_at: at(0.3),
+        },
+        jobs: [
+          { kind: 'pull', branch: null, status: 'done', error: null, created_at: at(0.3), finished_at: at(0.3) },
+          { kind: 'push', branch: 'main', status: 'done', error: null, created_at: at(0.4), finished_at: at(0.4) },
+          { kind: 'pr', branch: null, status: 'failed', error: 'GitHub: Validation Failed', created_at: at(1), finished_at: at(1) },
+        ],
+        repositories: [],
+        pull_requests: [{ change_request: 3, number: 12, url: 'https://github.com/ada-labs/climate-atlas/pull/12', state: 'open' }],
+        import: { repo: 'ada-labs/climate-atlas', url: 'https://github.com/ada-labs/climate-atlas', ref: null, private: false, status: 'done', sha: 'f2a9c4e0b1d2c3e4f5a6b7c8d9e0f1a2b3c4d5e6', summary: '184 files, 2 skipped', files: 184 },
+      },
+    },
+    {
+      title: 'Mirror of a private repository (a watcher)',
+      visibility: 'public',
+      data: {
+        linked: true,
+        can_manage: false,
+        remote: { repo: null, url: null, private: true, default_branch: null, mode: 'mirror', open_prs: false, status: 'active', last_synced_at: at(2) },
+        jobs: null,
+        repositories: null,
+        pull_requests: null,
+        import: null,
+      },
+    },
+    {
+      title: 'Not linked (owner with repositories)',
+      visibility: 'public',
+      data: {
+        linked: false,
+        can_manage: true,
+        remote: null,
+        jobs: null,
+        repositories: [
+          { id: 13, repo: 'ada-labs/site', private: false, installation: 'ada-labs' },
+          { id: 14, repo: 'ada-labs/notes', private: true, installation: 'ada-labs' },
+        ],
+        pull_requests: null,
+        import: null,
+      },
+    },
+    {
+      title: 'Importing',
+      visibility: 'public',
+      data: {
+        linked: false,
+        can_manage: false,
+        remote: null,
+        jobs: null,
+        repositories: null,
+        import: { repo: 'octocat/Hello-World', url: 'https://github.com/octocat/Hello-World', ref: null, private: false, status: 'running' },
+      },
+    },
+  ];
 }
 
 export function joinedFixture(): PairingStatus {

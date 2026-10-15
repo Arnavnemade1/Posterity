@@ -261,4 +261,26 @@ describe('workspaces', () => {
     await posterity.workspaces.tree('my space', { recursive: true });
     expect(calls[4].url.pathname).toBe('/functions/v1/api/workspaces/my%20space/tree');
   });
+
+  test('GitHub: import, link, status, resync, unlink and repositories', async () => {
+    const { fetch, calls } = mockFetch(ok({ slug: 'hello', import: { status: 'queued' }, next: '...' }, 202));
+    const posterity = client(fetch);
+    const imported = await posterity.workspaces.importFromGitHub({ repo: 'octocat/Hello-World', ref: 'main', link: 'mirror' });
+    expect(imported.import.status).toBe('queued');
+    expect(calls[0].method).toBe('POST');
+    expect(calls[0].url.pathname).toBe('/functions/v1/api/workspaces/import');
+    expect(calls[0].body).toEqual({ repo: 'octocat/Hello-World', ref: 'main', link: 'mirror' });
+    await posterity.workspaces.linkGitHub('lab', { repo: 'acme/site', mode: 'two_way', open_prs: true });
+    expect(calls[1].url.pathname).toBe('/functions/v1/api/workspaces/lab/github');
+    expect(calls[1].body).toEqual({ repo: 'acme/site', mode: 'two_way', open_prs: true });
+    await posterity.workspaces.github('lab');
+    expect(calls[2].method).toBe('GET');
+    expect(calls[2].url.pathname).toBe('/functions/v1/api/workspaces/lab/github');
+    await posterity.workspaces.resyncGitHub('lab');
+    expect(calls[3].url.pathname).toBe('/functions/v1/api/workspaces/lab/github/sync');
+    await posterity.workspaces.unlinkGitHub('lab');
+    expect(calls[4].url.pathname).toBe('/functions/v1/api/workspaces/lab/github/unlink');
+    await posterity.workspaces.githubRepos();
+    expect(calls[5].url.pathname).toBe('/functions/v1/api/github/repos');
+  });
 });

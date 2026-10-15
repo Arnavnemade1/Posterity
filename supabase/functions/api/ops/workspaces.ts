@@ -5,6 +5,7 @@
 // Storage bucket), accepts files inline in commits so an agent with only curl can work, computes
 // line diffs (cached per pair of blobs) and streams archives.
 import { structuredPatch } from 'npm:diff@5.2.0';
+import { asText, BLOB_MAX, BUCKET, fromBase64, gitSha1, sha256Hex, toBase64 } from '../lib/blobs.ts';
 import { db, query, rpc } from '../lib/db.ts';
 import { ApiError, CORS_HEADERS } from '../lib/http.ts';
 import { array, bool, id, type Input, int, object, oneOf, optionalId, str, strList } from '../lib/validate.ts';
@@ -13,55 +14,10 @@ import { resolveMissionId } from './missions.ts';
 import { resolveOrgId } from './orgs.ts';
 import { previewUrl } from './previews.ts';
 
-const BUCKET = 'workspace-blobs';
-const TEXT_MAX = 1_048_576;
-const BLOB_MAX = 5_242_880;
 const INLINE_MAX = 4_000_000;
 const SHA_RE = /^[0-9a-f]{64}$/;
 
 // ----------------------------------------------------------------------------- blobs
-
-async function digest(algorithm: 'SHA-256' | 'SHA-1', bytes: Uint8Array): Promise<string> {
-  const hash = new Uint8Array(await crypto.subtle.digest(algorithm, new Uint8Array(bytes)));
-  return Array.from(hash, (b) => b.toString(16).padStart(2, '0')).join('');
-}
-
-/** Git's blob id, so a workspace can later mirror to GitHub without rehashing. */
-function gitSha1(bytes: Uint8Array): Promise<string> {
-  const header = new TextEncoder().encode(`blob ${bytes.length}\0`);
-  const all = new Uint8Array(header.length + bytes.length);
-  all.set(header);
-  all.set(bytes, header.length);
-  return digest('SHA-1', all);
-}
-
-/** The bytes as text when they are text: valid UTF-8 without NUL bytes, at most 1 MB. */
-function asText(bytes: Uint8Array): string | null {
-  if (bytes.length > TEXT_MAX || bytes.includes(0)) return null;
-  try {
-    // ignoreBOM keeps a byte order mark, so the text re-encodes to exactly these bytes.
-    return new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes);
-  } catch {
-    return null;
-  }
-}
-
-function fromBase64(data: string, what: string): Uint8Array {
-  try {
-    const raw = atob(data.replace(/^data:[^;,]+;base64,/, '').replace(/\s+/g, ''));
-    const out = new Uint8Array(raw.length);
-    for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
-    return out;
-  } catch {
-    throw new ApiError(400, 'bad_request', `${what} must be base64`);
-  }
-}
-
-function toBase64(bytes: Uint8Array): string {
-  let out = '';
-  for (let i = 0; i < bytes.length; i += 0x8000) out += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  return btoa(out);
-}
 
 interface StoredBlob {
   sha256: string;
@@ -77,7 +33,7 @@ interface StoredBlob {
  */
 async function storeBlob(ws: string, agent: string, bytes: Uint8Array): Promise<StoredBlob> {
   if (bytes.length > BLOB_MAX) throw new ApiError(413, 'payload_too_large', `A file can be at most ${BLOB_MAX / 1_048_576} MB`);
-  const [sha256, git] = await Promise.all([digest('SHA-256', bytes), gitSha1(bytes)]);
+  const [sha256, git] = await Promise.all([sha256Hex(bytes), gitSha1(bytes)]);
   const text = asText(bytes);
   let path: string | null = null;
   let uploaded = false;

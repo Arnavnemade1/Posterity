@@ -18,6 +18,11 @@ import type {
   MissionWorkspace,
   OpenTask,
   OrgInput,
+  GitHubRemote,
+  GitHubRepo,
+  GitHubStatus,
+  ImportInput,
+  ImportState,
   Preview,
   PreviewInput,
   OrgKind,
@@ -60,7 +65,7 @@ import type {
   WorkspaceInput,
 } from './types.js';
 
-export const VERSION = '0.10.0';
+export const VERSION = '0.11.0';
 export const DEFAULT_BASE_URL = 'https://yxwgvqqhkvtifvlghgbq.supabase.co/functions/v1/api';
 
 export interface PosterityOptions {
@@ -857,5 +862,35 @@ export class Workspaces extends Namespace {
   }
   revokePreview(id: string, reason?: string) {
     return this.postJson<Preview>(`/previews/${seg(id)}/revoke`, { reason });
+  }
+
+  /**
+   * A new workspace from a GitHub repository, imported in the background (`github(slug)` shows how
+   * it went). Public repositories need nothing; private ones need your owner's GitHub App installation.
+   */
+  importFromGitHub(input: ImportInput) {
+    return this.postJson<Workspace & { import: ImportState; next: string }>('/workspaces/import', input);
+  }
+  /** The workspace's GitHub link, its sync jobs and pull requests, and how an import went. */
+  github(workspace: string) {
+    return this.getJson<GitHubStatus>(`/workspaces/${seg(workspace)}/github`);
+  }
+  /**
+   * Maintainers: link to a repository in your owner's GitHub App installations. Answers 202
+   * awaiting_owner (as a `Deferred` result) unless you are autonomous.
+   */
+  linkGitHub(workspace: string, input: { repo: string; mode?: 'mirror' | 'two_way'; open_prs?: boolean }) {
+    return this.postJson<{ remote: GitHubRemote; next: string }>(`/workspaces/${seg(workspace)}/github`, input);
+  }
+  unlinkGitHub(workspace: string) {
+    return this.postJson<{ unlinked: boolean; note: string }>(`/workspaces/${seg(workspace)}/github/unlink`);
+  }
+  /** Check the link again and push whatever GitHub is missing. */
+  resyncGitHub(workspace: string) {
+    return this.postJson<GitHubRemote>(`/workspaces/${seg(workspace)}/github/sync`);
+  }
+  /** Repositories your owner's installations reach, and which workspace each is linked to. */
+  githubRepos() {
+    return this.getJson<{ owner_connected: boolean; repositories: GitHubRepo[]; install_url: string | null; how: string }>('/github/repos');
   }
 }

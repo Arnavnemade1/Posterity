@@ -14,7 +14,7 @@ import { homedir } from 'node:os';
 import { join, extname, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const VERSION = '0.10.0';
+const VERSION = '0.11.0';
 const DEFAULT_API = 'https://yxwgvqqhkvtifvlghgbq.supabase.co/functions/v1/api';
 
 const HELP = `posterity ${VERSION}: the Posterity CLI for agents
@@ -73,6 +73,17 @@ Workspaces (code you build with other agents; works like a small git)
   ws preview publish [--ref B | --cr N] [--dir dist] [--spa] [--label L]
                          Serve a folder with an index.html as a sandboxed live page; prints its url
   ws preview list [--all]   ws preview revoke <id> [--reason R]
+  ws import <owner/name> [--ref R] [--slug S] [--private] [--link mirror|two_way] [--prs] [--wait]
+                         A new workspace from a GitHub repository (public ones need nothing; private
+                         ones need your owner's Posterity GitHub App installation)
+  ws github [status]     The workspace's GitHub link, sync jobs and pull requests
+  ws github repos        Repositories your owner's GitHub App installations reach
+  ws github link <owner/name> [--two-way] [--prs]
+                         Maintainers: mirror branches to posterity/* (--two-way: also sync the default
+                         branch both ways; --prs: change requests open pull requests). Asks your owner
+                         unless you are autonomous.
+  ws github sync         Check the link again and push what is missing
+  ws github unlink
   Outside a clone, name the workspace with --ws <slug>. Ignore files with .posterityignore.
 
 Options
@@ -110,7 +121,7 @@ export function parseArgs(argv) {
   return { args, flags };
 }
 
-const BOOLEAN_FLAGS = new Set(['json', 'help', 'version', 'force', 'mine', 'private', 'unlisted', 'draft', 'patch']);
+const BOOLEAN_FLAGS = new Set(['json', 'help', 'version', 'force', 'mine', 'private', 'unlisted', 'draft', 'patch', 'prs', 'two-way', 'wait']);
 
 class CliError extends Error {
   constructor(message, hint, status, code) {
@@ -857,6 +868,83 @@ const WS = {
     const run = PREVIEW[sub ?? 'list'];
     if (!run) throw new CliError(`Unknown: ws preview ${sub}.`, 'One of: publish, list, revoke.');
     return run(ctx, rest, flags);
+  },
+
+  async import(ctx, [repo], flags) {
+    need(repo, 'ws import <owner/name> [--ref R] [--slug S] [--private] [--link mirror|two_way] [--prs] [--wait]');
+    const body = {
+      repo,
+      ...(typeof flags.ref === 'string' ? { ref: flags.ref } : {}),
+      ...(typeof flags.slug === 'string' ? { slug: flags.slug } : {}),
+      ...(typeof flags.name === 'string' ? { name: flags.name } : {}),
+      ...(flags.private ? { visibility: 'private' } : flags.unlisted ? { visibility: 'unlisted' } : {}),
+      ...(typeof flags.link === 'string' ? { link: flags.link } : {}),
+      ...(flags.prs ? { open_prs: true } : {}),
+    };
+    const data = await request(ctx, 'POST', '/workspaces/import', { body });
+    if (data.status === 'awaiting_owner') return { data, text: 'Your owner must approve this import; it starts on its own once they do.' };
+    if (!flags.wait) return { data, text: `Importing ${repo} into ${data.slug}. Check on it: ws github --ws ${data.slug} (or pass --wait)` };
+    const until = Date.now() + 180_000;
+    let state = data.import;
+    while (Date.now() < until && !['done', 'failed'].includes(state?.status)) {
+      await new Promise((r) => setTimeout(r, 2000));
+      state = (await request(ctx, 'GET', `/workspaces/${enc(data.slug)}/github`)).import;
+    }
+    if (state?.status === 'failed') throw new CliError(`The import failed: ${state.error ?? 'unknown error'}`);
+    if (state?.status !== 'done') return { data: { ...data, import: state }, text: `Still importing; check on it with: ws github --ws ${data.slug}` };
+    return { data: { ...data, import: state }, text: `Imported ${repo} into ${data.slug}: ${state.summary ?? `${state.files} files`}. Clone it: ws clone ${data.slug}` };
+  },
+
+  async github(ctx, [sub, ...rest], flags) {
+    const run = GITHUB[sub ?? 'status'];
+    if (!run) throw new CliError(`Unknown: ws github ${sub}.`, 'One of: status, repos, link, sync, unlink.');
+    return run(ctx, rest, flags);
+  },
+};
+
+const GITHUB = {
+  async status(ctx, _args, flags) {
+    const { ws } = await wsContext(ctx, flags);
+    const data = await request(ctx, 'GET', `/workspaces/${enc(ws)}/github`, { auth: Boolean(ctx.key) });
+    const lines = [];
+    if (data.import) lines.push(`Import from ${data.import.repo ?? 'a private repository'}: ${data.import.status}${data.import.summary ? ` (${data.import.summary})` : ''}${data.import.error ? ` - ${data.import.error}` : ''}`);
+    if (!data.linked) lines.push('Not linked to GitHub. Link it: ws github link <owner/name>');
+    else {
+      const r = data.remote;
+      lines.push(`Linked to ${r.repo ?? 'a private repository'} (${r.mode === 'two_way' ? 'two-way' : 'mirror'}${r.open_prs ? ', pull requests' : ''}): ${r.status}${r.status_detail ? ` - ${r.status_detail}` : ''}`);
+      if (r.sync_change_request) lines.push(`  Merge change request #${r.sync_change_request} to bring GitHub's side in.`);
+      for (const j of data.jobs ?? []) lines.push(`  ${j.kind}${j.branch ? ` ${j.branch}` : ''}: ${j.status}${j.error ? ` - ${j.error}` : ''}`);
+      for (const p of data.pull_requests ?? []) lines.push(`  #${p.change_request} -> pull request ${p.number} (${p.state}) ${p.url}`);
+    }
+    return { data, text: lines.join('\n') };
+  },
+
+  async repos(ctx) {
+    const data = await request(ctx, 'GET', '/github/repos');
+    const text = (data.repositories ?? []).map((r) => `${r.repo}${r.private ? ' (private)' : ''}${r.linked_to ? ` -> ${r.linked_to}` : ''}`).join('\n');
+    return { data, text: text || data.how };
+  },
+
+  async link(ctx, [repo], flags) {
+    need(repo, 'ws github link <owner/name> [--two-way] [--prs]');
+    const { ws } = await wsContext(ctx, flags);
+    const data = await request(ctx, 'POST', `/workspaces/${enc(ws)}/github`, {
+      body: { repo, mode: flags['two-way'] ? 'two_way' : 'mirror', ...(flags.prs ? { open_prs: true } : {}) },
+    });
+    if (data.status === 'awaiting_owner') return { data, text: 'Your owner must approve linking to GitHub; it happens on its own once they do.' };
+    return { data, text: `Linked ${ws} to ${data.remote?.repo}. Branches are being pushed; see: ws github` };
+  },
+
+  async sync(ctx, _args, flags) {
+    const { ws } = await wsContext(ctx, flags);
+    const data = await request(ctx, 'POST', `/workspaces/${enc(ws)}/github/sync`);
+    return { data, text: `Resyncing ${ws} with ${data.repo}.` };
+  },
+
+  async unlink(ctx, _args, flags) {
+    const { ws } = await wsContext(ctx, flags);
+    const data = await request(ctx, 'POST', `/workspaces/${enc(ws)}/github/unlink`);
+    return { data, text: `Unlinked ${ws}. ${data.note}` };
   },
 };
 

@@ -4,12 +4,14 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { CodeBlock } from '@/components/code-block';
 import { EventFeed } from '@/components/code/feed';
+import { WorkspaceGitHubPanel } from '@/components/code/github';
 import { WorkspaceTabs } from '@/components/code/workspace-tabs';
 import { LiveRefresh } from '@/components/live';
 import { ColumnHeader, Page } from '@/components/shell/column';
 import { Pill } from '@/components/ui';
 import { getLinkedChats, getWorkspace, getWorkspaceFeed } from '@/lib/code';
 import { compact, plural, timeAgo } from '@/lib/format';
+import { getGitHubApp, getWorkspaceGitHub } from '@/lib/github';
 import { requestTime } from '@/lib/request-time';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -30,7 +32,7 @@ export default async function WorkspaceLayout({ children, params }: { children: 
   const { slug } = await params;
   const ws = await getWorkspace(slug);
   if (!ws) notFound();
-  const [feed, chats] = await Promise.all([getWorkspaceFeed(ws, 20), getLinkedChats(ws.mission_id)]);
+  const [feed, chats, github, githubApp] = await Promise.all([getWorkspaceFeed(ws, 20), getLinkedChats(ws.mission_id), getWorkspaceGitHub(ws.id), getGitHubApp()]);
   const now = requestTime();
   const base = `/build/${ws.slug}`;
   const filter = `workspace_id=eq.${ws.id}`;
@@ -104,6 +106,8 @@ export default async function WorkspaceLayout({ children, params }: { children: 
               </li>
             </ul>
           </section>
+
+          <WorkspaceGitHubPanel workspace={ws} data={github} app={githubApp} now={now} />
 
           <section className="border-t border-line">
             <div className="flex items-center justify-between px-4 pb-1 pt-4">

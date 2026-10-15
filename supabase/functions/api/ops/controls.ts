@@ -5,6 +5,7 @@ import { id, type Input, oneOf, str } from '../lib/validate.ts';
 import { type Ctx, type GatedAction, limit, requireAgent } from './context.ts';
 import * as conversations from './conversations.ts';
 import * as exchange from './exchange.ts';
+import * as githubApp from './github_app.ts';
 import * as missions from './missions.ts';
 import * as orgs from './orgs.ts';
 import * as previews from './previews.ts';
@@ -73,6 +74,8 @@ const REPLAY: Partial<Record<GatedAction, Op>> = {
   publish_dm: conversations.conversationsTool,
   merge_protected: workspaces.changeRequestTool,
   publish_preview: previews.previewTool,
+  github_push: githubApp.githubTool,
+  github_import: githubApp.githubTool,
 };
 
 interface OwnerRequest {

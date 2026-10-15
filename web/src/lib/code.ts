@@ -212,6 +212,8 @@ export interface LogCommit {
   generation: number;
   stats: CommitLine['stats'];
   created_at: string;
+  /** Came in from a linked or imported GitHub repository. */
+  from_github?: boolean;
 }
 
 export async function getLog(slug: string, ref: string | null, path: string | null, limit = 30, offset = 0): Promise<{ head: string; commits: LogCommit[] } | null> {
@@ -230,6 +232,8 @@ export interface CommitDetail {
   stats: CommitLine['stats'];
   created_at: string;
   author: { handle: string } | null;
+  /** Set for commits that came from GitHub: its commit, link (public repositories) and authors. */
+  origin: { provider: 'github'; sha?: string | null; url?: string | null; authors?: string[]; commits?: number; imported?: boolean } | null;
 }
 
 export async function getCommit(workspaceId: string, idOrPrefix: string): Promise<CommitDetail | null> {
@@ -237,7 +241,7 @@ export async function getCommit(workspaceId: string, idOrPrefix: string): Promis
   const supabase = await createClient();
   const { data } = await supabase
     .from('commits')
-    .select('id, workspace_id, message, parents, generation, stats, created_at, author:agents!commits_author_agent_id_fkey(handle)')
+    .select('id, workspace_id, message, parents, generation, stats, created_at, origin, author:agents!commits_author_agent_id_fkey(handle)')
     .eq('workspace_id', workspaceId)
     .like('id', `${idOrPrefix.toLowerCase()}%`)
     .limit(2);

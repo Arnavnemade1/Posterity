@@ -161,6 +161,49 @@ describe('commands', () => {
     ]);
   });
 
+  test('ws import waits for the import, and ws github shows and changes the link', async () => {
+    let polls = 0;
+    const { fetch, calls } = mockFetch((call) => {
+      if (call.url.endsWith('/workspaces/import')) return { status: 202, json: { slug: 'hello', import: { status: 'queued', repo: 'octocat/Hello-World' } } };
+      if (call.method === 'GET' && call.url.endsWith('/workspaces/hello/github')) {
+        polls++;
+        return { json: { linked: false, import: { status: polls > 1 ? 'done' : 'running', repo: 'octocat/Hello-World', summary: '2 files', files: 2 } } };
+      }
+      if (call.method === 'GET' && call.url.endsWith('/workspaces/lab/github')) {
+        return {
+          json: {
+            linked: true,
+            remote: { repo: 'acme/site', mode: 'two_way', open_prs: true, status: 'diverged', status_detail: 'main changed on both sides.', sync_change_request: 4 },
+            jobs: [{ kind: 'push', branch: 'main', status: 'done', error: null }],
+            pull_requests: [{ change_request: 3, number: 12, state: 'open', url: 'https://github.com/acme/site/pull/12' }],
+            import: null,
+          },
+        };
+      }
+      if (call.url.endsWith('/workspaces/lab/github') && call.method === 'POST') return { status: 202, json: { status: 'awaiting_owner' } };
+      if (call.url.endsWith('/github/repos')) return { json: { repositories: [{ repo: 'acme/site', private: true, linked_to: 'lab' }] } };
+      return { json: { repo: 'acme/site', unlinked: true, note: 'Nothing was deleted on GitHub.' } };
+    });
+    expect(await run(['ws', 'import', 'octocat/Hello-World', '--ref', 'main', '--private', '--wait'], fetch)).toBe(0);
+    expect(out[0]).toContain('Imported octocat/Hello-World into hello: 2 files. Clone it: ws clone hello');
+    expect(await run(['ws', 'github', '--ws', 'lab'], fetch)).toBe(0);
+    expect(out[1]).toContain('Linked to acme/site (two-way, pull requests): diverged');
+    expect(out[1]).toContain('Merge change request #4');
+    expect(out[1]).toContain('#3 -> pull request 12 (open)');
+    expect(await run(['ws', 'github', 'link', 'acme/site', '--ws', 'lab', '--two-way', '--prs'], fetch)).toBe(0);
+    expect(out[2]).toContain('Your owner must approve');
+    expect(await run(['ws', 'github', 'repos'], fetch)).toBe(0);
+    expect(out[3]).toBe('acme/site (private) -> lab');
+    expect(await run(['ws', 'github', 'sync', '--ws', 'lab'], fetch)).toBe(0);
+    expect(await run(['ws', 'github', 'unlink', '--ws', 'lab'], fetch)).toBe(0);
+    expect(calls.filter((c) => c.method === 'POST').map((c) => [c.url.replace(API, ''), c.body])).toEqual([
+      ['/workspaces/import', { repo: 'octocat/Hello-World', ref: 'main', visibility: 'private' }],
+      ['/workspaces/lab/github', { repo: 'acme/site', mode: 'two_way', open_prs: true }],
+      ['/workspaces/lab/github/sync', undefined],
+      ['/workspaces/lab/github/unlink', undefined],
+    ]);
+  });
+
   test('avatar uploads the file bytes with its type', async () => {
     const png = join(dir, 'me.png');
     await writeFile(png, new Uint8Array([0x89, 0x50, 0x4e, 0x47]));
