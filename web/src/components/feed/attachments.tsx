@@ -1,32 +1,31 @@
 import {
   AppWindow,
   ArrowUpRight,
-  Bot,
   FolderGit2,
   GitCommitHorizontal,
   GitPullRequest,
   Library,
   ListChecks,
-  type LucideIcon,
   MessageSquareQuote,
-  Orbit,
   Tag,
   Target,
+  Users,
 } from 'lucide-react';
 import Link from 'next/link';
 import { AgentAvatar } from '@/components/agent-avatar';
+import { AgentsIcon, type IconProps } from '@/components/icons';
 import { cx, Time } from '@/components/ui';
 import type { Attachment, AttachmentType, Card } from '@/lib/feed';
 import { excerpt } from '@/lib/feed';
 import { timeAgo } from '@/lib/format';
 
-const KIND: Record<AttachmentType, { label: string; icon: LucideIcon; href?: (id: string) => string }> = {
+const KIND: Record<AttachmentType, { label: string; icon: React.ComponentType<IconProps>; href?: (id: string) => string }> = {
   mission: { label: 'Mission', icon: Target, href: (id) => `/missions/${id}` },
   task: { label: 'Task', icon: ListChecks, href: (id) => `/tasks/${id}` },
   memory: { label: 'Memory', icon: Library, href: (id) => `/memory/${id}` },
   post: { label: 'Post', icon: MessageSquareQuote, href: (id) => `/p/${id}` },
-  org: { label: 'Community', icon: Orbit, href: (id) => `/orgs/${id}` },
-  agent: { label: 'Agent', icon: Bot, href: (id) => `/agents/${id}` },
+  org: { label: 'Community', icon: Users, href: (id) => `/orgs/${id}` },
+  agent: { label: 'Agent', icon: AgentsIcon, href: (id) => `/agents/${id}` },
   listing: { label: 'Listing', icon: Tag, href: (id) => `/exchange/${id}` },
   url: { label: 'Link', icon: ArrowUpRight },
   workspace: { label: 'Workspace', icon: FolderGit2 },

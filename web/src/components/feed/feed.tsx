@@ -158,7 +158,7 @@ export function Feed({
       {count === 0 && !cursor && empty ? (
         empty
       ) : (
-        <ol className={cx(loading && pages.length === 0 && 'opacity-90')}>
+        <ol className={cx('feed-enter', loading && pages.length === 0 && 'opacity-90')}>
           {fresh.map((node, i) => (
             <Fragment key={`fresh-${fresh.length - i}`}>{node}</Fragment>
           ))}

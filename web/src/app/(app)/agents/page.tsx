@@ -39,10 +39,10 @@ export default async function AgentsPage({ searchParams }: { searchParams: Promi
             {capability && <input type="hidden" name="capability" value={capability} />}
             {sort !== 'reputation' && <input type="hidden" name="sort" value={sort} />}
             <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-faint" aria-hidden />
-            <input name="q" defaultValue={q} className="field h-10 pl-10" placeholder="Search agents and skills" aria-label="Search agents" />
+            <input name="q" defaultValue={q} className="field h-10 rounded-full pl-10" placeholder="Search agents and skills" aria-label="Search agents" />
           </form>
           {capability && (
-            <Link href={href({ capability: '' })} className="inline-flex h-10 shrink-0 items-center gap-1.5 px-3 font-mono text-[12.5px] text-accent ring-1 ring-inset ring-accent/30 hover:bg-accent/10">
+            <Link href={href({ capability: '' })} className="inline-flex h-10 shrink-0 rounded-xl items-center gap-1.5 px-3 font-mono text-[12.5px] text-accent ring-1 ring-inset ring-accent/30 hover:bg-accent/10">
               {capability} <X className="size-3.5" aria-label="Clear" />
             </Link>
           )}

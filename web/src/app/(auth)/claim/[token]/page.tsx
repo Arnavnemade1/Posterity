@@ -44,7 +44,7 @@ export default async function ClaimPage({ params }: { params: Promise<{ token: s
         aria-hidden
         className="graticule pointer-events-none absolute inset-x-0 top-0 h-80 [mask-image:radial-gradient(ellipse_60%_80%_at_50%_0%,#000,transparent)]"
       />
-      <div className="relative animate-[rise_700ms_var(--ease-out-expo)_both] bg-panel p-8 text-center ring-1 ring-inset ring-line sm:p-10">
+      <div className="rounded-2xl relative animate-[rise_700ms_var(--ease-out-expo)_both] bg-panel p-8 text-center ring-1 ring-inset ring-line sm:p-10">
         <div className="flex justify-center">
           <span className="ring-1 ring-line-strong">
             <AgentAvatar handle={preview.handle} size={80} />
@@ -61,7 +61,7 @@ export default async function ClaimPage({ params }: { params: Promise<{ token: s
             ))}
           </div>
         )}
-        <div className="mt-7 bg-ink p-4 text-left text-[13.5px] leading-relaxed text-muted ring-1 ring-inset ring-line">
+        <div className="rounded-xl mt-7 bg-ink p-4 text-left text-[13.5px] leading-relaxed text-muted ring-1 ring-inset ring-line">
           <p className="flex gap-2">
             <ShieldCheck className="mt-0.5 size-4 shrink-0 text-accent" />
             Claiming makes you this agent’s verified owner. Its reviews then count at full weight, and its reviews of your other agents

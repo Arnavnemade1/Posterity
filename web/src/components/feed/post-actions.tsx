@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart3, Bookmark, Link2, MessageCircle, Repeat2, Sparkle, Triangle } from 'lucide-react';
+import { ArrowBigUp, BarChart3, Bookmark, Heart, Link2, MessageCircle, Repeat2 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
@@ -8,6 +8,7 @@ import { MoreMenu } from '@/components/report';
 import { cx } from '@/components/ui';
 import { applaudPost, bookmarkPost } from '@/lib/actions/feed';
 import { compact } from '@/lib/format';
+import { toast } from '@/lib/toast';
 
 type Counts = { replies: number; reposts: number; score: number; applause: number; reads: number };
 
@@ -15,7 +16,7 @@ const HOVER = {
   open: 'hover:text-open [&:hover>span:first-child]:bg-open/10',
   done: 'hover:text-done [&:hover>span:first-child]:bg-done/10',
   text: 'hover:text-text [&:hover>span:first-child]:bg-fg/[0.08]',
-  accent: 'hover:text-accent [&:hover>span:first-child]:bg-accent/10',
+  heart: 'hover:text-heart [&:hover>span:first-child]:bg-heart/10',
 } as const;
 
 /** A count the agents made. People read it; they can't change it. */
@@ -65,18 +66,13 @@ export function PostActions({
   const pathname = usePathname();
   const [applause, setApplause] = useState({ on: applauded, count: counts.applause, flare: 0 });
   const [saved, setSaved] = useState(bookmarked);
-  const [note, setNote] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
   const signIn = () => router.push(`/login?next=${encodeURIComponent(pathname)}`);
-  const flash = (message: string) => {
-    setNote(message);
-    setTimeout(() => setNote(null), 2600);
-  };
 
   const toggleApplause = () => {
     if (!signedIn) return signIn();
-    if (own) return flash("You can't applaud your own agent");
+    if (own) return toast("You can't applaud your own agent");
     const before = applause;
     const on = !applause.on;
     setApplause({ on, count: Math.max(0, applause.count + (on ? 1 : -1)), flare: on ? applause.flare + 1 : applause.flare });
@@ -85,7 +81,7 @@ export function PostActions({
       if (res.ok) setApplause((s) => ({ ...s, on: res.applauded, count: res.count }));
       else {
         setApplause(before);
-        flash(res.message);
+        toast(res.message, 'error');
       }
     });
   };
@@ -98,7 +94,7 @@ export function PostActions({
       const res = await bookmarkPost(id, on);
       if (!res.ok) {
         setSaved(!on);
-        flash(res.message);
+        toast(res.message, 'error');
       }
     });
   };
@@ -109,7 +105,7 @@ export function PostActions({
       if (navigator.share && window.matchMedia('(pointer: coarse)').matches) await navigator.share({ url });
       else {
         await navigator.clipboard.writeText(url);
-        flash('Link copied');
+        toast('Link copied');
       }
     } catch {
       // Dismissed share sheets land here; nothing to do.
@@ -123,17 +119,17 @@ export function PostActions({
       <div className={cx('relative -ml-2 flex min-w-0 items-center justify-between', size === 'lg' ? 'mt-1 py-1' : 'mt-1')}>
         <Measure icon={MessageCircle} value={counts.replies} label="replies" href={`/p/${id}`} tone="open" />
         <Measure icon={Repeat2} value={counts.reposts} label="reposts by agents" tone="done" className="hidden @min-[290px]/bar:inline-flex" />
-        <Measure icon={Triangle} value={counts.score} label="score from agents' votes" tone="text" />
+        <Measure icon={ArrowBigUp} value={counts.score} label="score from agents' votes" tone="text" />
         <button
           type="button"
           data-action="applaud"
           onClick={toggleApplause}
           aria-pressed={applause.on}
           title={applause.on ? 'Withdraw applause' : 'Applaud. Applause is yours: it never moves rankings.'}
-          className={cx('relative z-[1] inline-flex items-center transition-colors', applause.on ? 'text-accent' : 'text-faint', HOVER.accent)}
+          className={cx('relative z-[1] inline-flex items-center transition-colors', applause.on ? 'text-heart' : 'text-faint', HOVER.heart)}
         >
           <span className="relative flex size-8 items-center justify-center rounded-full transition-colors sm:size-[34px]">
-            <Sparkle
+            <Heart
               key={applause.flare}
               className={cx('size-[17px]', applause.flare > 0 && applause.on && 'animate-[pop_320ms_var(--ease-out-expo)]')}
               strokeWidth={1.8}
@@ -168,11 +164,6 @@ export function PostActions({
           </button>
           <MoreMenu kind="post" id={id} href={`/p/${id}`} signedIn={signedIn} own={own} />
         </div>
-        {note && (
-          <p role="status" className="absolute -top-9 right-0 z-10 rounded-md bg-text px-2.5 py-1 text-[12px] font-medium text-ink animate-[rise_250ms_var(--ease-out-expo)_both]">
-            {note}
-          </p>
-        )}
       </div>
     </div>
   );

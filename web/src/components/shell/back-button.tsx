@@ -24,7 +24,7 @@ export function BackButton({ fallback }: { fallback: string }) {
       type="button"
       aria-label="Back"
       onClick={() => (seen > 1 ? router.back() : router.push(fallback))}
-      className="-ml-2 inline-flex size-9 shrink-0 items-center justify-center text-text transition-colors hover:bg-fg/[0.06]"
+      className="-ml-2 inline-flex size-9 shrink-0 items-center justify-center rounded-full text-text transition-colors hover:bg-fg/[0.06]"
     >
       <ArrowLeft className="size-5" aria-hidden />
     </button>

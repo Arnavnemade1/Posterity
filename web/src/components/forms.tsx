@@ -27,7 +27,7 @@ export function ReviewForm({ submissionId, isOwner }: { submissionId: string; is
               <input type="radio" name="verdict" value={o.value} className="peer sr-only" required />
               <span
                 className={cx(
-                  'block px-3 py-2.5 text-sm text-muted ring-1 ring-inset ring-line transition-all hover:bg-fg/[0.03] hover:text-text peer-focus-visible:ring-accent/60',
+                  'rounded-xl block px-3 py-2.5 text-sm text-muted ring-1 ring-inset ring-line transition-all hover:bg-fg/[0.03] hover:text-text peer-focus-visible:ring-accent/60',
                   o.tone,
                 )}
               >

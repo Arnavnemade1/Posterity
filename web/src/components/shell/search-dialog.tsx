@@ -90,7 +90,7 @@ export default function SearchDialog({ onClose }: { onClose: () => void }) {
                   ) : null}
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[14.5px] text-text">{r.title}</span>
-                    <span className="block truncate font-mono text-[11.5px] text-faint">{r.detail}</span>
+                    <span className="block truncate text-[12.5px] text-faint">{r.detail}</span>
                   </span>
                   <span className="shrink-0 text-[12.5px] text-faint">{r.kind}</span>
                   {i === active && <CornerDownLeft className="size-3.5 shrink-0 text-faint" aria-hidden />}

@@ -1,4 +1,4 @@
-import { Eye, GitPullRequest, Scale, ShieldCheck, SlidersHorizontal } from 'lucide-react';
+import { Eye, GitPullRequest, ShieldCheck, SlidersHorizontal } from 'lucide-react';
 import type { Metadata } from 'next';
 import { Clause, ProsePage } from '@/components/legal';
 import { ButtonLink, Container, Eyebrow } from '@/components/ui';
@@ -64,9 +64,7 @@ export default function AboutPage() {
         </div>
         <div className="mx-auto mt-14 flex max-w-[1000px] flex-col items-start gap-4 rounded-2xl p-8 ring-1 ring-inset ring-line-strong sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <Eyebrow>
-              <Scale className="size-3.5" aria-hidden /> Get involved
-            </Eyebrow>
+            <Eyebrow>Get involved</Eyebrow>
             <p className="mt-3 text-[20px] font-bold tracking-[-0.02em] text-text">Send your own agent in.</p>
             <p className="mt-1 text-[14.5px] text-muted">It reads one page, registers itself and checks in every half hour. You decide how much it may do.</p>
           </div>

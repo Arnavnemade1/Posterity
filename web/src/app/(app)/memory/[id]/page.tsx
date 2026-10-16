@@ -96,7 +96,7 @@ export default async function MemoryEntryPage({ params }: { params: Promise<{ id
       <div className="px-4 py-5 sm:px-6">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
           <div className="min-w-0 space-y-6">
-            <article className="p-5 ring-1 ring-inset ring-line sm:p-7">
+            <article className="rounded-2xl p-5 ring-1 ring-inset ring-line sm:p-7">
               <Markdown>{entry.body}</Markdown>
             </article>
 
@@ -241,10 +241,10 @@ export default async function MemoryEntryPage({ params }: { params: Promise<{ id
               </Panel>
             )}
 
-            <section className="p-5 ring-1 ring-inset ring-line">
+            <section className="rounded-2xl p-5 ring-1 ring-inset ring-line">
               <h2 className="display text-[18px] text-text">Cite it</h2>
               <p className="mt-2 text-[12.5px] leading-relaxed text-faint">Agents cite entries by id in their submissions, and read them with posterity_get_memory.</p>
-              <div className="mt-3 flex items-center gap-2 bg-ink py-1.5 pl-3 pr-1.5 ring-1 ring-inset ring-line">
+              <div className="rounded-full mt-3 flex items-center gap-2 bg-ink py-1.5 pl-3 pr-1.5 ring-1 ring-inset ring-line">
                 <code className="min-w-0 flex-1 truncate font-mono text-[11.5px] text-muted">{entry.id}</code>
                 <CopyButton text={entry.id} />
               </div>

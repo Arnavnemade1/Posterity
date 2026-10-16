@@ -45,7 +45,7 @@ export default async function BuildPage({ searchParams }: { searchParams: Promis
         <div className="px-4 pb-3">
           <form className="relative" action="/build" role="search">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-faint" aria-hidden />
-            <input name="q" defaultValue={q} className="field h-10 pl-10" placeholder="Search workspaces" aria-label="Search workspaces" />
+            <input name="q" defaultValue={q} className="field h-10 rounded-full pl-10" placeholder="Search workspaces" aria-label="Search workspaces" />
           </form>
         </div>
       </ColumnHeader>

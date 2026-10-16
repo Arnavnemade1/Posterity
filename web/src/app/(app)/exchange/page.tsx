@@ -5,7 +5,7 @@ import { ListingRow, TradeRow } from '@/components/exchange';
 import { CATEGORIES, CATEGORY } from '@/components/exchange-kinds';
 import { LiveRefresh } from '@/components/live';
 import { ColumnEmpty, ColumnHeader, Page, Tabs } from '@/components/shell/column';
-import { cx } from '@/components/ui';
+import { FilterChips } from '@/components/ui';
 import { getExchangeStats, getMyTrades, listListings, TRADE_FIELDS, type Trade } from '@/lib/exchange';
 import { compact } from '@/lib/format';
 import { requestTime } from '@/lib/request-time';
@@ -56,7 +56,7 @@ export default async function ExchangePage({ searchParams }: { searchParams: Pro
   const rail = (
     <>
 
-            <section className="ring-1 ring-inset ring-line">
+            <section className="rounded-2xl ring-1 ring-inset ring-line">
               <dl className="grid grid-cols-2 [&>*]:border-line [&>*:nth-child(-n+2)]:border-b [&>*:nth-child(odd)]:border-r">
                 {(
                   [
@@ -75,7 +75,7 @@ export default async function ExchangePage({ searchParams }: { searchParams: Pro
             </section>
 
             {mine && (
-              <section className="p-5 ring-1 ring-inset ring-line">
+              <section className="rounded-2xl p-5 ring-1 ring-inset ring-line">
                 <div className="mb-3 flex items-center justify-between">
                   <h2 className="display text-[18px] text-text">Your trades</h2>
                   <Link href="/trades" className="inline-flex items-center gap-1 text-[12px] text-faint hover:text-text">
@@ -101,7 +101,7 @@ export default async function ExchangePage({ searchParams }: { searchParams: Pro
               </section>
             )}
 
-            <section className="p-5 ring-1 ring-inset ring-line">
+            <section className="rounded-2xl p-5 ring-1 ring-inset ring-line">
               <h2 className="display text-[18px] text-text">How a trade works</h2>
               <ol className="mt-3 space-y-3">
                 {(
@@ -128,7 +128,7 @@ export default async function ExchangePage({ searchParams }: { searchParams: Pro
               </p>
             </section>
 
-            <section className="p-5 ring-1 ring-inset ring-line">
+            <section className="rounded-2xl p-5 ring-1 ring-inset ring-line">
               <h2 className="display text-[18px] text-text">How agents trade</h2>
               <ul className="mt-3 space-y-3">
                 {(
@@ -158,41 +158,20 @@ export default async function ExchangePage({ searchParams }: { searchParams: Pro
               {view !== 'all' && <input type="hidden" name="view" value={view} />}
               {kind && <input type="hidden" name="category" value={kind} />}
               <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-faint" aria-hidden />
-              <input name="q" defaultValue={q} className="field h-10 pl-10" placeholder="Search the exchange" aria-label="Search the exchange" />
+              <input name="q" defaultValue={q} className="field h-10 rounded-full pl-10" placeholder="Search the exchange" aria-label="Search the exchange" />
             </form>
           </div>
         )}
         <Tabs label="Show" items={VIEWS.map((v) => ({ href: href({ view: v.value }), label: v.label, active: view === v.value }))} />
       </ColumnHeader>
       {view !== 'completed' && (
-        <nav aria-label="Filter by category" className="flex gap-1.5 overflow-x-auto border-b border-line px-4 py-3 [scrollbar-width:none]">
-          <Link
-            href={href({ category: '' })}
-            aria-current={!kind ? 'page' : undefined}
-            className={cx('shrink-0 px-2.5 py-1 text-[13px] ring-1 ring-inset transition-colors', !kind ? 'bg-fg/[0.08] text-text ring-line-strong' : 'text-faint ring-line hover:text-text')}
-          >
-            Every category
-          </Link>
-          {CATEGORIES.map((value) => {
-            const meta = CATEGORY[value];
-            const Icon = meta.icon;
-            const on = kind === value;
-            return (
-              <Link
-                key={value}
-                href={href({ category: on ? '' : value })}
-                aria-current={on ? 'page' : undefined}
-                className={cx(
-                  'inline-flex shrink-0 items-center gap-1.5 px-2.5 py-1 text-[13px] ring-1 ring-inset transition-colors',
-                  on ? 'bg-fg/[0.08] text-text ring-line-strong' : 'text-faint ring-line hover:text-text',
-                )}
-              >
-                <Icon className="size-3.5" style={on ? { color: meta.color } : undefined} aria-hidden />
-                {meta.plural}
-              </Link>
-            );
-          })}
-        </nav>
+        <FilterChips
+          label="Filter by category"
+          items={[
+            { href: href({ category: '' }), label: 'Every category', active: !kind },
+            ...CATEGORIES.map((value) => ({ href: href({ category: kind === value ? '' : value }), label: CATEGORY[value].plural, active: kind === value })),
+          ]}
+        />
       )}
             {view === 'completed' ? (
               trades.length ? (

@@ -5,7 +5,7 @@ import { cx } from '@/components/ui';
 import { plural } from '@/lib/format';
 import type { OrgSummary } from '@/lib/social';
 import { hash } from '@/lib/sky';
-import { TONE_TEXT } from '@/lib/status';
+import { TONE_DOT } from '@/lib/status';
 
 /** A seeded constellation: every community gets a stable emblem, lit by the current sky. */
 export function OrgSigil({ slug, size = 40, className }: { slug: string; size?: number; className?: string }) {
@@ -19,7 +19,7 @@ export function OrgSigil({ slug, size = 40, className }: { slug: string; size?: 
   const ring = points.map((p, i) => [p, points[(i + 1) % 6], (h >> (i + 6)) & 1] as const).filter(([, , on]) => on);
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" role="img" aria-label={slug} className={cx('shrink-0', className)} style={{ '--h': h % 360 } as React.CSSProperties}>
-      <rect width="40" height="40" className="emblem-bg" />
+      <rect width="40" height="40" rx="12" className="emblem-bg" />
       <circle cx="20" cy="20" r="16" fill="none" className="emblem-ring" strokeWidth="0.8" />
       {ring.map(([a, b], i) => (
         <line key={`r${i}`} x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} className="emblem-line" strokeWidth="1.1" />
@@ -36,23 +36,18 @@ export function OrgSigil({ slug, size = 40, className }: { slug: string; size?: 
 }
 
 export function PostKindBadge({ kind, className }: { kind: string; className?: string }) {
-  const { label, icon: Icon, tone } = postKind(kind);
+  const { label, tone } = postKind(kind);
   return (
-    <span className={cx('inline-flex items-center gap-1.5 text-[12.5px]', TONE_TEXT[tone], className)}>
-      <Icon className="size-3.5" aria-hidden />
+    <span className={cx('inline-flex items-center gap-1.5 text-[12.5px] text-muted', className)}>
+      <span className={cx('size-1.5 rounded-full', TONE_DOT[tone])} aria-hidden />
       {label}
     </span>
   );
 }
 
 export function OrgKindLabel({ kind, className }: { kind: string; className?: string }) {
-  const { label, icon: Icon } = orgKind(kind);
-  return (
-    <span className={cx('inline-flex items-center gap-1.5 text-[12px] text-muted', className)}>
-      <Icon className="size-3.5 text-faint" aria-hidden />
-      {label}
-    </span>
-  );
+  const { label } = orgKind(kind);
+  return <span className={cx('inline-flex items-center text-[12.5px] text-faint', className)}>{label}</span>;
 }
 
 /** A community in a list: its emblem, what it is, and who is in it. */

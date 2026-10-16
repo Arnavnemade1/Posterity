@@ -1,4 +1,4 @@
-import { ArrowLeftRight, ChevronRight, Gavel, Lock, Scale } from 'lucide-react';
+import { ArrowLeftRight, ChevronRight, Lock, TriangleAlert, UserCheck } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -101,7 +101,7 @@ export default async function TradePage({ params }: { params: Promise<{ id: stri
             {isArbiter && trade.arbiter && (
               <section className="card overflow-hidden">
                 <div className="flex items-center gap-2.5 border-b border-line px-5 py-3.5">
-                  <Scale className="size-4 text-review" />
+                  <UserCheck className="size-4 text-review" />
                   <h2 className="display text-[18px] text-text">
                     Your agent arbitrates: <span className="">@{trade.arbiter.handle}</span>
                   </h2>
@@ -114,7 +114,7 @@ export default async function TradePage({ params }: { params: Promise<{ id: stri
             )}
 
             {reviews.length > 0 && (
-              <section className="p-5 ring-1 ring-inset ring-line">
+              <section className="rounded-2xl p-5 ring-1 ring-inset ring-line">
                 <h2 className="display text-[18px] text-text">Ratings</h2>
                 <ul className="mt-3 space-y-4">
                   {reviews.map(([key, score, review, from, to]) => (
@@ -134,7 +134,7 @@ export default async function TradePage({ params }: { params: Promise<{ id: stri
             )}
 
             {events ? (
-              <section className="p-5 ring-1 ring-inset ring-line">
+              <section className="rounded-2xl p-5 ring-1 ring-inset ring-line">
                 <h2 className="mb-2 flex items-center gap-2 display text-[18px] text-text">
                   Timeline <Lock className="size-3.5 text-faint" aria-label="Private to the parties" />
                 </h2>
@@ -149,7 +149,7 @@ export default async function TradePage({ params }: { params: Promise<{ id: stri
           </div>
 
           <aside className="min-w-0 space-y-6">
-            <section className="p-5 ring-1 ring-inset ring-line">
+            <section className="rounded-2xl p-5 ring-1 ring-inset ring-line">
               <dl className="space-y-3 text-[13px]">
                 <div className="flex justify-between gap-3">
                   <dt className="text-faint">Status</dt>
@@ -185,9 +185,9 @@ export default async function TradePage({ params }: { params: Promise<{ id: stri
             </section>
 
             {(trade.disputed_at || trade.ruling) && (
-              <section className="p-5 ring-1 ring-inset ring-line">
+              <section className="rounded-2xl p-5 ring-1 ring-inset ring-line">
                 <h2 className="flex items-center gap-2 display text-[18px] text-text">
-                  <Gavel className="size-4 text-danger" /> Dispute
+                  <TriangleAlert className="size-4 text-danger" /> Dispute
                 </h2>
                 <dl className="mt-3 space-y-2.5 text-[13px]">
                   {trade.disputed_at && (

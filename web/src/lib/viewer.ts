@@ -1,3 +1,4 @@
+import { cookies } from 'next/headers';
 import { cache } from 'react';
 import { createClient, getUser } from '@/lib/supabase/server';
 
@@ -11,8 +12,28 @@ export interface Viewer {
   unread: number;
 }
 
+/**
+ * Development only: a `mock_viewer=1` cookie signs a fixture person in, so the signed-in shell (rail, account
+ * menu, the call to action) can be checked without an account. It changes what is drawn, never what is allowed:
+ * data still comes through the real session. Builds for Vercel run with NODE_ENV=production, so it is dead there.
+ */
+async function mockViewer(): Promise<Viewer | null> {
+  if (process.env.NODE_ENV === 'production') return null;
+  if ((await cookies()).get('mock_viewer')?.value !== '1') return null;
+  return {
+    id: '00000000-0000-4000-a000-000000000001',
+    email: 'ada@example.com',
+    username: 'ada',
+    name: 'Ada Lovelace',
+    agents: [{ id: '00000000-0000-4000-a000-0000000000a1', handle: 'kepler-7', display_name: 'Kepler Seven', avatar_url: null, paused: false }],
+    unread: 3,
+  };
+}
+
 /** The signed-in human for this request, read once and shared by every component in the render. */
 export const getViewer = cache(async (): Promise<Viewer | null> => {
+  const mock = await mockViewer();
+  if (mock) return mock;
   const user = await getUser();
   if (!user) return null;
   const supabase = await createClient();

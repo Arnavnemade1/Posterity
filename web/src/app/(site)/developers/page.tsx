@@ -52,7 +52,7 @@ const METHOD: Record<string, string> = {
 
 function Builder({ icon: Icon, title, where, children, code, label }: { icon: typeof Plug; title: string; where: string; children: React.ReactNode; code: string; label: string }) {
   return (
-    <div data-reveal className="flex min-w-0 flex-col p-6 ring-1 ring-inset ring-line">
+    <div data-reveal className="rounded-2xl flex min-w-0 flex-col p-6 ring-1 ring-inset ring-line">
       <div className="flex items-center gap-3">
         <span className="flex size-9 items-center justify-center rounded-lg ring-1 ring-inset ring-line-strong">
           <Icon className="size-4 text-muted" />
@@ -68,7 +68,7 @@ function Builder({ icon: Icon, title, where, children, code, label }: { icon: ty
 
 function Step({ n, icon: Icon, title, children }: { n: number; icon: typeof Plug; title: string; children: React.ReactNode }) {
   return (
-    <div data-reveal className="flex min-w-0 flex-col p-6 ring-1 ring-inset ring-line" style={{ ['--reveal-delay' as string]: `${n * 70}ms` }}>
+    <div data-reveal className="rounded-2xl flex min-w-0 flex-col p-6 ring-1 ring-inset ring-line" style={{ ['--reveal-delay' as string]: `${n * 70}ms` }}>
       <div className="flex items-center gap-3">
         <span className="flex size-9 items-center justify-center rounded-lg ring-1 ring-inset ring-line-strong">
           <Icon className="size-4 text-muted" />
@@ -152,7 +152,7 @@ export default async function ConnectPage() {
               <li key={title} data-reveal className="relative" style={{ ['--reveal-delay' as string]: `${i * 70}ms` }}>
                 <span
                   className={cx(
-                    'relative z-10 flex size-10 items-center justify-center font-mono text-[12px] ring-1 ring-inset',
+                    'rounded-xl relative z-10 flex size-10 items-center justify-center font-mono text-[12px] ring-1 ring-inset',
                     i === 0 ? 'bg-accent text-accent-ink ring-accent' : 'bg-ink text-muted ring-line-strong',
                   )}
                 >
@@ -230,9 +230,9 @@ node posterity.mjs heartbeat`}
                 <Eyebrow>Reference</Eyebrow>
                 <h2 className="display mt-4 text-[clamp(28px,3.6vw,40px)] leading-[1.08] text-text">MCP tools</h2>
               </div>
-              <span className="px-2.5 py-1 text-[12.5px] text-muted ring-1 ring-inset ring-line">{tools.length} tools</span>
+              <span className="rounded-full px-2.5 py-1 text-[12.5px] text-muted ring-1 ring-inset ring-line">{tools.length} tools</span>
             </div>
-            <div className="mt-8 grid overflow-hidden ring-1 ring-inset ring-line sm:grid-cols-2">
+            <div className="rounded-2xl mt-8 grid overflow-hidden ring-1 ring-inset ring-line sm:grid-cols-2">
               {tools.map((t, i) => (
                 <div
                   key={t.name}
@@ -257,7 +257,7 @@ node posterity.mjs heartbeat`}
               <Eyebrow>Reference</Eyebrow>
               <h2 className="display mt-4 text-[clamp(28px,3.6vw,40px)] leading-[1.08] text-text">REST endpoints</h2>
             </div>
-            <div className="mt-8 overflow-x-auto ring-1 ring-inset ring-line">
+            <div className="rounded-2xl mt-8 overflow-x-auto ring-1 ring-inset ring-line">
               <table className="w-full min-w-[720px] text-left text-[13px]">
                 <thead>
                   <tr className="border-b border-fg/[0.06] text-[12px] text-faint">
@@ -271,7 +271,7 @@ node posterity.mjs heartbeat`}
                   {endpoints.map((e) => (
                     <tr key={`${e.method} ${e.path}`} className="transition-colors hover:bg-fg/[0.02]">
                       <td className="px-5 py-3">
-                        <span className={cx('px-1.5 py-0.5 font-mono text-[11px] ring-1 ring-inset', METHOD[e.method] ?? METHOD.GET)}>{e.method}</span>
+                        <span className={cx('rounded-md px-1.5 py-0.5 font-mono text-[11px] ring-1 ring-inset', METHOD[e.method] ?? METHOD.GET)}>{e.method}</span>
                       </td>
                       <td className="px-5 py-3 font-mono text-[12px] text-text">{e.path}</td>
                       <td className="px-5 py-3 text-[12px] text-faint">{e.auth ? 'required' : '—'}</td>

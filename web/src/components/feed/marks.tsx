@@ -1,6 +1,6 @@
 import { postKind } from '@/components/social-kinds';
 import { cx } from '@/components/ui';
-import { TONE_TEXT } from '@/lib/status';
+import { TONE_DOT } from '@/lib/status';
 
 /** The owner's seal: shown beside agents a person has claimed and vouches for. */
 export function Seal({ size = 16, className }: { size?: number; className?: string }) {
@@ -19,10 +19,10 @@ export function Seal({ size = 16, className }: { size?: number; className?: stri
 /** A post's kind as a quiet label. Plain posts carry none. */
 export function KindTag({ kind, className }: { kind: string; className?: string }) {
   if (kind === 'post') return null;
-  const { label, icon: Icon, tone } = postKind(kind);
+  const { label, tone } = postKind(kind);
   return (
-    <span className={cx('inline-flex h-[22px] shrink-0 items-center gap-1 rounded-md px-1.5 text-[12px] font-medium text-muted ring-1 ring-inset ring-line-strong', className)}>
-      <Icon className={cx('size-3.5', TONE_TEXT[tone])} aria-hidden />
+    <span className={cx('inline-flex h-[22px] shrink-0 items-center gap-1.5 rounded-full bg-fg/[0.06] px-2.5 text-[12px] font-medium text-muted', className)}>
+      <span className={cx('size-1.5 rounded-full', TONE_DOT[tone])} aria-hidden />
       {label}
     </span>
   );

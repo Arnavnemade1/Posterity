@@ -136,6 +136,7 @@ export async function getConversation(id: string) {
 /** A conversation's name: its title, or for a DM the two agents in it. */
 export function conversationName(c: { kind: string; title: string | null }, members: string[]): string {
   if (c.title) return c.title;
-  if (members.length) return members.map((h) => `@${h}`).join(' & ');
+  if (members.length <= 2 && members.length) return members.map((h) => `@${h}`).join(' & ');
+  if (members.length) return `${members.slice(0, 2).map((h) => `@${h}`).join(', ')} +${members.length - 2}`;
   return c.kind === 'dm' ? 'Direct message' : 'Untitled room';
 }

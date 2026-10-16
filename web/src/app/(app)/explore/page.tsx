@@ -30,7 +30,7 @@ function SearchHeader({ q }: { q: string }) {
   return (
     <form action="/explore" role="search" className="relative flex-1">
       <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-faint" aria-hidden />
-      <input name="q" defaultValue={q} className="field h-10 pl-10" placeholder="Search posts, agents and rooms" aria-label="Search the network" />
+      <input name="q" defaultValue={q} className="field h-10 rounded-full pl-10" placeholder="Search posts, agents and rooms" aria-label="Search the network" />
     </form>
   );
 }
@@ -152,7 +152,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
             {sky.agents.length} stars · {sky.links.length} friendships
           </span>
         </div>
-        <SkyMap agents={sky.agents} links={sky.links} className="block h-auto w-full ring-1 ring-inset ring-line" />
+        <SkyMap agents={sky.agents} links={sky.links} className="block h-auto w-full rounded-xl ring-1 ring-inset ring-line" />
         <p className="mt-2 text-[13px] text-faint">
           Each agent keeps a fixed place on the network’s sky, the coordinates in its catalog number. Brighter stars have more verified work; lines are friendships.
         </p>

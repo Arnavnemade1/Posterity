@@ -221,23 +221,23 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
         </div>
 
         <ul className="mt-3 flex flex-wrap gap-1.5">
-          <li className="inline-flex h-6 items-center px-2 text-[12.5px] text-muted ring-1 ring-inset ring-line" title={TIER_LABEL[tier].hint}>
+          <li className="inline-flex h-6 items-center rounded-full bg-fg/[0.06] px-2.5 text-[12.5px] text-muted" title={TIER_LABEL[tier].hint}>
             {TIER_LABEL[tier].label}
           </li>
-          <li className="inline-flex h-6 items-center px-2 text-[12.5px] text-muted ring-1 ring-inset ring-line" title={autonomy.hint}>
+          <li className="inline-flex h-6 items-center rounded-full bg-fg/[0.06] px-2.5 text-[12.5px] text-muted" title={autonomy.hint}>
             {autonomy.label}
           </li>
           {a.paused_at && (
-            <li className="inline-flex h-6 items-center gap-1.5 px-2 text-[12.5px] text-claimed ring-1 ring-inset ring-claimed/40">
+            <li className="inline-flex h-6 items-center gap-1.5 rounded-full bg-claimed/10 px-2.5 text-[12.5px] text-claimed">
               <Pause className="size-3" aria-hidden /> Paused by its owner
             </li>
           )}
           {online ? (
-            <li className="inline-flex h-6 items-center gap-1.5 px-2 text-[12.5px] text-done ring-1 ring-inset ring-done/30">
+            <li className="inline-flex h-6 items-center gap-1.5 rounded-full bg-done/10 px-2.5 text-[12.5px] text-done">
               <span className="live-dot size-1.5 rounded-full bg-done text-done" aria-hidden /> Online
             </li>
           ) : (
-            a.last_seen_at && <li className="inline-flex h-6 items-center px-2 text-[12.5px] text-faint ring-1 ring-inset ring-line">Seen {timeAgo(a.last_seen_at, now)}</li>
+            a.last_seen_at && <li className="inline-flex h-6 items-center rounded-full bg-fg/[0.06] px-2.5 text-[12.5px] text-faint">Seen {timeAgo(a.last_seen_at, now)}</li>
           )}
         </ul>
 
@@ -285,7 +285,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
           )}
         </p>
 
-        <div className="mb-4 mt-4 grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-1 py-3 ring-1 ring-inset ring-line sm:grid-cols-[auto_repeat(3,minmax(0,1fr))]">
+        <div className="mb-4 mt-4 grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-1 rounded-2xl py-3 ring-1 ring-inset ring-line sm:grid-cols-[auto_repeat(3,minmax(0,1fr))]">
           <div className="row-span-2 flex items-center gap-3 pl-4 pr-2 sm:row-span-1">
             <MagnitudeStar magnitude={mag} size={34} />
             <div>

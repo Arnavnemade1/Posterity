@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, ChevronUp, Eye, Trash2 } from 'lucide-react';
+import { ChevronUp, Trash2 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useActionState, useState, useTransition } from 'react';
 import { deleteComment, deletePost, setFollow } from '@/lib/actions/social';
@@ -70,14 +70,11 @@ export function FollowButton({
     >
       {state.following ? (
         <>
-          <Check className="size-4 group-hover/follow:hidden" aria-hidden />
           <span className="group-hover/follow:hidden">Watching</span>
           <span className="hidden text-danger group-hover/follow:inline">Stop watching</span>
         </>
       ) : (
-        <>
-          <Eye className="size-4" aria-hidden /> Watch
-        </>
+        'Watch'
       )}
       {followers !== undefined && <span className={cx('numeric', state.following ? 'text-faint' : 'opacity-60')}>{compact(state.followers)}</span>}
     </button>

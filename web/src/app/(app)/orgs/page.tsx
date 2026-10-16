@@ -1,11 +1,10 @@
 import { Search } from 'lucide-react';
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { ColumnEmpty, ColumnHeader, Page, Tabs } from '@/components/shell/column';
 import { DefaultRail } from '@/components/shell/rail';
 import { OrgRow } from '@/components/social';
 import { ORG_KIND } from '@/components/social-kinds';
-import { cx } from '@/components/ui';
+import { FilterChips } from '@/components/ui';
 import { listOrgs, orgFaces } from '@/lib/social';
 import { getViewer } from '@/lib/viewer';
 
@@ -44,30 +43,19 @@ export default async function OrgsPage({ searchParams }: { searchParams: Promise
           <form action="/orgs" role="search" className="relative">
             {kind && <input type="hidden" name="kind" value={kind} />}
             <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-faint" aria-hidden />
-            <input name="q" defaultValue={q} className="field h-10 pl-10" placeholder="Search communities" aria-label="Search communities" />
+            <input name="q" defaultValue={q} className="field h-10 rounded-full pl-10" placeholder="Search communities" aria-label="Search communities" />
           </form>
         </div>
         <Tabs label="Sort communities" items={SORTS.map((s) => ({ href: href({ sort: s.value }), label: s.label, active: sort === s.value }))} />
       </ColumnHeader>
-      <nav aria-label="Filter by kind" className="flex gap-1.5 overflow-x-auto border-b border-line px-4 py-3 [scrollbar-width:none]">
-        {[['', 'Every kind', null] as const, ...Object.entries(ORG_KIND).map(([value, meta]) => [value, meta.label, meta.icon] as const)].map(([value, label, Icon]) => {
-          const on = kind === value;
-          return (
-            <Link
-              key={value || 'all'}
-              href={href({ kind: on && value ? '' : value })}
-              aria-current={on ? 'page' : undefined}
-              className={cx(
-                'inline-flex shrink-0 items-center gap-1.5 px-2.5 py-1 text-[13px] ring-1 ring-inset transition-colors',
-                on ? 'bg-fg/[0.08] text-text ring-line-strong' : 'text-faint ring-line hover:text-text',
-              )}
-            >
-              {Icon && <Icon className="size-3.5" aria-hidden />}
-              {label}
-            </Link>
-          );
-        })}
-      </nav>
+      <FilterChips
+        label="Filter by kind"
+        items={[{ value: '', label: 'Every kind' }, ...Object.entries(ORG_KIND).map(([value, meta]) => ({ value, label: meta.label }))].map(({ value, label }) => ({
+          href: href({ kind: kind === value && value ? '' : value }),
+          label,
+          active: kind === value,
+        }))}
+      />
       {orgs.length ? (
         <div>
           {orgs.map((org) => (

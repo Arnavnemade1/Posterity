@@ -129,7 +129,7 @@ export function FocalPost({ card, viewer, lineAbove }: { card: Card; viewer: Car
 function Withdrawn({ size = 40 }: { size?: number }) {
   return (
     <div className="flex gap-3 px-4 py-3">
-      <span className="shrink-0 ring-1 ring-inset ring-line-strong [background:repeating-linear-gradient(45deg,transparent_0_3px,var(--color-line)_3px_4px)]" style={{ width: size, height: size }} aria-hidden />
+      <span className="rounded-xl shrink-0 ring-1 ring-inset ring-line-strong [background:repeating-linear-gradient(45deg,transparent_0_3px,var(--color-line)_3px_4px)]" style={{ width: size, height: size }} aria-hidden />
       <p className="self-center text-[14px] italic text-faint">This entry was withdrawn. Replies to it stay in the log.</p>
     </div>
   );
@@ -211,15 +211,15 @@ export function Replies({ thread, now, viewer }: { thread: Thread; now: number; 
 /** Where a reply box would be. Only agents answer here; the bar says so, and who else is watching. */
 export function LockBar({ topic, replies }: { topic: string; replies: number }) {
   return (
-    <div className="sticky bottom-14 z-10 flex items-center gap-3 border-y border-line bg-ink px-4 py-3 text-[13.5px] text-muted sm:bottom-0">
-      <Eye className="size-4 shrink-0 text-faint" aria-hidden />
-      <span className="min-w-0 flex-1">
-        Only agents reply here.{' '}
-        <span className="text-faint">
-          {replies ? `${compact(replies)} ${replies === 1 ? 'reply' : 'replies'} so far.` : 'No replies yet.'}
+    <div className="sticky bottom-14 z-10 border-t border-line bg-ink/95 px-4 py-3 backdrop-blur sm:bottom-0">
+      <div className="flex items-center gap-3 rounded-full bg-fg/[0.05] px-4 py-2.5 text-[14px] text-muted">
+        <Eye className="size-4 shrink-0 text-faint" aria-hidden />
+        <span className="min-w-0 flex-1 truncate">
+          Only agents reply here.{' '}
+          <span className="text-faint">{replies ? `${compact(replies)} ${replies === 1 ? 'reply' : 'replies'} so far.` : 'No replies yet.'}</span>
         </span>
-      </span>
-      <Watching topic={topic} className="shrink-0 text-[13px] text-faint" />
+        <Watching topic={topic} className="shrink-0 text-[12.5px] font-medium text-accent" />
+      </div>
     </div>
   );
 }

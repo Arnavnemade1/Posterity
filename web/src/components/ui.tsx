@@ -96,7 +96,7 @@ export function StatusIcon({ glyph, tone, size = 14, className }: { glyph: Glyph
 
 export function Pill({ tone, children, dot = true, className }: { tone: Tone; children: React.ReactNode; dot?: boolean; className?: string }) {
   return (
-    <span className={cx('inline-flex h-[22px] items-center gap-1.5 px-2 text-[12px] font-medium text-muted ring-1 ring-inset ring-line', className)}>
+    <span className={cx('inline-flex h-[22px] items-center gap-1.5 rounded-full bg-fg/[0.06] px-2.5 text-[12px] font-medium text-muted', className)}>
       {dot && <span className={cx('size-1.5 rounded-full', TONE_DOT[tone])} />}
       {children}
     </span>
@@ -114,7 +114,7 @@ export function StatusPill({
 }) {
   const [label, tone, glyph] = lookup(map, status);
   return (
-    <span className={cx('inline-flex h-[22px] items-center gap-1.5 pl-1.5 pr-2 text-[12px] font-medium text-text ring-1 ring-inset ring-line', className)}>
+    <span className={cx('inline-flex h-[24px] items-center gap-1.5 rounded-full bg-fg/[0.06] pl-1.5 pr-2.5 text-[12px] font-medium text-text', className)}>
       <StatusIcon glyph={glyph} tone={tone} size={13} />
       {label}
     </span>
@@ -132,9 +132,9 @@ export function StatusLabel({ map, status }: { map: Record<string, [string, Tone
 }
 
 export function Chip({ children, href }: { children: React.ReactNode; href?: string }) {
-  const className = 'inline-flex h-[24px] items-center rounded-md px-2 text-[12.5px] text-muted ring-1 ring-inset ring-line-strong';
+  const className = 'inline-flex h-[26px] items-center rounded-full bg-fg/[0.06] px-2.5 text-[12.5px] text-muted';
   return href ? (
-    <Link href={href} className={cx(className, 'transition-colors hover:bg-fg/[0.05] hover:text-text')}>
+    <Link href={href} className={cx(className, 'transition-colors hover:bg-fg/[0.11] hover:text-text')}>
       {children}
     </Link>
   ) : (
@@ -146,8 +146,8 @@ export function Progress({ done, total, className }: { done: number; total: numb
   const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
   return (
     <div className={cx('flex items-center gap-3', className)}>
-      <div className="relative h-[3px] flex-1 overflow-hidden bg-fg/[0.08]" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
-        <div className="h-full bg-done transition-[width] duration-700 ease-out" style={{ width: `${pct}%` }} />
+      <div className="relative h-1 flex-1 overflow-hidden rounded-full bg-fg/[0.1]" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+        <div className="h-full rounded-full bg-done transition-[width] duration-700 ease-out" style={{ width: `${pct}%` }} />
       </div>
       <span className="numeric text-[11px] text-faint">
         {done}/{total}
@@ -181,7 +181,7 @@ export function SectionHeading({
 /** Nothing here yet: a small chart of an empty patch of sky, and a line of copy. */
 export function EmptyState({ title, children, className }: { title: string; children?: React.ReactNode; className?: string }) {
   return (
-    <div className={cx('relative px-6 py-12 text-center ring-1 ring-inset ring-line', className)}>
+    <div className={cx('relative rounded-2xl px-6 py-12 text-center ring-1 ring-inset ring-line', className)}>
       <svg width="72" height="46" viewBox="0 0 88 56" className="mx-auto text-line-strong" aria-hidden>
         <path d="M4 28h80M44 4v48" stroke="currentColor" strokeDasharray="2 3" />
         <circle cx="44" cy="28" r="18" fill="none" stroke="currentColor" />
@@ -257,15 +257,36 @@ export function Eyebrow({ children }: { children: React.ReactNode }) {
 /** Link-based segmented control for filters and sort orders. */
 export function Segmented({ items, label }: { items: { href: string; label: React.ReactNode; active: boolean }[]; label: string }) {
   return (
-    <nav aria-label={label} className="inline-flex max-w-full overflow-x-auto ring-1 ring-inset ring-line [scrollbar-width:none]">
+    <nav aria-label={label} className="inline-flex max-w-full gap-0.5 overflow-x-auto rounded-full bg-fg/[0.06] p-[3px] [scrollbar-width:none]">
       {items.map((item) => (
         <Link
           key={item.href}
           href={item.href}
           aria-current={item.active ? 'page' : undefined}
           className={cx(
-            'whitespace-nowrap px-3 py-1.5 text-[13px] font-medium transition-colors',
-            item.active ? 'bg-fg/[0.08] text-text' : 'text-faint hover:text-text',
+            'whitespace-nowrap rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors',
+            item.active ? 'bg-fg/[0.14] text-text' : 'text-faint hover:text-text',
+          )}
+        >
+          {item.label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+/** A row of link chips that narrows a list: the active one is solid. */
+export function FilterChips({ items, label, className }: { items: { href: string; label: React.ReactNode; active: boolean }[]; label: string; className?: string }) {
+  return (
+    <nav aria-label={label} className={cx('flex gap-1.5 overflow-x-auto border-b border-line px-4 py-3 [scrollbar-width:none]', className)}>
+      {items.map((item) => (
+        <Link
+          key={item.href}
+          href={item.href}
+          aria-current={item.active ? 'page' : undefined}
+          className={cx(
+            'inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-[13px] font-medium transition-colors',
+            item.active ? 'bg-text text-ink' : 'bg-fg/[0.06] text-muted hover:bg-fg/[0.1] hover:text-text',
           )}
         >
           {item.label}

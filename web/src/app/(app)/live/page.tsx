@@ -38,13 +38,13 @@ async function Pulse() {
 
 async function Builders() {
   const builders = await getNowBuilding();
-  if (!builders.length) return <ColumnEmpty title="Nobody at work right now">When an agent claims a task it appears here, framed in ember, until it submits.</ColumnEmpty>;
+  if (!builders.length) return <ColumnEmpty title="Nobody at work right now">When an agent claims a task it appears here, ringed in gold, until it submits.</ColumnEmpty>;
   return (
     <ul>
       {builders.map((b) => (
         <li key={b.handle} className="border-b border-line">
           <Link href={`/agents/${b.handle}`} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-fg/[0.02]">
-            <span className={cx('p-[2px]', b.building ? 'ring-2 ring-accent' : 'ring-1 ring-line-strong')}>
+            <span className={cx('rounded-[14px] p-[2px]', b.building ? 'ring-2 ring-accent' : 'ring-1 ring-line-strong')}>
               <AgentAvatar handle={b.handle} size={36} />
             </span>
             <span className="min-w-0 flex-1">

@@ -128,21 +128,21 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div className="min-w-0 space-y-5">
           {t.description && (
-            <section className="p-5 ring-1 ring-inset ring-line">
+            <section className="rounded-2xl p-5 ring-1 ring-inset ring-line">
               <h2 className="mb-4 display text-[18px] text-text">Brief</h2>
               <Markdown>{t.description}</Markdown>
             </section>
           )}
           {t.acceptance_criteria && (
             <section className="card relative overflow-hidden p-6">
-              <div aria-hidden className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-accent/25" />
+              <div aria-hidden className="rounded-[inherit] pointer-events-none absolute inset-0 ring-1 ring-inset ring-accent/25" />
               <h2 className="relative mb-3 text-[13px] font-medium text-accent">Acceptance criteria</h2>
               <p className="relative text-[14.5px] leading-relaxed text-text">{t.acceptance_criteria}</p>
             </section>
           )}
 
           {upstream.length > 0 && (
-            <section className="p-5 ring-1 ring-inset ring-line">
+            <section className="rounded-2xl p-5 ring-1 ring-inset ring-line">
               <h2 className="mb-4 display text-[18px] text-text">Inputs from upstream tasks</h2>
               <ul className="space-y-3">
                 {upstream.map((u) => (
@@ -167,7 +167,7 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
             </section>
           )}
 
-          <section className="p-5 ring-1 ring-inset ring-line">
+          <section className="rounded-2xl p-5 ring-1 ring-inset ring-line">
             <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
               <h2 className="display text-[18px] text-text">From the collective memory</h2>
               <span className="text-[12px] text-faint">Build on what was verified. Don’t repeat what failed.</span>
@@ -194,7 +194,7 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
             )}
           </section>
 
-          <section className="p-5 ring-1 ring-inset ring-line">
+          <section className="rounded-2xl p-5 ring-1 ring-inset ring-line">
             <h2 className="mb-4 display text-[18px] text-text">Timeline</h2>
             <ol className="relative space-y-5 border-l border-line pl-5">
               {events.map((e) => (
@@ -224,7 +224,7 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
 
         <aside className="space-y-5">
           {(upstream.length > 0 || downstream.length > 0) && (
-            <section className="p-5 ring-1 ring-inset ring-line">
+            <section className="rounded-2xl p-5 ring-1 ring-inset ring-line">
               {upstream.length > 0 && (
                 <>
                   <h2 className="mb-3 display text-[18px] text-text">Depends on</h2>
@@ -259,13 +259,13 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
           )}
 
           {github.length > 0 && (
-            <section className="p-5 ring-1 ring-inset ring-line">
+            <section className="rounded-2xl p-5 ring-1 ring-inset ring-line">
               <h2 className="mb-3 display text-[18px] text-text">Pull requests and CI · {github.length}</h2>
               <GitHubEvents events={github} now={now} />
             </section>
           )}
 
-          <section id="artifacts" className="p-5 ring-1 ring-inset ring-line">
+          <section id="artifacts" className="rounded-2xl p-5 ring-1 ring-inset ring-line">
             <h2 className="mb-3 display text-[18px] text-text">Artifacts · {artifacts.length}</h2>
             {artifacts.length ? (
               <ul className="space-y-3">

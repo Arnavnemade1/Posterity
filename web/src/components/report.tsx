@@ -1,10 +1,12 @@
 'use client';
 
-import { Flag, Link2, MoreHorizontal, X } from 'lucide-react';
+import { Ellipsis, Flag, Link2, X } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useId, useRef, useState, useTransition } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, useTransition } from 'react';
 import { createPortal } from 'react-dom';
+import { type Anchor, ANCHOR_ATTR, anchorOf, FloatingMenu } from '@/components/shell/floating';
 import { cx } from '@/components/ui';
+import { toast } from '@/lib/toast';
 import { reportContent } from '@/lib/actions/report';
 
 const REASONS = [
@@ -132,74 +134,55 @@ function ReportDialog({ kind, id, onClose }: { kind: Kind; id: string; onClose: 
 export function MoreMenu({ kind, id, href, signedIn, own, className }: { kind: Kind; id: string; href: string; signedIn: boolean; own: boolean; className?: string }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
+  const [anchor, setAnchor] = useState<Anchor | null>(null);
   const [reporting, setReporting] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const root = useRef<HTMLDivElement>(null);
-  const menuId = useId();
-
-  useEffect(() => {
-    if (!open) return;
-    const close = (event: MouseEvent) => !root.current?.contains(event.target as Node) && setOpen(false);
-    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && setOpen(false);
-    document.addEventListener('mousedown', close);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', close);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
+  const close = useCallback(() => setAnchor(null), []);
 
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(`${window.location.origin}${href}`);
-      setCopied(true);
-      setTimeout(() => {
-        setCopied(false);
-        setOpen(false);
-      }, 900);
+      toast('Link copied');
     } catch {
       window.prompt('Copy this link', `${window.location.origin}${href}`);
     }
+    close();
   };
 
   return (
-    <div ref={root} className={cx('relative z-[2]', className)}>
+    <div className={cx('relative z-[2]', className)}>
       <button
         type="button"
         aria-label={`More options for this ${kind}`}
         aria-haspopup="menu"
-        aria-expanded={open}
-        aria-controls={menuId}
+        aria-expanded={Boolean(anchor)}
+        {...ANCHOR_ATTR}
         onClick={(event) => {
           event.stopPropagation();
-          setOpen((v) => !v);
+          setAnchor(anchor ? null : anchorOf(event.currentTarget));
         }}
         className="flex size-8 items-center justify-center rounded-full text-faint transition-colors hover:bg-open/10 hover:text-open sm:size-[34px]"
       >
-        <MoreHorizontal className="size-[17px]" strokeWidth={1.8} aria-hidden />
+        <Ellipsis className="size-[17px]" strokeWidth={1.8} aria-hidden />
       </button>
-      {open && (
-        <div id={menuId} role="menu" className="glass absolute right-0 top-9 z-30 w-56 animate-[rise_160ms_var(--ease-out-expo)_both] overflow-hidden rounded-xl py-1">
-          <button type="button" role="menuitem" onClick={copy} className="flex w-full items-center gap-3 px-3.5 py-2.5 text-left text-[14px] text-text hover:bg-fg/[0.05]">
-            <Link2 className="size-4 text-faint" aria-hidden /> {copied ? 'Link copied' : 'Copy link'}
+      <FloatingMenu anchor={anchor} onClose={close} width={224} align="end" label={`Options for this ${kind}`}>
+        <button type="button" role="menuitem" onClick={copy} className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-[14.5px] text-text transition-colors hover:bg-fg/[0.06] focus-visible:bg-fg/[0.06] focus-visible:outline-none">
+          <Link2 className="size-[17px] text-faint" aria-hidden /> Copy link
+        </button>
+        {!own && (
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              close();
+              if (!signedIn) return router.push(`/login?next=${encodeURIComponent(pathname)}`);
+              setReporting(true);
+            }}
+            className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-[14.5px] text-danger transition-colors hover:bg-danger/10 focus-visible:bg-danger/10 focus-visible:outline-none"
+          >
+            <Flag className="size-[17px]" aria-hidden /> Report {kind}
           </button>
-          {!own && (
-            <button
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setOpen(false);
-                if (!signedIn) return router.push(`/login?next=${encodeURIComponent(pathname)}`);
-                setReporting(true);
-              }}
-              className="flex w-full items-center gap-3 px-3.5 py-2.5 text-left text-[14px] text-danger hover:bg-danger/10"
-            >
-              <Flag className="size-4" aria-hidden /> Report {kind}
-            </button>
-          )}
-        </div>
-      )}
+        )}
+      </FloatingMenu>
       {reporting && <ReportDialog kind={kind} id={id} onClose={() => setReporting(false)} />}
     </div>
   );

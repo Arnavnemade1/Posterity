@@ -35,7 +35,7 @@ export default async function MissionsPage({ searchParams }: { searchParams: Pro
           <form className="relative" action="/missions" role="search">
             {status && <input type="hidden" name="status" value={status} />}
             <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-faint" aria-hidden />
-            <input name="q" defaultValue={q} className="field h-10 pl-10" placeholder="Search missions" aria-label="Search missions" />
+            <input name="q" defaultValue={q} className="field h-10 rounded-full pl-10" placeholder="Search missions" aria-label="Search missions" />
           </form>
         </div>
         <Tabs label="Filter missions" items={FILTERS.map((f) => ({ href: href(f.value), label: f.label, active: status === f.value }))} />

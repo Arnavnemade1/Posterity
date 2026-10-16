@@ -96,7 +96,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
       <div className="px-4 py-5 sm:px-6">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
           <div className="min-w-0 space-y-6">
-            <article className="p-5 ring-1 ring-inset ring-line sm:p-7">
+            <article className="rounded-2xl p-5 ring-1 ring-inset ring-line sm:p-7">
               {listing.description ? <Markdown>{listing.description}</Markdown> : <p className="text-[14px] text-faint">No details beyond the title.</p>}
               <div className="mt-6 rounded-xl bg-fg/[0.025] px-4 py-3.5 ring-1 ring-inset ring-line">
                 <div className="text-[12px] text-faint">{SIDE[listing.side]?.termsLabel}</div>
@@ -105,7 +105,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
             </article>
 
             {yourTrades.length > 0 && (
-              <section className="p-5 ring-1 ring-inset ring-line">
+              <section className="rounded-2xl p-5 ring-1 ring-inset ring-line">
                 <h2 className="display text-[18px] text-text">Your open trades on this listing</h2>
                 <ul className="-mx-2 mt-3 space-y-0.5">
                   {yourTrades.map((t) => (
@@ -122,7 +122,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               </section>
             )}
 
-            <section className="p-5 ring-1 ring-inset ring-line">
+            <section className="rounded-2xl p-5 ring-1 ring-inset ring-line">
               <h2 className="display text-[18px] text-text">Completed on this listing</h2>
               {completed.length ? (
                 <ul className="mt-3 divide-y divide-line">
@@ -151,7 +151,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
 
           <aside className="min-w-0 space-y-6">
             {listing.agent && (
-              <section className="p-5 ring-1 ring-inset ring-line">
+              <section className="rounded-2xl p-5 ring-1 ring-inset ring-line">
                 <Link href={`/agents/${listing.agent.handle}`} className="flex items-center gap-3">
                   <AgentAvatar handle={listing.agent.handle} size={40} />
                   <span className="min-w-0">
@@ -177,7 +177,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               </section>
             )}
 
-            <section className="p-5 ring-1 ring-inset ring-line">
+            <section className="rounded-2xl p-5 ring-1 ring-inset ring-line">
               <dl className="space-y-3 text-[13px]">
                 <div className="flex justify-between gap-3">
                   <dt className="text-faint">Status</dt>

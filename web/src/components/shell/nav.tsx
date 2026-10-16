@@ -1,48 +1,34 @@
 'use client';
 
-import {
-  ArrowLeftRight,
-  Bell,
-  Bookmark,
-  Bot,
-  CircleEllipsis,
-  Code2,
-  Hammer,
-  House,
-  Library,
-  type LucideIcon,
-  MessagesSquare,
-  Orbit,
-  RadioTower,
-  SlidersHorizontal,
-  Target,
-  Telescope,
-} from 'lucide-react';
+import { Activity, ArrowLeftRight, Bell, Bookmark, CodeXml, Compass, Ellipsis, House, Library, MessageSquare, SlidersHorizontal, Target, Terminal, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { AgentsIcon, type IconProps } from '@/components/icons';
+import { type Anchor, ANCHOR_ATTR, anchorOf, FloatingMenu } from '@/components/shell/floating';
 import { cx } from '@/components/ui';
 
-type Item = { href: string; label: string; icon: LucideIcon; match?: string[] };
+type Icon = React.ComponentType<IconProps>;
+type Item = { href: string; label: string; icon: Icon; match?: string[] };
 
 const ITEMS: Item[] = [
   { href: '/home', label: 'Home', icon: House, match: ['/home', '/p/'] },
-  { href: '/explore', label: 'Explore', icon: Telescope },
-  { href: '/live', label: 'Live', icon: RadioTower },
+  { href: '/explore', label: 'Explore', icon: Compass },
+  { href: '/live', label: 'Live', icon: Activity },
   { href: '/notifications', label: 'Notifications', icon: Bell },
-  { href: '/messages', label: 'Messages', icon: MessagesSquare },
+  { href: '/messages', label: 'Messages', icon: MessageSquare },
   { href: '/bookmarks', label: 'Bookmarks', icon: Bookmark },
   { href: '/missions', label: 'Missions', icon: Target, match: ['/missions', '/tasks'] },
-  { href: '/build', label: 'Build', icon: Hammer },
-  { href: '/orgs', label: 'Communities', icon: Orbit },
-  { href: '/agents', label: 'Agents', icon: Bot },
+  { href: '/build', label: 'Build', icon: CodeXml },
+  { href: '/orgs', label: 'Communities', icon: Users },
+  { href: '/agents', label: 'Agents', icon: AgentsIcon },
 ];
 
 // Places reached less often, behind "More".
 const MORE: Item[] = [
   { href: '/exchange', label: 'Exchange', icon: ArrowLeftRight, match: ['/exchange', '/trades'] },
   { href: '/memory', label: 'Memory', icon: Library },
-  { href: '/developers', label: 'Developers', icon: Code2, match: ['/developers', '/connect'] },
+  { href: '/developers', label: 'Developers', icon: Terminal, match: ['/developers', '/connect'] },
 ];
 
 const SIGNED_IN_ONLY = new Set(['/notifications', '/bookmarks']);
@@ -53,11 +39,11 @@ function isActive(pathname: string, item: Item) {
 
 const rowClass = (active: boolean) =>
   cx(
-    'group relative flex h-[50px] w-fit items-center gap-[18px] rounded-full px-3 transition-colors duration-150 xl:pr-6',
+    'group relative flex h-[50px] w-fit items-center gap-[18px] rounded-full px-3 transition-colors duration-150 xl:pr-6 [@media(max-height:880px)]:h-[44px]',
     active ? 'text-text' : 'text-text hover:bg-fg/[0.08]',
   );
 
-function Glyph({ icon: Icon, active, unread }: { icon: LucideIcon; active: boolean; unread?: number }) {
+function Glyph({ icon: Icon, active, unread }: { icon: Icon; active: boolean; unread?: number }) {
   return (
     <span className="relative flex items-center justify-center">
       <Icon className="size-[26px]" strokeWidth={active ? 2.4 : 1.7} aria-hidden />
@@ -81,44 +67,42 @@ function Row({ item, active, unread }: { item: Item; active: boolean; unread?: n
 
 /** "More": the places reached less often, in a small menu. */
 function More({ pathname, items }: { pathname: string; items: Item[] }) {
-  const [open, setOpen] = useState(false);
-  const root = useRef<HTMLDivElement>(null);
+  const [anchor, setAnchor] = useState<Anchor | null>(null);
+  const close = useCallback(() => setAnchor(null), []);
   const active = items.some((item) => isActive(pathname, item));
-  useEffect(() => {
-    if (!open) return;
-    const close = (event: MouseEvent) => !root.current?.contains(event.target as Node) && setOpen(false);
-    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && setOpen(false);
-    document.addEventListener('mousedown', close);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', close);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
   return (
-    <div ref={root} className="relative">
-      <button type="button" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)} title="More" className={rowClass(active)}>
-        <Glyph icon={CircleEllipsis} active={active} />
+    <div>
+      <button
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={Boolean(anchor)}
+        onClick={(e) => setAnchor(anchor ? null : anchorOf(e.currentTarget))}
+        {...ANCHOR_ATTR}
+        title="More"
+        className={rowClass(active)}
+      >
+        <Glyph icon={Ellipsis} active={active} />
         <span className={cx('hidden text-[20px] tracking-[-0.01em] xl:inline', active ? 'font-bold' : 'font-normal')}>More</span>
       </button>
-      {open && (
-        <div role="menu" className="glass absolute bottom-0 left-full z-50 ml-2 w-60 animate-[rise_160ms_var(--ease-out-expo)_both] overflow-hidden rounded-2xl py-1.5 xl:bottom-auto xl:left-0 xl:top-full xl:ml-0 xl:mt-1">
-          {items.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                role="menuitem"
-                onClick={() => setOpen(false)}
-                className={cx('flex items-center gap-3.5 px-4 py-3 text-[16px] transition-colors hover:bg-fg/[0.06]', isActive(pathname, item) ? 'font-bold text-text' : 'text-text')}
-              >
-                <Icon className="size-5" strokeWidth={1.8} aria-hidden /> {item.label}
-              </Link>
-            );
-          })}
-        </div>
-      )}
+      <FloatingMenu anchor={anchor} onClose={close} width={248} prefer="below" label="More places">
+        {items.map((item) => {
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              role="menuitem"
+              onClick={close}
+              className={cx(
+                'flex items-center gap-3.5 px-4 py-2.5 text-[15.5px] transition-colors hover:bg-fg/[0.06] focus-visible:bg-fg/[0.06] focus-visible:outline-none',
+                isActive(pathname, item) ? 'font-bold text-text' : 'text-text',
+              )}
+            >
+              <Icon className="size-5 text-muted" strokeWidth={1.8} aria-hidden /> {item.label}
+            </Link>
+          );
+        })}
+      </FloatingMenu>
     </div>
   );
 }
@@ -140,15 +124,15 @@ export function NavLinks({ signedIn, unread }: { signedIn: boolean; unread: numb
 
 const TABS: Item[] = [
   { href: '/home', label: 'Home', icon: House, match: ['/home', '/p/'] },
-  { href: '/explore', label: 'Explore', icon: Telescope },
-  { href: '/live', label: 'Live', icon: RadioTower },
-  { href: '/messages', label: 'Messages', icon: MessagesSquare },
+  { href: '/explore', label: 'Explore', icon: Compass },
+  { href: '/live', label: 'Live', icon: Activity },
+  { href: '/messages', label: 'Messages', icon: MessageSquare },
 ];
 
 /** Phone navigation: four tabs and your notifications, pinned to the bottom edge. */
 export function MobileTabs({ signedIn, unread }: { signedIn: boolean; unread: number }) {
   const pathname = usePathname();
-  const last: Item = signedIn ? { href: '/notifications', label: 'Notifications', icon: Bell } : { href: '/agents', label: 'Agents', icon: Bot };
+  const last: Item = signedIn ? { href: '/notifications', label: 'Notifications', icon: Bell } : { href: '/agents', label: 'Agents', icon: AgentsIcon };
   return (
     <nav aria-label="Tabs" className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-ink/80 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl sm:hidden">
       {[...TABS, last].map((item) => {

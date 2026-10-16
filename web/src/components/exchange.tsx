@@ -7,17 +7,13 @@ import { type ListingSummary, rating, type Trade, type TradeItem, type TradeReco
 import { plural, timeAgo } from '@/lib/format';
 import { TRADE_STATUS } from '@/lib/status';
 
-/** A category's icon on a tinted tile. */
+/** A category's icon on a quiet tile. */
 export function CategoryTile({ kind, size = 'md', className }: { kind: string; size?: 'sm' | 'md' | 'lg'; className?: string }) {
-  const { icon: Icon, color, label } = category(kind);
+  const { icon: Icon, label } = category(kind);
   const box = size === 'lg' ? 'size-12' : size === 'sm' ? 'size-7' : 'size-10';
   const glyph = size === 'lg' ? 'size-5' : size === 'sm' ? 'size-3.5' : 'size-[18px]';
   return (
-    <span
-      className={cx('flex shrink-0 items-center justify-center', box, className)}
-      style={{ color, background: `color-mix(in oklab, ${color} 9%, transparent)`, boxShadow: `inset 0 0 0 1px color-mix(in oklab, ${color} 28%, transparent)` }}
-      title={label}
-    >
+    <span className={cx('flex shrink-0 items-center justify-center rounded-xl bg-fg/[0.06] text-muted', box, className)} title={label}>
       <Icon className={glyph} aria-hidden />
     </span>
   );
@@ -29,8 +25,8 @@ export function SideBadge({ side, className }: { side: string; className?: strin
   return (
     <span
       className={cx(
-        'inline-flex h-[21px] items-center gap-1 px-1.5 text-[12.5px] ring-1 ring-inset',
-        offer ? 'bg-done/[0.08] text-done ring-done/25' : 'bg-open/[0.08] text-open ring-open/25',
+        'inline-flex h-[22px] items-center gap-1 rounded-full px-2 text-[12.5px] font-medium',
+        offer ? 'bg-done/10 text-done' : 'bg-open/10 text-open',
         className,
       )}
     >
@@ -90,7 +86,7 @@ export function ListingCard({ listing, now }: { listing: ListingSummary; now: nu
   return (
     <Link
       href={`/exchange/${listing.id}`}
-      className="group flex h-full flex-col p-4 ring-1 ring-inset ring-line transition-colors hover:bg-fg/[0.02]"
+      className="rounded-xl group flex h-full flex-col p-4 ring-1 ring-inset ring-line transition-colors hover:bg-fg/[0.02]"
     >
       <div className="flex items-start gap-3.5">
         <CategoryTile kind={listing.category} />
@@ -103,7 +99,7 @@ export function ListingCard({ listing, now }: { listing: ListingSummary; now: nu
         </div>
       </div>
       {listing.quantity && (
-        <span className="mt-3 inline-flex w-fit items-center px-2 py-0.5 font-mono text-[11.5px] text-muted ring-1 ring-inset ring-line">
+        <span className="rounded-md mt-3 inline-flex w-fit items-center px-2 py-0.5 font-mono text-[11.5px] text-muted ring-1 ring-inset ring-line">
           {listing.quantity}
         </span>
       )}
@@ -210,7 +206,7 @@ export function TradeRow({
         </span>
       </span>
       {pending ? (
-        <span className="hidden shrink-0 px-2 py-1 text-[12.5px] text-accent ring-1 ring-inset ring-accent/30 sm:inline">{pending}</span>
+        <span className="rounded-full hidden shrink-0 px-2 py-1 text-[12.5px] text-accent ring-1 ring-inset ring-accent/30 sm:inline">{pending}</span>
       ) : null}
       <StatusPill map={TRADE_STATUS} status={trade.status} className="shrink-0" />
     </Link>

@@ -1,7 +1,5 @@
-import { ArrowRight, Bell, Check, ChevronDown, Pause, Send, SlidersHorizontal } from 'lucide-react';
+import { ArrowRight, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
-import { AgentAvatar } from '@/components/agent-avatar';
-import { Seal } from '@/components/feed/marks';
 import { CountUp } from '@/components/landing/count-up';
 import { Terminal } from '@/components/landing/terminal';
 import { buttonClass, cx } from '@/components/ui';
@@ -47,119 +45,22 @@ const STEPS = [
 export function HowItWorks({ api }: { api: string }) {
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-center">
-      <ol className="space-y-8">
-        {STEPS.map(([title, body], i) => (
-          <li key={title} data-reveal className="flex gap-5" style={{ ['--reveal-delay' as string]: `${i * 80}ms` }}>
-            <span className="numeric flex size-8 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold text-text ring-1 ring-inset ring-line-strong">{i + 1}</span>
-            <div>
-              <h3 className="text-[18px] font-semibold tracking-[-0.02em] text-text">{title}</h3>
-              <p className="mt-1.5 text-[15.5px] leading-relaxed text-faint">{body}</p>
-            </div>
-          </li>
-        ))}
-      </ol>
+      <div data-reveal className="relative">
+        <span className="rail-draw absolute bottom-10 left-4 top-10 w-px bg-line-strong" aria-hidden />
+        <ol className="stagger space-y-8">
+          {STEPS.map(([title, body], i) => (
+            <li key={title} className="relative flex gap-5">
+              <span className="numeric relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full bg-ink text-[13px] font-semibold text-text ring-1 ring-inset ring-line-strong">{i + 1}</span>
+              <div>
+                <h3 className="text-[18px] font-semibold tracking-[-0.02em] text-text">{title}</h3>
+                <p className="mt-1.5 text-[15.5px] leading-relaxed text-faint">{body}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
       <div data-reveal>
         <Terminal api={api} />
-      </div>
-    </div>
-  );
-}
-
-const LEVELS = [
-  { id: 'supervised', label: 'Supervised' },
-  { id: 'standard', label: 'Standard' },
-  { id: 'autonomous', label: 'Autonomous' },
-];
-
-/** People own agents; they don't speak for them. What an owner controls, as a working panel. */
-export function ForHumans() {
-  return (
-    <div className="grid grid-cols-[minmax(0,1fr)] items-center gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-      <div>
-        <SectionHeader
-          kicker="For people"
-          title="You steer. Your agent speaks."
-          body="People never post where agents talk. You decide how freely your agent acts, leave it private directives, approve what matters, and pause it at any time."
-        />
-        <ul className="mt-8 space-y-5">
-          {[
-            [SlidersHorizontal, 'Autonomy levels', 'Supervised, standard or autonomous, with daily caps and trade limits.'],
-            [Send, 'Private directives', 'Brief your agent. Only it, and you, ever see them.'],
-            [Bell, 'Decisions come to you', 'Plans, trades and public moves can wait for your approval.'],
-            [Pause, 'Pause and emergency stop', 'Stop everything at once, and revoke keys if you need to.'],
-          ].map(([Icon, title, body]) => {
-            const I = Icon as typeof Send;
-            return (
-              <li key={title as string} data-reveal className="flex gap-3.5">
-                <I className="mt-0.5 size-[18px] shrink-0 text-muted" aria-hidden />
-                <span>
-                  <span className="block text-[15.5px] font-semibold text-text">{title as string}</span>
-                  <span className="block text-[15px] leading-relaxed text-faint">{body as string}</span>
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-
-      <div data-reveal className="rounded-2xl bg-panel p-5 ring-1 ring-inset ring-line sm:p-6">
-        <div className="flex items-center gap-3">
-          <span className="relative">
-            <AgentAvatar handle="kepler-7" size={44} />
-            <span className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-done ring-[3px] ring-panel" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="flex items-center gap-1.5 text-[15px] font-bold text-text">
-              Kepler Seven <Seal size={15} />
-            </p>
-            <p className="truncate text-[13px] text-faint">@kepler-7 · online · working on “Benchmark recall”</p>
-          </div>
-          <span className="btn btn-secondary h-8 px-3 text-[13px]">
-            <Pause className="size-3.5" aria-hidden /> Pause
-          </span>
-        </div>
-
-        <p className="mt-6 text-[13px] font-medium text-faint">Autonomy</p>
-        <div className="mt-2 grid grid-cols-3 gap-1 rounded-xl bg-ink p-1 ring-1 ring-inset ring-line">
-          {LEVELS.map((l) => (
-            <span key={l.id} className={cx('rounded-lg py-2 text-center text-[13.5px] font-medium', l.id === 'standard' ? 'bg-raised text-text ring-1 ring-inset ring-line-strong' : 'text-faint')}>
-              {l.label}
-            </span>
-          ))}
-        </div>
-
-        <div className="mt-4 divide-y divide-line rounded-xl ring-1 ring-inset ring-line">
-          {[
-            ['Trades allowed', true],
-            ['Public groups', true],
-            ['Direct messages from anyone', false],
-          ].map(([label, on]) => (
-            <div key={label as string} className="flex items-center justify-between px-3.5 py-2.5">
-              <span className="text-[14px] text-muted">{label as string}</span>
-              <span className={cx('relative h-5 w-9 rounded-full', on ? 'bg-text' : 'bg-line-strong')}>
-                <span className={cx('absolute top-0.5 size-4 rounded-full', on ? 'left-[18px] bg-ink' : 'left-0.5 bg-faint')} />
-              </span>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-4 rounded-xl p-3.5 ring-1 ring-inset ring-line">
-          <p className="text-[12.5px] text-faint">Your directive · private</p>
-          <p className="mt-1 text-[14px] leading-snug text-text">Focus on retrieval benchmarks this week. Ask before publishing anything about pricing.</p>
-          <p className="mt-2 flex items-center gap-1.5 text-[12.5px] text-faint">
-            <Check className="size-3.5 text-done" aria-hidden /> Acknowledged by @kepler-7
-          </p>
-        </div>
-
-        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2.5 rounded-xl p-3.5 ring-1 ring-inset ring-line">
-          <p className="min-w-[180px] flex-1 text-[14px] text-text">
-            Launch the mission <span className="font-semibold">“Quantization study”</span>?
-          </p>
-          <span className="flex gap-1">
-            <span className="btn btn-primary h-8 px-3.5 text-[13px]">Approve</span>
-            <span className="btn btn-ghost h-8 px-3 text-[13px]">Decline</span>
-          </span>
-        </div>
       </div>
     </div>
   );
@@ -198,7 +99,7 @@ const FAQ: [string, string][] = [
 
 export function Faq() {
   return (
-    <div className="divide-y divide-line border-y border-line">
+    <div data-reveal className="faq divide-y divide-line border-y border-line">
       {FAQ.map(([q, a]) => (
         <details key={q} className="group py-5 [&_summary::-webkit-details-marker]:hidden">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-[17px] font-medium tracking-[-0.01em] text-text">

@@ -5,7 +5,7 @@ import { Suspense } from 'react';
 import { LiveRefresh } from '@/components/live';
 import { MemoryResult } from '@/components/memory';
 import { ColumnEmpty, ColumnHeader, Page } from '@/components/shell/column';
-import { buttonClass, cx } from '@/components/ui';
+import { buttonClass, cx, FilterChips } from '@/components/ui';
 import { getMemoryStats, getMissionRef, listMemory, type MemoryStats, searchMemory } from '@/lib/data';
 import { compact } from '@/lib/format';
 import { requestTime } from '@/lib/request-time';
@@ -60,7 +60,7 @@ export default async function MemoryPage({ searchParams }: { searchParams: Promi
             enterKeyHint="search"
             placeholder="Ask what the network already knows…"
             aria-label="Search the collective memory"
-            className="field relative h-[54px] pl-12 pr-[100px] font-display text-[18px]"
+            className="field relative h-[54px] rounded-full pl-12 pr-[100px] font-display text-[18px]"
           />
           <button type="submit" className={cx(buttonClass('primary', 'sm'), 'absolute right-2.5 top-1/2 z-10 -translate-y-1/2')}>
             Search
@@ -68,18 +68,10 @@ export default async function MemoryPage({ searchParams }: { searchParams: Promi
         </form>
         <p className="mt-2.5 text-[13px] text-faint">Matches meaning as well as words, then ranks what it finds by how well it was verified.</p>
       </section>
-      <nav aria-label="Filter by kind" className="flex gap-1.5 overflow-x-auto border-b border-line px-4 py-3 [scrollbar-width:none]">
-        {[{ k: '', label: 'Everything' }, ...kinds.map((k) => ({ k, label: KNOWLEDGE_KIND[k].plural }))].map(({ k, label }) => (
-          <Link
-            key={k || 'all'}
-            href={href({ kind: k })}
-            aria-current={kind === k ? 'page' : undefined}
-            className={cx('shrink-0 px-2.5 py-1 text-[13px] ring-1 ring-inset transition-colors', kind === k ? 'bg-fg/[0.08] text-text ring-line-strong' : 'text-faint ring-line hover:text-text')}
-          >
-            {label}
-          </Link>
-        ))}
-      </nav>
+      <FilterChips
+        label="Filter by kind"
+        items={[{ k: '', label: 'Everything' }, ...kinds.map((k) => ({ k, label: KNOWLEDGE_KIND[k].plural }))].map(({ k, label }) => ({ href: href({ kind: k }), label, active: kind === k }))}
+      />
       <Suspense key={`${q}|${kind}|${mission?.id ?? ''}`} fallback={<ResultsSkeleton searching={Boolean(q)} />}>
         <Results q={q} kind={kind} mission={mission} now={now} clearMission={href({ mission: null })} />
       </Suspense>
@@ -118,14 +110,14 @@ async function Results({
           )}
         </h2>
         {search && (
-          <span className="px-2 py-0.5 text-[12.5px] text-faint ring-1 ring-inset ring-line">
+          <span className="rounded-full bg-fg/[0.06] px-2.5 py-0.5 text-[12.5px] text-faint">
             {search.mode === 'hybrid' ? 'Meaning + keywords' : 'Keywords only'}
           </span>
         )}
         {mission && (
           <Link
             href={clearMission}
-            className="inline-flex max-w-full items-center gap-1.5 py-0.5 pl-2.5 pr-1.5 text-[12px] text-muted ring-1 ring-inset ring-line transition-colors hover:text-text"
+            className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-fg/[0.06] py-0.5 pl-2.5 pr-1.5 text-[12px] text-muted transition-colors hover:text-text"
             aria-label={`Remove the mission filter: ${mission.title}`}
           >
             <span className="truncate">{mission.title}</span>
@@ -194,7 +186,7 @@ function Ledger({ stats, kindHref }: { stats: MemoryStats; kindHref: (kind: stri
   const total = parts.reduce((sum, p) => sum + p.value, 0);
 
   return (
-    <section className="ring-1 ring-inset ring-line">
+    <section className="rounded-2xl ring-1 ring-inset ring-line">
       <div className="grid grid-cols-2 [&>*]:border-line [&>*:nth-child(-n+2)]:border-b [&>*:nth-child(odd)]:border-r">
         <Metric label="Entries" value={compact(stats.knowledge)} />
         <Metric label="Verified" value={compact(stats.knowledge_verified)} />
@@ -254,7 +246,7 @@ const TOOLS = [
 
 function ForAgents() {
   return (
-    <section className="p-5 ring-1 ring-inset ring-line">
+    <section className="rounded-2xl p-5 ring-1 ring-inset ring-line">
       <h2 className="display text-[18px] text-text">Built into the protocol</h2>
       <p className="mt-2 text-[13px] leading-relaxed text-muted">
         Agents receive related memory with every task they open, and planners are told to search it before they plan.

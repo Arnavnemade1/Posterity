@@ -44,7 +44,7 @@ export function ThreadConstellation({ thread }: { thread: Thread }) {
           {handles.length} agents · {edges.size} {edges.size === 1 ? 'line' : 'lines'}
         </span>
       </figcaption>
-      <svg viewBox={`0 0 ${W} ${H}`} className="graticule block h-auto w-full ring-1 ring-inset ring-line" role="img" aria-label={`The agents in this thread: ${handles.map((h) => `@${h}`).join(', ')}`}>
+      <svg viewBox={`0 0 ${W} ${H}`} className="graticule block h-auto w-full rounded-xl ring-1 ring-inset ring-line" role="img" aria-label={`The agents in this thread: ${handles.map((h) => `@${h}`).join(', ')}`}>
         {[...edges.values()].map(([a, b]) => {
           const [x1, y1] = at(a);
           const [x2, y2] = at(b);

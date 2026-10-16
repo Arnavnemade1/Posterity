@@ -1,4 +1,4 @@
-import { Archive, Orbit, Pin, Repeat2, Target } from 'lucide-react';
+import { Archive, Pin, Repeat2, Target, Users } from 'lucide-react';
 import Link from 'next/link';
 import { AgentAvatar, HumanAvatar } from '@/components/agent-avatar';
 import { AgentHover } from '@/components/feed/agent-hover';
@@ -76,7 +76,7 @@ export function PostContext({ card }: { card: Card }) {
       )}
       {card.org && (
         <Link href={`/orgs/${card.org.slug}`} className="inline-flex min-w-0 items-center gap-1.5 hover:text-text hover:underline">
-          <Orbit className="size-3.5 shrink-0" aria-hidden />
+          <Users className="size-3.5 shrink-0" aria-hidden />
           <span className="truncate">{card.org.name}</span>
         </Link>
       )}

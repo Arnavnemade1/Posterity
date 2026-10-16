@@ -1,21 +1,18 @@
 import {
   BadgeCheck,
   Ban,
+  CircleCheck,
   CircleX,
   Clock,
-  Gavel,
-  Handshake,
-  Hourglass,
   type LucideIcon,
   MessageSquare,
   PackageCheck,
   Repeat,
-  Scale,
   Send,
-  Sparkles,
   Star,
   TriangleAlert,
   Undo2,
+  UserCheck,
 } from 'lucide-react';
 import Link from 'next/link';
 import { AgentAvatar } from '@/components/agent-avatar';
@@ -36,10 +33,10 @@ const other = (side: Side): Side => (side === 'proposer' ? 'counterparty' : 'pro
 const EVENT: Record<string, { icon: LucideIcon; label: string; tone?: string }> = {
   proposed: { icon: Send, label: 'proposed the trade' },
   countered: { icon: Repeat, label: 'countered with new terms', tone: 'text-review' },
-  accepted: { icon: Handshake, label: 'accepted the terms', tone: 'text-done' },
+  accepted: { icon: CircleCheck, label: 'accepted the terms', tone: 'text-done' },
   declined: { icon: CircleX, label: 'declined', tone: 'text-danger' },
   withdrawn: { icon: Undo2, label: 'withdrew the terms' },
-  expired: { icon: Hourglass, label: 'The proposal expired unanswered' },
+  expired: { icon: Clock, label: 'The proposal expired unanswered' },
   message: { icon: MessageSquare, label: 'wrote' },
   delivered: { icon: PackageCheck, label: 'delivered their side', tone: 'text-claimed' },
   confirmed: { icon: BadgeCheck, label: 'confirmed receiving the other side', tone: 'text-done' },
@@ -47,11 +44,11 @@ const EVENT: Record<string, { icon: LucideIcon; label: string; tone?: string }> 
   cancel_requested: { icon: Ban, label: 'asked to cancel' },
   cancelled: { icon: Ban, label: 'cancelled the trade' },
   defaulted: { icon: TriangleAlert, label: 'cancelled for a missed deadline', tone: 'text-danger' },
-  disputed: { icon: Gavel, label: 'opened a dispute', tone: 'text-danger' },
+  disputed: { icon: TriangleAlert, label: 'opened a dispute', tone: 'text-danger' },
   dispute_withdrawn: { icon: Undo2, label: 'withdrew the dispute' },
-  arbiter_assigned: { icon: Scale, label: 'An independent arbiter was assigned', tone: 'text-review' },
-  ruled: { icon: Gavel, label: 'ruled on the dispute', tone: 'text-review' },
-  completed: { icon: Sparkles, label: 'The trade completed', tone: 'text-done' },
+  arbiter_assigned: { icon: UserCheck, label: 'An independent arbiter was assigned', tone: 'text-review' },
+  ruled: { icon: BadgeCheck, label: 'ruled on the dispute', tone: 'text-review' },
+  completed: { icon: CircleCheck, label: 'The trade completed', tone: 'text-done' },
   rated: { icon: Star, label: 'rated the trade', tone: 'text-claimed' },
 };
 

@@ -136,7 +136,7 @@ function Digest({ digest }: { digest: AgentDigest }) {
   return (
     <dl className="grid grid-cols-2 border-y border-line sm:grid-cols-4">
       {cells.map(([label, n], i) => (
-        <div key={label} className={cx('px-5 py-3', i % 2 === 1 && 'border-l border-line', i === 2 && 'sm:border-l', i >= 2 && 'max-sm:border-t max-sm:border-line')}>
+        <div key={label} className={cx('px-5 py-3', i % 2 === 1 && 'border-l border-line', i === 2 && 'sm:border-l sm:border-line', i >= 2 && 'max-sm:border-t max-sm:border-line')}>
           <dt className="truncate text-[12px] text-faint">{label}</dt>
           <dd className={cx('numeric mt-1 text-[20px] font-semibold leading-none', n ? 'text-text' : 'text-ghost')}>{compact(n)}</dd>
         </div>

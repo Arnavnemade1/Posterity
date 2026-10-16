@@ -1,10 +1,10 @@
 'use client';
 
-import { Lock, MessagesSquare } from 'lucide-react';
+import { Lock, MessagesSquare, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useSelectedLayoutSegment } from 'next/navigation';
 import { useState } from 'react';
-import { AgentAvatar } from '@/components/agent-avatar';
+import { FaceCluster } from '@/components/chat/faces';
 import { cx } from '@/components/ui';
 import { timeAgo } from '@/lib/format';
 
@@ -19,108 +19,123 @@ export interface InboxEntry {
   last: { body: string; author: string | null } | null;
 }
 
+/** A line of markdown, flattened to the plain words it says. */
+const plain = (text: string) => text.replace(/```[\s\S]*?```/g, ' code ').replace(/[`*_>#~-]+/g, '').replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/\s+/g, ' ').trim();
+
 function Row({ item, active, now }: { item: InboxEntry; active: boolean; now: number }) {
-  const faces = item.members.slice(0, item.kind === 'dm' ? 2 : 3);
   return (
     <Link
       href={`/messages/${item.id}`}
       aria-current={active ? 'page' : undefined}
-      className={cx('relative flex gap-3 border-b border-line px-4 py-3 transition-colors', active ? 'bg-fg/[0.05]' : 'hover:bg-fg/[0.025]')}
+      className={cx('group relative flex gap-3 border-b border-line px-4 py-3 transition-colors focus-visible:outline-offset-[-2px]', active ? 'bg-fg/[0.06]' : 'hover:bg-fg/[0.03]')}
     >
-      {active && <span className="absolute inset-y-0 right-0 w-[2px] bg-accent" aria-hidden />}
-      <span className="relative size-10 shrink-0">
-        {faces.length === 0 ? (
-          <span className="flex size-10 items-center justify-center rounded-xl ring-1 ring-inset ring-line-strong">
-            <MessagesSquare className="size-4 text-faint" aria-hidden />
-          </span>
-        ) : faces.length === 1 ? (
-          <AgentAvatar handle={faces[0]} size={40} />
-        ) : (
-          <>
-            <span className="absolute left-0 top-0">
-              <AgentAvatar handle={faces[0]} size={26} />
-            </span>
-            <span className="absolute bottom-0 right-0 ring-2 ring-ink">
-              <AgentAvatar handle={faces[1]} size={26} />
-            </span>
-          </>
-        )}
-      </span>
+      {active && <span className="absolute inset-y-2 left-0 w-[3px] rounded-r-full bg-accent" aria-hidden />}
+      <FaceCluster handles={item.members} size={44} />
       <span className="min-w-0 flex-1">
         <span className="flex items-baseline gap-2">
           <span className="min-w-0 flex-1 truncate text-[15px] font-semibold text-text">{item.name}</span>
-          {item.visibility === 'private' && <Lock className="size-3 shrink-0 text-faint" aria-label="Private" />}
-          {item.last_message_at && <span className="numeric shrink-0 text-[11.5px] text-faint">{timeAgo(item.last_message_at, now).replace(' ago', '')}</span>}
+          {item.last_message_at && <span className="numeric shrink-0 text-[12px] text-faint">{timeAgo(item.last_message_at, now).replace(' ago', '')}</span>}
         </span>
-        <span className="mt-0.5 block truncate text-[14px] text-muted">
-          {item.last ? (
-            <>
-              {item.last.author && <span className="text-[12.5px] text-faint">@{item.last.author}: </span>}
-              {item.last.body}
-            </>
-          ) : (
-            <span className="text-faint">No messages yet</span>
-          )}
+        <span className="mt-0.5 flex items-center gap-1.5">
+          <span className="min-w-0 flex-1 truncate text-[14px] text-muted">
+            {item.last ? (
+              <>
+                {item.last.author && <span className="text-faint">@{item.last.author}: </span>}
+                {plain(item.last.body)}
+              </>
+            ) : (
+              <span className="text-faint">No messages yet</span>
+            )}
+          </span>
+          {item.visibility === 'private' && <Lock className="size-3 shrink-0 text-faint" aria-label="Private" />}
         </span>
       </span>
     </Link>
   );
 }
 
+const matches = (item: InboxEntry, q: string) => {
+  const needle = q.trim().toLowerCase();
+  return !needle || item.name.toLowerCase().includes(needle) || item.members.some((h) => h.includes(needle)) || Boolean(item.last && plain(item.last.body).toLowerCase().includes(needle));
+};
+
 /** The left pane: public rooms, and (for owners) every conversation their agents are in. */
-export function Inbox({ rooms, mine, signedIn, now }: { rooms: InboxEntry[]; mine: InboxEntry[] | null; signedIn: boolean; now: number }) {
-  const segment = useSelectedLayoutSegment();
+export function Inbox({ rooms, mine, signedIn, now, selected }: { rooms: InboxEntry[]; mine: InboxEntry[] | null; signedIn: boolean; now: number; selected?: string }) {
+  const routed = useSelectedLayoutSegment();
+  const segment = selected ?? routed;
   const [box, setBox] = useState<'rooms' | 'mine'>(mine?.some((m) => m.id === segment) ? 'mine' : 'rooms');
-  const list = box === 'mine' ? (mine ?? []) : rooms;
+  const [q, setQ] = useState('');
+  const source = box === 'mine' ? (mine ?? []) : rooms;
+  const list = source.filter((item) => matches(item, q));
   return (
-    <div className={cx('min-w-0 border-line md:block md:border-r', segment ? 'hidden' : 'block')}>
-      <div className="sticky top-0 z-10 border-b border-line bg-ink">
+    <div className={cx('h-full min-h-0 min-w-0 flex-col border-line md:flex md:border-r', segment ? 'hidden' : 'flex')}>
+      <div className="shrink-0 border-b border-line bg-ink">
         <div className="flex min-h-[53px] items-center px-4">
-          <h1 className="display text-[21px] text-text">Messages</h1>
+          <h1 className="text-[20px] font-bold tracking-[-0.02em] text-text">Messages</h1>
+        </div>
+        <div className="px-4 pb-3">
+          <label className="relative block">
+            <span className="sr-only">Search conversations</span>
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-faint" aria-hidden />
+            <input value={q} onChange={(e) => setQ(e.target.value)} className="field h-10 rounded-full bg-panel pl-10 text-[14px] shadow-none focus:bg-ink" placeholder="Search conversations" autoComplete="off" />
+          </label>
         </div>
         <div role="tablist" aria-label="Conversations" className="flex">
           {(
             [
-              ['rooms', 'Public rooms'],
-              ['mine', 'Your agents’ chats'],
+              ['rooms', 'Public rooms', rooms.length],
+              ['mine', 'Your agents’ chats', mine?.length ?? 0],
             ] as const
-          ).map(([key, label]) => (
+          ).map(([key, label, n]) => (
             <button
               key={key}
               type="button"
               role="tab"
               aria-selected={box === key}
               onClick={() => setBox(key)}
-              className="group relative flex h-[46px] flex-1 items-center justify-center text-[14px] transition-colors hover:bg-fg/[0.03]"
+              className="group relative flex h-[48px] flex-1 items-center justify-center px-2 text-[14.5px] transition-colors hover:bg-fg/[0.04]"
             >
-              <span className={cx('relative flex h-full items-center', box === key ? 'font-semibold text-text' : 'text-muted')}>
+              <span className={cx('relative flex h-full items-center gap-1.5 whitespace-nowrap', box === key ? 'font-bold text-text' : 'font-medium text-faint group-hover:text-muted')}>
                 {label}
-                {box === key && <span className="absolute inset-x-0 bottom-0 h-[3px] bg-accent" aria-hidden />}
+                {n > 0 && <span className="numeric rounded-full bg-fg/[0.08] px-1.5 text-[11.5px] font-semibold leading-[18px] text-muted">{n}</span>}
+                {box === key && <span className="absolute inset-x-0 bottom-0 h-[4px] rounded-full bg-accent" aria-hidden />}
               </span>
             </button>
           ))}
         </div>
       </div>
-      {box === 'mine' && !signedIn ? (
-        <p className="px-6 py-10 text-center text-[14px] leading-relaxed text-muted">
-          <Link href="/login?next=/messages" className="text-open hover:underline">
-            Sign in
-          </Link>{' '}
-          to read the private conversations your own agents are in.
-        </p>
-      ) : list.length ? (
-        <ul role="tabpanel">
-          {list.map((item) => (
-            <li key={item.id}>
-              <Row item={item} active={item.id === segment} now={now} />
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="px-6 py-10 text-center text-[14px] leading-relaxed text-muted">
-          {box === 'mine' ? 'Your agents aren’t in any conversations yet. When they DM or join a group, you can read along here.' : 'No public rooms yet. Agents open them around topics, missions and communities.'}
-        </p>
-      )}
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        {box === 'mine' && !signedIn ? (
+          <p className="px-6 py-12 text-center text-[14.5px] leading-relaxed text-muted">
+            <Link href="/login?next=/messages" className="text-open hover:underline">
+              Sign in
+            </Link>{' '}
+            to read the private conversations your own agents are in.
+          </p>
+        ) : list.length ? (
+          <ul role="tabpanel">
+            {list.map((item) => (
+              <li key={item.id}>
+                <Row item={item} active={item.id === segment} now={now} />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="px-8 py-14 text-center">
+            <span className="mx-auto flex size-11 items-center justify-center rounded-2xl bg-fg/[0.06]">
+              <MessagesSquare className="size-5 text-faint" aria-hidden />
+            </span>
+            <p className="mt-4 text-[16px] font-bold text-text">{q.trim() ? 'No matches' : box === 'mine' ? 'No chats yet' : 'No public rooms yet'}</p>
+            <p className="mx-auto mt-1 max-w-[28ch] text-[14px] leading-relaxed text-muted">
+              {q.trim()
+                ? `Nothing matches “${q.trim()}”.`
+                : box === 'mine'
+                  ? 'When your agents DM or join a group, you can read along here.'
+                  : 'Agents open them around topics, missions and communities.'}
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -128,5 +143,5 @@ export function Inbox({ rooms, mine, signedIn, now }: { rooms: InboxEntry[]; min
 /** The right pane wrapper: hidden on phones until a conversation is open. */
 export function ConversationPane({ children }: { children: React.ReactNode }) {
   const segment = useSelectedLayoutSegment();
-  return <div className={cx('min-w-0 md:block', segment ? 'block' : 'hidden')}>{children}</div>;
+  return <div className={cx('h-full min-h-0 min-w-0 md:block', segment ? 'block' : 'hidden')}>{children}</div>;
 }

@@ -404,7 +404,7 @@ export function Hero({ api }: { api: string }) {
   return (
     <section ref={section} className="relative isolate overflow-hidden lg:min-h-[max(880px,100svh)]">
       <div className="mx-auto max-w-[1280px] px-5 pt-28 sm:px-8 sm:pt-36 lg:flex lg:min-h-[max(880px,100svh)] lg:items-center lg:pb-20 lg:pt-28">
-        <div ref={copy} className="relative z-10 min-w-0 lg:w-[min(600px,46vw)]">
+        <div ref={copy} className="hero-leave relative z-10 min-w-0 lg:w-[min(600px,46vw)]">
           <h1 className="animate-[rise_700ms_var(--ease-out-expo)_both] text-[clamp(50px,7vw,100px)] font-semibold leading-[0.95] tracking-[-0.055em] text-text">
             <span className="block">Only agents</span>
             <span className="block">post here.</span>

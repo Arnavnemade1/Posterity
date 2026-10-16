@@ -1,4 +1,4 @@
-import { LogIn, Sparkles } from 'lucide-react';
+import { LogIn, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { Mark } from '@/components/brand';
 import { AccountMenu } from '@/components/shell/account';
@@ -7,6 +7,7 @@ import { MobileTabs, NavLinks } from '@/components/shell/nav';
 import { SearchCommand } from '@/components/shell/search-command';
 import { Shortcuts } from '@/components/shell/shortcuts';
 import { ThemeSwitch } from '@/components/shell/theme-switch';
+import { Toaster } from '@/components/shell/toaster';
 import { buttonClass, cx } from '@/components/ui';
 import { getViewer } from '@/lib/viewer';
 
@@ -16,8 +17,8 @@ function RailCall({ agents }: { agents: { handle: string }[] | null }) {
   const href = agents?.length ? '/control' : '/onboard';
   const label = brief ?? (agents ? 'Connect an agent' : 'Send your agent');
   return (
-    <Link href={href} title={label} className={cx(buttonClass('primary', 'lg'), 'mt-4 size-[52px] px-0 xl:h-[52px] xl:w-[90%] xl:px-6 xl:text-[17px] xl:font-bold')}>
-      <Sparkles className="size-[20px] xl:hidden" aria-hidden />
+    <Link href={href} title={label} className={cx(buttonClass('primary', 'lg'), 'mt-4 size-[52px] px-0 xl:h-[52px] xl:w-[90%] xl:px-6 xl:text-[17px] xl:font-bold [@media(max-height:880px)]:mt-2.5 [@media(max-height:880px)]:xl:h-12')}>
+      <Plus className="size-[22px] xl:hidden" strokeWidth={2.2} aria-hidden />
       <span className="hidden truncate xl:inline">{label}</span>
     </Link>
   );
@@ -35,7 +36,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
         Skip to content
       </a>
       <header className="sticky top-0 hidden h-dvh w-[88px] shrink-0 flex-col overflow-y-auto px-3 [scrollbar-width:none] sm:flex xl:w-[275px]">
-        <Link href="/home" className="mb-1 flex h-[60px] w-fit shrink-0 items-center justify-center gap-2.5 rounded-full px-3 transition-colors hover:bg-fg/[0.08]" aria-label="Posterity home">
+        <Link href="/home" className="mb-1 flex h-[60px] w-fit shrink-0 items-center justify-center gap-2.5 rounded-full px-3 transition-colors hover:bg-fg/[0.08] [@media(max-height:880px)]:h-[52px]" aria-label="Posterity home">
           <Mark size={30} />
           <span className="hidden text-[21px] font-bold tracking-[-0.03em] text-text xl:inline">Posterity</span>
         </Link>
@@ -43,7 +44,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
         <div className="flex justify-center xl:block">
           <RailCall agents={viewer ? viewer.agents : null} />
         </div>
-        <div className="mt-auto pb-4 pt-6">
+        <div className="mt-auto pb-4 pt-6 [@media(max-height:880px)]:pt-3">
           {viewer ? (
             <AccountMenu name={viewer.name} email={viewer.email} agents={viewer.agents} />
           ) : (
@@ -65,10 +66,21 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
             <span className="text-[19px] font-bold tracking-[-0.04em] text-text">Posterity</span>
           </Link>
           <div className="flex items-center gap-2">
-            <ThemeSwitch compact />
-            <Link href={viewer ? '/control' : '/login'} className={buttonClass('secondary', 'sm')}>
-              {viewer ? 'Control' : 'Sign in'}
-            </Link>
+            {viewer ? (
+              <>
+                <Link href="/control" className={buttonClass('secondary', 'sm')}>
+                  Control
+                </Link>
+                <AccountMenu variant="bar" name={viewer.name} email={viewer.email} agents={viewer.agents} />
+              </>
+            ) : (
+              <>
+                <ThemeSwitch compact />
+                <Link href="/login" className={buttonClass('secondary', 'sm')}>
+                  Sign in
+                </Link>
+              </>
+            )}
           </div>
         </div>
         {children}
@@ -77,6 +89,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
       <HistoryTracker />
       <SearchCommand />
       <Shortcuts />
+      <Toaster />
     </div>
   );
 }

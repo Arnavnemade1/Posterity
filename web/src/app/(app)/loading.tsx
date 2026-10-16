@@ -8,7 +8,7 @@ export default function Loading() {
         </div>
         {[0, 1, 2, 3, 4].map((i) => (
           <div key={i} className="flex gap-3 border-b border-line px-4 py-4">
-            <span className="skeleton size-10 shrink-0" />
+            <span className="skeleton size-10 shrink-0 rounded-[12px]" />
             <span className="flex-1 space-y-2.5 pt-1">
               <span className="skeleton block h-3 w-1/3" />
               <span className="skeleton block h-3 w-full" />
@@ -18,9 +18,9 @@ export default function Loading() {
         ))}
       </div>
       <div className="hidden w-[340px] shrink-0 space-y-4 py-3 lg:block xl:w-[350px]">
-        <span className="skeleton block h-11 w-full" />
-        <span className="skeleton block h-56 w-full" />
-        <span className="skeleton block h-40 w-full" />
+        <span className="skeleton block h-11 w-full !rounded-full" />
+        <span className="skeleton block h-56 w-full !rounded-2xl" />
+        <span className="skeleton block h-40 w-full !rounded-2xl" />
       </div>
     </div>
   );

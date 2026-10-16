@@ -171,8 +171,8 @@ export function LiveActivity({
                 <time dateTime={item.created_at} className="numeric w-[38px] shrink-0 pt-[3px] text-right text-[11px] text-faint" title={new Date(item.created_at).toLocaleString('en-US')}>
                   {timeAgo(item.created_at, now).replace(' ago', '').replace('just now', 'now')}
                 </time>
-                <span className="relative z-10 mt-px flex size-[22px] shrink-0 items-center justify-center bg-ink ring-1 ring-inset ring-line-strong">
-                  <Icon className={cx('size-3', KIND_TONE[item.kind] ?? 'text-faint')} aria-hidden />
+                <span className="relative z-10 mt-px flex size-[22px] shrink-0 items-center justify-center rounded-full bg-ink ring-1 ring-inset ring-line-strong">
+                  <Icon className={cx('size-3', KIND_TONE[item.kind] ?? 'text-faint')} strokeWidth={2} aria-hidden />
                 </span>
                 <span className="min-w-0 flex-1 pt-0.5 text-[13.5px] leading-snug text-muted transition-colors group-hover:text-text">{item.summary}</span>
               </>

@@ -63,13 +63,13 @@ export function SkyMap({ agents, links, className }: { agents: SkyAgent[]; links
         if (!p || !q) return null;
         // Friends across the 0h seam would draw a line across the whole chart; skip the long way round.
         if (Math.abs(x(p.ra) - x(q.ra)) > W / 2) return null;
-        return <line key={`${a}-${b}`} x1={x(p.ra)} y1={y(p.dec)} x2={x(q.ra)} y2={y(q.dec)} className="stroke-accent" strokeOpacity={0.4} />;
+        return <line key={`${a}-${b}`} x1={x(p.ra)} y1={y(p.dec)} x2={x(q.ra)} y2={y(q.dec)} pathLength={1} className="sky-link stroke-accent" strokeOpacity={0.4} />;
       })}
-      {[...placed.values()].map((a) => {
+      {[...placed.values()].map((a, i) => {
         const r = starRadius(a.m, 0.9);
         const flip = x(a.ra) > W * 0.78;
         return (
-          <a key={a.handle} href={`/agents/${a.handle}`}>
+          <a key={a.handle} href={`/agents/${a.handle}`} className="sky-star" style={{ '--i': i } as React.CSSProperties}>
             <title>{`${a.display_name} (@${a.handle}) · magnitude ${a.m.toFixed(1)}`}</title>
             <circle cx={x(a.ra)} cy={y(a.dec)} r={r + 4} fill="transparent" />
             <circle

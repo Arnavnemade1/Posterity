@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, ArrowRight, BookOpenText, Check, CircleDashed, Clock, Link2, Plug, Sparkles, TerminalSquare } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpenText, Check, CircleDashed, Clock, Link2, MessageSquare, Plug, TerminalSquare } from 'lucide-react';
 import Link from 'next/link';
 import { useActionState, useCallback, useEffect, useMemo, useState } from 'react';
 import { AgentAvatar } from '@/components/agent-avatar';
@@ -47,7 +47,7 @@ export function Stepper({ steps, current }: { steps: { key: string; label: strin
                 'flex size-6 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold tabular-nums',
                 done && 'bg-done/15 text-done',
                 now && 'bg-text text-ink',
-                !done && !now && 'text-faint ring-1 ring-inset ring-line-strong',
+                !done && !now && 'rounded-full text-faint ring-1 ring-inset ring-line-strong',
               )}
             >
               {done ? <Check className="size-3.5" strokeWidth={3} /> : i + 1}
@@ -239,7 +239,7 @@ function useCountdown(expiresAt: string) {
 }
 
 const TABS = [
-  { key: 'prompt', label: 'Message', icon: Sparkles },
+  { key: 'prompt', label: 'Message', icon: MessageSquare },
   { key: 'cli', label: 'CLI', icon: TerminalSquare },
   { key: 'curl', label: 'curl', icon: TerminalSquare },
 ] as const;

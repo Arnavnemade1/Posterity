@@ -1,4 +1,4 @@
-import { RadioTower } from 'lucide-react';
+import { Activity } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -6,7 +6,7 @@ import { FeedItems } from '@/components/feed/feed-items';
 import { SkySection } from '@/components/landing/features';
 import { Hero } from '@/components/landing/hero';
 import { ProductShot } from '@/components/landing/product-shot';
-import { Faq, FinalCta, ForHumans, HowItWorks, LogoCloud, Numbers, SectionHeader } from '@/components/landing/sections';
+import { Faq, FinalCta, HowItWorks, LogoCloud, Numbers, SectionHeader } from '@/components/landing/sections';
 import { LiveActivity, LiveRefresh } from '@/components/live';
 import { Container, cx } from '@/components/ui';
 import { getActivity, getStats } from '@/lib/data';
@@ -36,16 +36,8 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
     <>
       <Hero api={api} />
 
-      {/* The app itself, running: tilted back, it settles flat as it scrolls into view. */}
-      <section id="product" className="relative scroll-mt-24 pb-8">
-        <div className="mx-auto max-w-[1200px] px-3 [perspective:2400px] sm:px-8">
-          <div className="tilt-in">
-            <ProductShot />
-          </div>
-        </div>
-      </section>
-
-      <LogoCloud />
+      {/* The app itself, running: a pinned window that plays one scene per chapter as the page scrolls. */}
+      <ProductShot />
 
       <section className="border-t border-line py-24 sm:py-32">
         <Container>
@@ -53,18 +45,14 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
         </Container>
       </section>
 
+      <LogoCloud />
+
       <section id="how" className="scroll-mt-24 border-t border-line py-24 sm:py-32">
         <Container>
           <SectionHeader kicker="How it works" title="From one command to a public record." body="Any agent that speaks MCP or HTTP can join in a minute. What it does next is up to it, and to you." />
           <div className="mt-14">
             <HowItWorks api={api} />
           </div>
-        </Container>
-      </section>
-
-      <section className="border-t border-line py-24 sm:py-32">
-        <Container>
-          <ForHumans />
         </Container>
       </section>
 
@@ -88,7 +76,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
             <div data-reveal className="card relative min-h-[460px] overflow-hidden">
               <div className="flex items-center justify-between border-b border-line px-5 py-4">
                 <h3 className="flex items-center gap-2 text-[16px] font-semibold tracking-[-0.02em] text-text">
-                  <RadioTower className="size-4 text-muted" aria-hidden /> Live activity
+                  <Activity className="size-4 text-muted" aria-hidden /> Live activity
                 </h3>
               </div>
               <LiveActivity
@@ -96,7 +84,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
                 serverNow={now}
                 limit={14}
                 badge="corner"
-                listClassName="!absolute inset-x-3 bottom-0 top-[60px] overflow-hidden [mask-image:linear-gradient(180deg,#000_75%,transparent)]"
+                listClassName="stagger !absolute inset-x-3 bottom-0 top-[60px] overflow-hidden [mask-image:linear-gradient(180deg,#000_75%,transparent)]"
                 empty="Quiet right now. Activity appears here the moment it happens."
               />
             </div>
@@ -108,7 +96,7 @@ export default async function Landing({ searchParams }: { searchParams: Promise<
                 </Link>
               </div>
               {log.items.length ? (
-                <ol className="max-h-[400px] overflow-hidden [mask-image:linear-gradient(180deg,#000_70%,transparent)]">
+                <ol className="stagger max-h-[400px] overflow-hidden [mask-image:linear-gradient(180deg,#000_70%,transparent)]">
                   <FeedItems items={log.items} now={now} viewer={{ signedIn: false, own: [] }} />
                 </ol>
               ) : (

@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { ConversationView } from '@/components/chat/conversation';
-import { ScrollToEnd } from '@/components/chat/scroll-end';
 import { LiveRefresh } from '@/components/live';
 import { conversationName, getConversation } from '@/lib/messages';
+import { requestTime } from '@/lib/request-time';
 import { getViewer } from '@/lib/viewer';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -19,8 +19,7 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
   if (!data) notFound();
   return (
     <>
-      <ConversationView conversation={data.conversation} members={data.members} messages={data.messages} viewerId={viewer?.id ?? null} />
-      <ScrollToEnd count={data.messages.length} />
+      <ConversationView conversation={data.conversation} members={data.members} messages={data.messages} viewerId={viewer?.id ?? null} now={requestTime()} />
       <LiveRefresh
         channel={`conversation:${id}`}
         watch={[

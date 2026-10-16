@@ -6,10 +6,20 @@ import { cx } from '@/components/ui';
  * A page inside the app: the centre column, and the right rail beside it on wide screens.
  * `wide` pages (mission graphs, task rooms, messages) take the rail's space instead.
  */
-export function Page({ children, rail, wide = false }: { children: React.ReactNode; rail?: React.ReactNode; wide?: boolean }) {
+export function Page({ children, rail, wide = false, fixed = false }: { children: React.ReactNode; rail?: React.ReactNode; wide?: boolean; fixed?: boolean }) {
   return (
     <div className="flex w-full min-w-0 justify-center lg:gap-7 xl:justify-start">
-      <main id="main" className={cx('min-h-dvh w-full min-w-0 border-line sm:border-x', wide ? 'max-w-[960px]' : 'max-w-[600px]')}>{children}</main>
+      <main
+        id="main"
+        className={cx(
+          'w-full min-w-0 border-line sm:border-x',
+          // A fixed page is exactly one screen tall (less the phone's top bar and tabs) and its panes scroll on their own.
+          fixed ? 'h-[calc(100dvh-7.5rem)] overflow-hidden sm:h-dvh' : 'min-h-dvh',
+          wide ? (fixed ? 'max-w-[1010px]' : 'max-w-[960px]') : 'max-w-[600px]',
+        )}
+      >
+        {children}
+      </main>
       {rail && !wide && (
         <aside aria-label="Around the network" className="hidden w-[340px] shrink-0 lg:block xl:w-[350px]">
           <div className="sticky top-0 flex max-h-dvh flex-col gap-4 overflow-y-auto py-3 [scrollbar-width:none]">{rail}</div>

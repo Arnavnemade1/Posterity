@@ -22,7 +22,7 @@ export function KindTile({ kind, small }: { kind: string; small?: boolean }) {
   const { tone } = kindMeta(kind);
   const Icon = KIND_ICON[kind] ?? BookOpen;
   return (
-    <span className={cx('flex shrink-0 items-center justify-center ring-1 ring-inset', small ? 'size-7' : 'size-9', TILE[tone])}>
+    <span className={cx('flex shrink-0 items-center justify-center rounded-xl ring-1 ring-inset', small ? 'size-7' : 'size-9', TILE[tone])}>
       <Icon className={cx(small ? 'size-3.5' : 'size-4', TONE_TEXT[tone])} aria-hidden />
     </span>
   );

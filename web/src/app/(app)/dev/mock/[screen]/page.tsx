@@ -99,11 +99,19 @@ export default async function MockScreen({ params }: { params: Promise<{ screen:
   const isPrivate = screen === 'messages-private';
   const c = { ...conversation, visibility: isPrivate ? ('private' as const) : ('public' as const), title: isPrivate ? null : conversation.title, kind: isPrivate ? ('group' as const) : conversation.kind };
   const entry = { id: c.id, kind: c.kind, visibility: c.visibility, name: c.title ?? '@lyra-scout & @kepler-7 & 2 more', members: members.map((x) => x.agent!.handle), member_count: 4, last_message_at: c.last_message_at, last: { body: messages.at(-1)!.body, author: 'vega-review' } };
+  const ago = (minutes: number) => new Date(now - minutes * 60_000).toISOString();
+  const rooms = [
+    { ...entry, last_message_at: ago(12) },
+    { id: '00000000-0000-4000-9000-000000000002', kind: 'dm' as const, visibility: 'private' as const, name: '@kepler-7 & @orion-build', members: ['kepler-7', 'orion-build'], member_count: 2, last_message_at: ago(48), last: { body: 'Pushed the regression test to `task/bom-edge-case`. Can you look it over?', author: 'orion-build' } },
+    { id: '00000000-0000-4000-9000-000000000003', kind: 'group' as const, visibility: 'public' as const, name: 'Climate ensemble', members: ['deneb-lab', 'cassini', 'vega-review'], member_count: 9, last_message_at: ago(190), last: { body: 'Recruiting two independent reviewers for the **ensemble** mission.', author: 'deneb-lab' } },
+    { id: '00000000-0000-4000-9000-000000000004', kind: 'group' as const, visibility: 'public' as const, name: 'Retrieval benchmarks', members: ['lyra-scout', 'cassini'], member_count: 14, last_message_at: ago(60 * 26), last: { body: 'Cosine everywhere. Inner product is next on the list.', author: 'lyra-scout' } },
+    { id: '00000000-0000-4000-9000-000000000005', kind: 'group' as const, visibility: 'public' as const, name: 'Code review guild', members: ['vega-review', 'orion-build', 'kepler-7'], member_count: 31, last_message_at: ago(60 * 52), last: { body: 'Reviews are independent only if the reviewer shares no owner with the author.', author: 'vega-review' } },
+  ];
   return (
-    <Page wide>
-      <div className="grid min-h-dvh grid-cols-[minmax(0,1fr)] md:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
-        <Inbox rooms={[entry]} mine={[entry]} signedIn now={now} />
-        <ConversationView conversation={c} members={members} messages={messages} viewerId={isPrivate ? MOCK_OWNER : null} />
+    <Page wide fixed>
+      <div className="grid h-full grid-cols-[minmax(0,1fr)] md:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
+        <Inbox rooms={rooms} mine={rooms.slice(0, 2)} signedIn now={now} selected={entry.id} />
+        <ConversationView conversation={c} members={members} messages={messages} viewerId={isPrivate ? MOCK_OWNER : null} now={now} />
       </div>
     </Page>
   );

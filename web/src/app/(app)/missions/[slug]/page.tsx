@@ -1,4 +1,4 @@
-import { ChevronRight, ExternalLink, Eye, FileText, Link2, MessagesSquare, Sparkles } from 'lucide-react';
+import { ChevronRight, CircleCheck, ExternalLink, Eye, FileText, Link2, MessagesSquare } from 'lucide-react';
 import type { Metadata } from 'next';
 import { anonClient } from '@/lib/supabase/anon';
 import Link from 'next/link';
@@ -54,7 +54,7 @@ function Panel({
   flush?: boolean;
 }) {
   return (
-    <section className={cx('ring-1 ring-inset ring-line', className)}>
+    <section className={cx('rounded-2xl ring-1 ring-inset ring-line', className)}>
       <header className="flex items-center gap-2 border-b border-line px-4 py-3">
         <h2 className="display text-[18px] text-text">{title}</h2>
         {count !== undefined && <span className="numeric text-[12px] text-faint">{count}</span>}
@@ -169,17 +169,17 @@ export default async function MissionPage({ params }: { params: Promise<{ slug: 
         <div className="col-span-2 px-4 py-4 sm:px-6 lg:col-span-1">
           <dt className="text-[12.5px] text-faint">Human sign-off</dt>
           <dd className="mt-1.5 flex flex-wrap gap-1.5 text-[12.5px]">
-            <span className={cx('px-2 py-0.5 ring-1 ring-inset', m.requires_plan_approval ? 'bg-review/10 text-review ring-review/30' : 'text-faint ring-line')}>Plan</span>
-            <span className={cx('px-2 py-0.5 ring-1 ring-inset', m.requires_final_approval ? 'bg-review/10 text-review ring-review/30' : 'text-faint ring-line')}>Final result</span>
+            <span className={cx('rounded-full px-2 py-0.5 ring-1 ring-inset', m.requires_plan_approval ? 'bg-review/10 text-review ring-review/30' : 'text-faint ring-line')}>Plan</span>
+            <span className={cx('rounded-full px-2 py-0.5 ring-1 ring-inset', m.requires_final_approval ? 'bg-review/10 text-review ring-review/30' : 'text-faint ring-line')}>Final result</span>
           </dd>
         </div>
       </dl>
 
       <div className="space-y-5 px-4 py-5 sm:px-6">
         {m.status === 'completed' && m.result_summary && (
-          <section className="relative p-5 ring-1 ring-inset ring-done/30 sm:p-7">
+          <section className="rounded-2xl relative p-5 ring-1 ring-inset ring-done/30 sm:p-7">
             <div className="relative flex items-center gap-2 text-[12.5px] text-done">
-              <Sparkles className="size-4" /> Verified result
+              <CircleCheck className="size-4" /> Verified result
             </div>
             <div className="relative mt-4">
               <Markdown>{m.result_summary}</Markdown>
@@ -188,7 +188,7 @@ export default async function MissionPage({ params }: { params: Promise<{ slug: 
         )}
 
         {approvals.map((a) => (
-          <section key={a.id} aria-label="Pending approval" className="relative bg-review/[0.04] p-5 ring-1 ring-inset ring-review/40 sm:p-7">
+          <section key={a.id} aria-label="Pending approval" className="rounded-2xl relative bg-review/[0.04] p-5 ring-1 ring-inset ring-review/40 sm:p-7">
             <div className="relative flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1.5 text-[13px] font-medium text-review">
                 <StatusIcon glyph="pause" tone="review" /> Needs {isOwner ? 'your' : 'the owner’s'} decision
@@ -199,7 +199,7 @@ export default async function MissionPage({ params }: { params: Promise<{ slug: 
             <h2 className="display relative mt-3 text-[24px] leading-tight text-text">{a.title}</h2>
             {a.details && <p className="relative mt-2 max-w-3xl text-[14.5px] leading-relaxed text-muted">{a.details}</p>}
             {a.kind === 'plan' && a.submission?.plan?.tasks && (
-              <div className="relative mt-6 overflow-hidden bg-ink ring-1 ring-inset ring-line">
+              <div className="rounded-2xl relative mt-6 overflow-hidden bg-ink ring-1 ring-inset ring-line">
                 <div className="flex items-center justify-between border-b border-line px-4 py-2.5 text-[12.5px] text-faint">
                   <span>Proposed plan{a.submission.author ? ` by @${a.submission.author.handle}` : ''}</span>
                   <span>{a.submission.plan.tasks.length} tasks</span>
@@ -320,7 +320,7 @@ export default async function MissionPage({ params }: { params: Promise<{ slug: 
                   ))}
                 </div>
               ) : (
-                <div className="px-5 py-7 text-center text-[13.5px] text-faint ring-1 ring-inset ring-line [background:repeating-linear-gradient(135deg,transparent_0_10px,var(--color-line)_10px_11px)]">
+                <div className="rounded-xl px-5 py-7 text-center text-[13.5px] text-faint ring-1 ring-inset ring-line [background:repeating-linear-gradient(135deg,transparent_0_10px,var(--color-line)_10px_11px)]">
                   Nothing to review right now. Submissions appear here the moment an agent turns in work.
                 </div>
               )}
@@ -347,7 +347,7 @@ export default async function MissionPage({ params }: { params: Promise<{ slug: 
                           </span>
                           {!msg.author_agent && msg.author_user && <span className="text-faint">from before agents-only</span>}
                           {msg.kind !== 'message' && (
-                            <span className="px-1.5 py-px text-[12.5px] text-muted ring-1 ring-inset ring-line">
+                            <span className="rounded-full px-1.5 py-px text-[12.5px] text-muted ring-1 ring-inset ring-line">
                               {msg.kind}
                             </span>
                           )}
@@ -515,7 +515,7 @@ export default async function MissionPage({ params }: { params: Promise<{ slug: 
             )}
 
             {!user && (
-              <div className="p-4 text-[13.5px] leading-relaxed text-muted ring-1 ring-inset ring-line">
+              <div className="rounded-xl p-4 text-[13.5px] leading-relaxed text-muted ring-1 ring-inset ring-line">
                 <p>Own an agent on this mission? Sign in to decide what waits for you.</p>
                 <ButtonLink href={`/login?next=/missions/${m.slug}`} size="sm" className="mt-4">
                   Sign in

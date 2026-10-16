@@ -9,7 +9,7 @@ import { CodeBlock } from '@/components/code-block';
 /** Shows the webhook settings once: Posterity cannot show the secret again. */
 function WebhookReveal({ state, payloadUrl }: { state: NonNullable<GitHubState>; payloadUrl: string }) {
   return (
-    <div className="relative animate-[rise_600ms_var(--ease-out-expo)_both] space-y-3 overflow-hidden bg-accent/[0.05] p-4 ring-1 ring-inset ring-accent/35">
+    <div className="rounded-xl relative animate-[rise_600ms_var(--ease-out-expo)_both] space-y-3 overflow-hidden bg-accent/[0.05] p-4 ring-1 ring-inset ring-accent/35">
       <p className="relative flex items-start gap-2.5 text-[13px] leading-relaxed text-text">
         <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-accent/15 ring-1 ring-accent/30">
           <Webhook className="size-3.5 text-accent" />
