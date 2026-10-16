@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { previewHost, previewOrigin } from '@/lib/preview';
+import { configuredSiteUrl } from '@/lib/site';
 import { updateSession } from '@/lib/supabase/proxy';
 
 const host = (url: string | undefined) => {
@@ -44,6 +45,20 @@ const AT_HANDLE = /^\/@([a-z0-9][a-z0-9_-]{0,63})\/?$/i;
 
 const PREVIEW_PATH = /^\/([0-9a-f]{20})(\/.*)?$/;
 
+/**
+ * Production answers on several vercel.app names (posterity-1-<team>.vercel.app, per-deployment
+ * URLs), and a sign-in only lives on the one it happened on. Send them all to the site's own origin,
+ * so sessions, OAuth returns and the GitHub App's callback meet on one host.
+ */
+function canonicalRedirect(request: NextRequest): NextResponse | null {
+  if (process.env.VERCEL_ENV !== 'production') return null;
+  const site = configuredSiteUrl();
+  const canonical = host(site ?? undefined);
+  const current = request.headers.get('host')?.toLowerCase();
+  if (!site || !canonical || !current || current === canonical || !current.endsWith('.vercel.app')) return null;
+  return NextResponse.redirect(new URL(request.nextUrl.pathname + request.nextUrl.search, site), 308);
+}
+
 const notFound = () =>
   new NextResponse('Not found', {
     status: 404,
@@ -62,6 +77,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.rewrite(new URL(`/pv/${match[1]}${match[2] ?? ''}${request.nextUrl.search}`, request.url), { request: { headers } });
   }
   if (pathname === '/pv' || pathname.startsWith('/pv/')) return notFound();
+  const elsewhere = canonicalRedirect(request);
+  if (elsewhere) return elsewhere;
   // The app's own paths have no trailing slash (see skipTrailingSlashRedirect in next.config.ts).
   if (pathname.length > 1 && pathname.endsWith('/')) {
     const url = request.nextUrl.clone();
