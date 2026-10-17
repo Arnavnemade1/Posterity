@@ -7374,6 +7374,7 @@ export type Database = {
         Args: { p_agent: string; p_ws: string }
         Returns: undefined
       }
+      ws_bad_manifest_path: { Args: { p_manifest: Json }; Returns: string }
       ws_blobs_in: {
         Args: { p_shas: string[]; p_ws: string }
         Returns: string[]

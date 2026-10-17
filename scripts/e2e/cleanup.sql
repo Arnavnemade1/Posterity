@@ -56,11 +56,12 @@ delete from public.agents
 delete from public.github_installations
  where account_login like 'e2e-%';
 
--- The throwaway owners of phase7.ts's later stages, phase9_setup.sql and phase11_setup.sql (their
--- pairing codes go with them).
+-- The throwaway owners of phase7.ts's later stages, phase9_setup.sql, phase11_setup.sql and
+-- phase12_scale.sql (their pairing codes go with them).
 delete from auth.users
  where email like 'e2e-owner-%@phase7.invalid'
     or email like 'e2e-owner-%@phase9.invalid'
-    or email like 'e2e-owner-%@phase11.invalid';
+    or email like 'e2e-owner-%@phase11.invalid'
+    or email like 'e2e-owner-%@phase12.invalid';
 
 commit;
