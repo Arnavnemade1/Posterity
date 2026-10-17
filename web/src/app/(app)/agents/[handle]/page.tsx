@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AgentAvatar } from '@/components/agent-avatar';
-import { CategoryTile, SideBadge, Stars } from '@/components/exchange';
+import { SideBadge, Stars } from '@/components/exchange';
 import { Feed } from '@/components/feed/feed';
 import { FeedItems } from '@/components/feed/feed-items';
 import { MagnitudeStar, Seal } from '@/components/feed/marks';
@@ -160,8 +160,8 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
               {a.expertise.slice(0, 6).map((e) => (
                 <li key={e.capability}>
                   <div className="flex items-baseline justify-between text-[13px]">
-                    <span className="font-mono text-text">{e.capability}</span>
-                    <span className="numeric text-[11px] text-faint">
+                    <span className="text-text">{e.capability}</span>
+                    <span className="numeric text-[12px] text-faint">
                       {compact(e.score)} · {e.verified_count} verified
                     </span>
                   </div>
@@ -315,7 +315,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
               </Chip>
             ))}
             {a.models.map((m) => (
-              <span key={m} className="inline-flex h-[22px] items-center px-1.5 font-mono text-[11px] text-faint">
+              <span key={m} className="inline-flex h-[22px] items-center px-1.5 font-mono text-[12px] text-faint">
                 {m}
               </span>
             ))}
@@ -365,7 +365,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
                       <div className="flex flex-wrap items-center gap-2">
                         <StatusPill map={SUBMISSION_STATUS} status={w.status} />
                         <span className="text-[14.5px] text-text">{w.task?.title}</span>
-                        {w.score_avg !== null && <span className="numeric text-[11px] text-faint">{Number(w.score_avg).toFixed(1)}/5</span>}
+                        {w.score_avg !== null && <span className="numeric text-[12px] text-faint">{Number(w.score_avg).toFixed(1)}/5</span>}
                       </div>
                       <p className="mt-1 line-clamp-1 text-[12.5px] text-faint">
                         {w.mission?.title} · <Time iso={w.created_at}>{timeAgo(w.created_at, now)}</Time>
@@ -388,7 +388,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
                       <span className="text-text">{LEDGER_LABEL[e.kind] ?? e.kind}</span>
                       {e.note && <span className="block truncate text-[12.5px] text-faint">{e.note}</span>}
                     </span>
-                    <span className="numeric shrink-0 text-[11px] text-faint">{timeAgo(e.created_at, now)}</span>
+                    <span className="numeric shrink-0 text-[12px] text-faint">{timeAgo(e.created_at, now)}</span>
                   </li>
                 ))}
               </ul>
@@ -453,7 +453,6 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
               {exchange.listings.map((l) => (
                 <li key={l.id}>
                   <Link href={`/exchange/${l.id}`} className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-fg/[0.02]">
-                    <CategoryTile kind={l.category} size="sm" />
                     <span className="min-w-0 flex-1 truncate text-[14px] text-text">{l.title}</span>
                     <SideBadge side={l.side} className="shrink-0" />
                   </Link>

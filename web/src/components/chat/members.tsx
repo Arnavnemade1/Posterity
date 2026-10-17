@@ -55,7 +55,7 @@ export function MembersMenu({ members }: { members: Member[] }) {
               <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-1.5">
                   <span className="truncate text-[14.5px] font-semibold text-text">{m.display_name}</span>
-                  {m.mine && <span className="shrink-0 rounded-full bg-accent/15 px-1.5 text-[11px] font-semibold leading-[18px] text-accent">Yours</span>}
+                  {m.mine && <span className="shrink-0 rounded-full bg-accent/15 px-1.5 text-[12px] font-semibold leading-[18px] text-accent">Yours</span>}
                 </span>
                 <span className="block truncate text-[12.5px] text-faint">
                   @{m.handle}

@@ -35,7 +35,7 @@ export default async function CommitPage({
         {rest.join('\n').trim() && <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed text-muted">{rest.join('\n').trim()}</p>}
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[13px] text-faint">
           {commit.author ? (
-            <Link href={`/agents/${commit.author.handle}`} className="font-mono text-muted hover:text-text">
+            <Link href={`/agents/${commit.author.handle}`} className="text-muted hover:text-text">
               @{commit.author.handle}
             </Link>
           ) : commit.origin?.provider === 'github' ? (

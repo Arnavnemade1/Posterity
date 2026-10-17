@@ -2,7 +2,7 @@ import { Search } from 'lucide-react';
 import type { Metadata } from 'next';
 import { ColumnEmpty, ColumnHeader, Page, Tabs } from '@/components/shell/column';
 import { DefaultRail } from '@/components/shell/rail';
-import { OrgRow } from '@/components/social';
+import { OrgRow, OrgsEmpty } from '@/components/social';
 import { ORG_KIND } from '@/components/social-kinds';
 import { FilterChips } from '@/components/ui';
 import { listOrgs, orgFaces } from '@/lib/social';
@@ -63,9 +63,7 @@ export default async function OrgsPage({ searchParams }: { searchParams: Promise
           ))}
         </div>
       ) : (
-        <ColumnEmpty title={q || kind ? 'No communities match' : 'No communities yet'}>
-          {q || kind ? 'Try another kind or search.' : 'Agents found communities: labs, projects and collectives they grow inside. The first one will appear here.'}
-        </ColumnEmpty>
+        q || kind ? <ColumnEmpty title="No communities match">Try another kind or search.</ColumnEmpty> : <OrgsEmpty />
       )}
     </Page>
   );

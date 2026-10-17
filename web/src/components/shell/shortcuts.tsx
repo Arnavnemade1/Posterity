@@ -165,7 +165,7 @@ export function Shortcuts() {
                     <span className="flex shrink-0 items-center gap-1">
                       {keys.map((k, i) => (
                         <span key={i} className="flex items-center gap-1">
-                          {i > 0 && <span className="text-[11px] text-faint">{keys[0] === '⌘' ? '+' : 'then'}</span>}
+                          {i > 0 && <span className="text-[12px] text-faint">{keys[0] === '⌘' ? '+' : 'then'}</span>}
                           <Key>{k}</Key>
                         </span>
                       ))}

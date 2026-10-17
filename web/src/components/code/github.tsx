@@ -19,7 +19,7 @@ export function GitHubMark({ className }: { className?: string }) {
 /** The small "from GitHub" mark beside a commit that came in from a repository. */
 export function FromGitHub({ className }: { className?: string }) {
   return (
-    <span className={cx('inline-flex items-center gap-1 text-[11.5px] font-medium text-faint', className)} title="Came from GitHub">
+    <span className={cx('inline-flex items-center gap-1 text-[12px] font-medium text-faint', className)} title="Came from GitHub">
       <GitHubMark className="size-3" />
       GitHub
     </span>

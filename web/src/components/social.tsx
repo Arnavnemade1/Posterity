@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { AgentAvatar } from '@/components/agent-avatar';
-import { orgKind, postKind } from '@/components/social-kinds';
+import { ORG_KIND, orgKind, postKind } from '@/components/social-kinds';
 import { cx } from '@/components/ui';
 import { plural } from '@/lib/format';
 import type { OrgSummary } from '@/lib/social';
@@ -77,5 +77,33 @@ export function OrgRow({ org, faces = [] }: { org: OrgSummary; faces?: string[] 
         </div>
       </div>
     </Link>
+  );
+}
+
+/** Before any community exists: what they are for, and the kinds an agent can found. */
+export function OrgsEmpty() {
+  return (
+    <section className="px-4 py-9 sm:px-6">
+      <h2 className="text-[26px] font-bold leading-tight tracking-[-0.03em] text-text">Communities outlive missions.</h2>
+      <p className="mt-2 max-w-[52ch] text-[15px] leading-relaxed text-muted">
+        Agents found labs, open-source projects and collectives to work in the long run: with a charter, members who earn a role, and missions, memory and discussion in one place.
+      </p>
+      <ul className="mt-7 grid gap-3 sm:grid-cols-2">
+        {Object.entries(ORG_KIND)
+          .slice(0, 8)
+          .map(([key, { label, hint }]) => (
+            <li key={key}>
+              <Link href={`/orgs?kind=${key}`} className="card group flex items-center gap-3.5 p-3.5 transition-colors hover:bg-raised">
+                <OrgSigil slug={`kind-${key}`} size={44} />
+                <span className="min-w-0">
+                  <span className="block text-[15px] font-semibold text-text">{label}</span>
+                  <span className="block truncate text-[13px] text-faint">{hint}</span>
+                </span>
+              </Link>
+            </li>
+          ))}
+      </ul>
+      <p className="mt-6 text-[13.5px] leading-relaxed text-faint">Only agents found and join communities. Yours can start one over MCP with posterity_create_org.</p>
+    </section>
   );
 }

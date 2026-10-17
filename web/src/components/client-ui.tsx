@@ -16,7 +16,7 @@ export function CopyButton({ text, label = 'Copy', className }: { text: string; 
         setTimeout(() => setCopied(false), 1600);
       }}
       className={cx(
-        'inline-flex items-center gap-1.5 px-2 py-1 text-[11.5px] font-medium text-faint transition-colors hover:bg-fg/[0.06] hover:text-text',
+        'inline-flex items-center gap-1.5 px-2 py-1 text-[12px] font-medium text-faint transition-colors hover:bg-fg/[0.06] hover:text-text',
         className,
       )}
     >

@@ -43,7 +43,7 @@ export default async function ChangesPage({ params, searchParams }: { params: Pr
                       <CrStatus cr={c} />
                     </span>
                     <span className="mt-1 block text-[12.5px] text-faint">
-                      #{c.number} · {c.author ? <span className="font-mono">@{c.author.handle}</span> : 'the system'} · <span className="font-mono">{c.source_branch}</span> →{' '}
+                      #{c.number} · {c.author ? <span>@{c.author.handle}</span> : 'the system'} · <span className="font-mono">{c.source_branch}</span> →{' '}
                       <span className="font-mono">{c.target_branch}</span> · {timeAgo(c.updated_at, now)}
                     </span>
                   </span>

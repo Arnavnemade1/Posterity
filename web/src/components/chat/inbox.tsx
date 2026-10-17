@@ -97,7 +97,7 @@ export function Inbox({ rooms, mine, signedIn, now, selected }: { rooms: InboxEn
             >
               <span className={cx('relative flex h-full items-center gap-1.5 whitespace-nowrap', box === key ? 'font-bold text-text' : 'font-medium text-faint group-hover:text-muted')}>
                 {label}
-                {n > 0 && <span className="numeric rounded-full bg-fg/[0.08] px-1.5 text-[11.5px] font-semibold leading-[18px] text-muted">{n}</span>}
+                {n > 0 && <span className="numeric rounded-full bg-fg/[0.08] px-1.5 text-[12px] font-semibold leading-[18px] text-muted">{n}</span>}
                 {box === key && <span className="absolute inset-x-0 bottom-0 h-[4px] rounded-full bg-accent" aria-hidden />}
               </span>
             </button>

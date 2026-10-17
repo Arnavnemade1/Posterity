@@ -126,7 +126,7 @@ const ROW_BG = { add: 'bg-done/[0.09]', del: 'bg-danger/[0.09]', ctx: '', note: 
 const MARK = { add: '+', del: '−', ctx: ' ', note: '' } as const;
 const MARK_TONE = { add: 'text-done', del: 'text-danger', ctx: 'text-faint', note: 'text-faint' } as const;
 
-const gutter = 'select-none px-2 text-right align-top text-[11.5px] text-faint';
+const gutter = 'select-none px-2 text-right align-top text-[12px] text-faint';
 
 function Unified({ file, threads, head, now }: { file: DiffFile; threads: Map<string, Thread[]>; head: string | null; now: number }) {
   return (
@@ -135,7 +135,7 @@ function Unified({ file, threads, head, now }: { file: DiffFile; threads: Map<st
         {(file.hunks ?? []).map((hunk, h) => (
           <HunkBlock key={h}>
             <tr className="bg-open/[0.07] text-faint">
-              <td colSpan={3} className="px-3 py-1 text-[11.5px]">
+              <td colSpan={3} className="px-3 py-1 text-[12px]">
                 @@ −{hunk.oldStart},{hunk.oldLines} +{hunk.newStart},{hunk.newLines} @@
               </td>
             </tr>
@@ -196,7 +196,7 @@ function Split({ file, threads, head, now }: { file: DiffFile; threads: Map<stri
         {(file.hunks ?? []).map((hunk, h) => (
           <HunkBlock key={h}>
             <tr className="bg-open/[0.07] text-faint">
-              <td colSpan={4} className="px-3 py-1 text-[11.5px]">
+              <td colSpan={4} className="px-3 py-1 text-[12px]">
                 @@ −{hunk.oldStart},{hunk.oldLines} +{hunk.newStart},{hunk.newLines} @@
               </td>
             </tr>
@@ -204,7 +204,7 @@ function Split({ file, threads, head, now }: { file: DiffFile; threads: Map<stri
               if ('note' in row) {
                 return (
                   <tr key={i}>
-                    <td colSpan={4} className="px-3 text-[11.5px] italic text-faint">
+                    <td colSpan={4} className="px-3 text-[12px] italic text-faint">
                       {row.note}
                     </td>
                   </tr>

@@ -57,7 +57,7 @@ function Builder({ icon: Icon, title, where, children, code, label }: { icon: ty
         <span className="flex size-9 items-center justify-center rounded-lg ring-1 ring-inset ring-line-strong">
           <Icon className="size-4 text-muted" />
         </span>
-        <span className="truncate font-mono text-[11px] text-faint">{where}</span>
+        <span className="truncate font-mono text-[12px] text-faint">{where}</span>
       </div>
       <h3 className="display mt-5 text-[22px] leading-tight text-text">{title}</h3>
       <div className="mt-2 flex-1 text-[14px] leading-relaxed text-muted">{children}</div>
@@ -73,7 +73,7 @@ function Step({ n, icon: Icon, title, children }: { n: number; icon: typeof Plug
         <span className="flex size-9 items-center justify-center rounded-lg ring-1 ring-inset ring-line-strong">
           <Icon className="size-4 text-muted" />
         </span>
-        <span className="font-mono text-[11px] text-faint">Step {n}</span>
+        <span className="font-mono text-[12px] text-faint">Step {n}</span>
       </div>
       <h2 className="display mt-5 text-[22px] leading-tight text-text">{title}</h2>
       <div className="mt-2 flex-1 space-y-4 text-[14px] leading-relaxed text-muted">{children}</div>
@@ -271,7 +271,7 @@ node posterity.mjs heartbeat`}
                   {endpoints.map((e) => (
                     <tr key={`${e.method} ${e.path}`} className="transition-colors hover:bg-fg/[0.02]">
                       <td className="px-5 py-3">
-                        <span className={cx('rounded-md px-1.5 py-0.5 font-mono text-[11px] ring-1 ring-inset', METHOD[e.method] ?? METHOD.GET)}>{e.method}</span>
+                        <span className={cx('rounded-md px-1.5 py-0.5 font-mono text-[12px] ring-1 ring-inset', METHOD[e.method] ?? METHOD.GET)}>{e.method}</span>
                       </td>
                       <td className="px-5 py-3 font-mono text-[12px] text-text">{e.path}</td>
                       <td className="px-5 py-3 text-[12px] text-faint">{e.auth ? 'required' : '—'}</td>

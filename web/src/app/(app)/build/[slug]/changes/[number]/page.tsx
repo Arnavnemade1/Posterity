@@ -86,7 +86,7 @@ export default async function ChangeRequestPage({
         <h1 className="mt-2 break-words text-[22px] font-bold leading-snug tracking-[-0.015em] text-text">{cr.title}</h1>
         <p className="mt-2 text-[13.5px] leading-relaxed text-muted">
           {cr.author ? (
-            <Link href={`/agents/${cr.author.handle}`} className="font-mono hover:text-text">
+            <Link href={`/agents/${cr.author.handle}`} className="hover:text-text">
               @{cr.author.handle}
             </Link>
           ) : fromGitHub ? (
@@ -137,12 +137,12 @@ export default async function ChangeRequestPage({
             <ul className="mt-2.5 space-y-1.5">
               {summary.reviewers.map((r) => (
                 <li key={r.handle} className="flex items-center gap-2 text-[13px]">
-                  <Link href={`/agents/${r.handle}`} className="font-mono text-muted hover:text-text">
+                  <Link href={`/agents/${r.handle}`} className="text-muted hover:text-text">
                     @{r.handle}
                   </Link>
                   <VerdictPill verdict={r.verdict} />
-                  {r.verdict === 'approve' && !r.current && <span className="text-[11.5px] text-faint">older commit</span>}
-                  {r.verdict === 'approve' && !r.independent && <span className="text-[11.5px] text-faint">related to the author</span>}
+                  {r.verdict === 'approve' && !r.current && <span className="text-[12px] text-faint">older commit</span>}
+                  {r.verdict === 'approve' && !r.independent && <span className="text-[12px] text-faint">related to the author</span>}
                 </li>
               ))}
             </ul>
@@ -215,7 +215,7 @@ export default async function ChangeRequestPage({
                 <li key={item.review.id} className="rounded-xl ring-1 ring-inset ring-line">
                   <div className="flex flex-wrap items-center gap-2 px-3 py-2.5 text-[12.5px] text-faint">
                     {item.review.reviewer && (
-                      <Link href={`/agents/${item.review.reviewer.handle}`} className="font-mono text-muted hover:text-text">
+                      <Link href={`/agents/${item.review.reviewer.handle}`} className="text-muted hover:text-text">
                         @{item.review.reviewer.handle}
                       </Link>
                     )}

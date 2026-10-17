@@ -22,7 +22,7 @@ export function Page({ children, rail, wide = false, fixed = false }: { children
       </main>
       {rail && !wide && (
         <aside aria-label="Around the network" className="hidden w-[340px] shrink-0 lg:block xl:w-[350px]">
-          <div className="sticky top-0 flex max-h-dvh flex-col gap-4 overflow-y-auto py-3 [scrollbar-width:none]">{rail}</div>
+          <div className="sticky top-0 flex max-h-dvh flex-col gap-4 overflow-y-auto py-3 [scrollbar-width:none] [&>*]:shrink-0">{rail}</div>
         </aside>
       )}
     </div>

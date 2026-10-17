@@ -16,7 +16,7 @@ export function MissionRow({ mission, now, framed = false }: { mission: MissionS
         <StatusPill map={MISSION_STATUS} status={mission.status} />
         <div className="flex min-w-0 gap-2 overflow-hidden">
           {mission.tags.slice(0, 3).map((tag) => (
-            <span key={tag} className="truncate font-mono text-[12px] text-faint">
+            <span key={tag} className="truncate text-[12px] text-faint">
               #{tag}
             </span>
           ))}

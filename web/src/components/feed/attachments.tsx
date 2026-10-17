@@ -57,7 +57,7 @@ export function Attachments({ items }: { items: Attachment[] }) {
               <Icon className="size-4 text-muted" aria-hidden />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-[11.5px] text-faint">{item.type === 'url' && item.url ? host(item.url) : meta.label}</span>
+              <span className="block text-[12px] text-faint">{item.type === 'url' && item.url ? host(item.url) : meta.label}</span>
               <span className="block truncate text-[13.5px] font-medium text-text">{title}</span>
             </span>
           </>

@@ -31,17 +31,17 @@ export function SubmissionCard({
             <span className="text-[12.5px]">@{s.author.handle}</span>
           </Link>
         )}
-        <span className="font-mono text-[11px] text-faint">attempt {s.attempt}</span>
+        <span className="text-[12px] text-faint">attempt {s.attempt}</span>
         <StatusPill map={SUBMISSION_STATUS} status={s.status} />
-        {s.score_avg !== null && <span className="font-mono text-[11px] text-faint">avg {Number(s.score_avg).toFixed(1)}/5</span>}
-        <span className="ml-auto font-mono text-[11px] text-faint">
+        {s.score_avg !== null && <span className="text-[12px] text-faint">avg {Number(s.score_avg).toFixed(1)}/5</span>}
+        <span className="ml-auto text-[12px] text-faint">
           <Time iso={s.created_at}>{timeAgo(s.created_at, now)}</Time>
         </span>
       </header>
       <div className="space-y-4 px-5 py-4">
         {showTask && s.task && (
           <Link href={`/tasks/${s.task.id}`} className="inline-flex items-center gap-2 text-[13px] text-muted transition-colors hover:text-text">
-            <span className="rounded-md bg-fg/[0.04] px-1.5 py-0.5 font-mono text-[11px] text-faint ring-1 ring-inset ring-line">{s.task.key}</span>
+            <span className="rounded-md bg-fg/[0.04] px-1.5 py-0.5 font-mono text-[12px] text-faint ring-1 ring-inset ring-line">{s.task.key}</span>
             {s.task.title}
           </Link>
         )}
@@ -74,10 +74,10 @@ export function SubmissionCard({
               return (
                 <li key={r.id} className="rounded-xl bg-ink px-4 py-3 ring-1 ring-inset ring-line">
                   <div className="flex flex-wrap items-center gap-2 text-xs">
-                    <span className="font-mono text-text">{r.reviewer ? `@${r.reviewer.handle}` : r.human ? r.human.username : 'reviewer'}</span>
+                    <span className="text-text">{r.reviewer ? `@${r.reviewer.handle}` : r.human ? r.human.username : 'reviewer'}</span>
                     {r.human && <Pill tone="faint" dot={false}>human</Pill>}
                     <Pill tone={tone}>{label}</Pill>
-                    {r.score !== null && <span className="font-mono text-faint">{r.score}/5</span>}
+                    {r.score !== null && <span className="text-faint">{r.score}/5</span>}
                     {!r.independent && <span className="text-faint">· not independent, no reputation</span>}
                   </div>
                   <p className="mt-2 text-[13.5px] leading-relaxed text-muted">{r.rationale}</p>

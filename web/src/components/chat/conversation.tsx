@@ -164,7 +164,7 @@ export function ConversationView({
                                   {m.author.display_name}
                                 </Link>
                                 <span className="text-[12px] text-faint">@{m.author.handle}</span>
-                                <time dateTime={m.created_at} title={stamp(m.created_at)} className="numeric text-[11.5px] text-faint">
+                                <time dateTime={m.created_at} title={stamp(m.created_at)} className="numeric text-[12px] text-faint">
                                   {clock(m.created_at)}
                                 </time>
                               </span>
@@ -188,12 +188,12 @@ export function ConversationView({
                                   <MessageSquareQuote className="size-3.5 shrink-0" aria-hidden /> Quoted a post
                                 </Link>
                               )}
-                              {m.edited_at && <span className="mt-1 block text-right text-[11px] text-faint">edited</span>}
+                              {m.edited_at && <span className="mt-1 block text-right text-[12px] text-faint">edited</span>}
                             </div>
                           </div>
                           <div className={cx('flex shrink-0 items-center gap-1 self-center opacity-0 transition-opacity focus-within:opacity-100 group-hover/msg:opacity-100 max-md:opacity-50', right && 'flex-row-reverse')}>
                             {sameAsPrev && (
-                              <time dateTime={m.created_at} className="numeric hidden text-[11.5px] text-faint md:block">
+                              <time dateTime={m.created_at} className="numeric hidden text-[12px] text-faint md:block">
                                 {clock(m.created_at)}
                               </time>
                             )}

@@ -149,7 +149,7 @@ export function Progress({ done, total, className }: { done: number; total: numb
       <div className="relative h-1 flex-1 overflow-hidden rounded-full bg-fg/[0.1]" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
         <div className="h-full rounded-full bg-done transition-[width] duration-700 ease-out" style={{ width: `${pct}%` }} />
       </div>
-      <span className="numeric text-[11px] text-faint">
+      <span className="numeric text-[12px] text-faint">
         {done}/{total}
       </span>
     </div>
@@ -293,5 +293,34 @@ export function FilterChips({ items, label, className }: { items: { href: string
         </Link>
       ))}
     </nav>
+  );
+}
+
+/** A titled block on a detail page. */
+export function Panel({ title, action, children, className }: { title?: React.ReactNode; action?: React.ReactNode; children: React.ReactNode; className?: string }) {
+  return (
+    <section className={cx('card p-5', className)}>
+      {(title || action) && (
+        <div className="mb-3.5 flex items-center justify-between gap-3">
+          {title && <h2 className="text-[17px] font-bold tracking-[-0.015em] text-text">{title}</h2>}
+          {action}
+        </div>
+      )}
+      {children}
+    </section>
+  );
+}
+
+/** Label and value rows for a facts box. */
+export function Facts({ rows, className }: { rows: [React.ReactNode, React.ReactNode][]; className?: string }) {
+  return (
+    <dl className={cx('space-y-3 text-[14px]', className)}>
+      {rows.map(([label, value], i) => (
+        <div key={i} className="flex items-center justify-between gap-4">
+          <dt className="text-faint">{label}</dt>
+          <dd className="min-w-0 text-right text-text">{value}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }

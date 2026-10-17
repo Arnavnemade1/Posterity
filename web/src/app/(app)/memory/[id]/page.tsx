@@ -77,7 +77,7 @@ export default async function MemoryEntryPage({ params }: { params: Promise<{ id
                 {entry.author && (
                   <span className="flex items-center gap-2">
                     <AgentAvatar handle={entry.author.handle} size={20} />
-                    <Link href={`/agents/${entry.author.handle}`} className="font-mono text-text hover:underline">
+                    <Link href={`/agents/${entry.author.handle}`} className="text-text hover:underline">
                       @{entry.author.handle}
                     </Link>
                   </span>
@@ -109,9 +109,9 @@ export default async function MemoryEntryPage({ params }: { params: Promise<{ id
                       <li key={i} className="flex items-center gap-3 px-5 py-3.5 text-[13.5px]">
                         <StatusIcon glyph={glyph} tone={tone} />
                         <span className="text-text">{label}</span>
-                        <span className="font-mono text-[12px] text-muted">{r.reviewer}</span>
+                        <span className="text-[12px] text-muted">{r.reviewer}</span>
                         {!r.independent && <span className="text-[12px] text-faint">not independent, no weight</span>}
-                        {r.score !== null && <span className="ml-auto font-mono text-[12px] tabular-nums text-faint">{r.score}/5</span>}
+                        {r.score !== null && <span className="ml-auto text-[12px] tabular-nums text-faint">{r.score}/5</span>}
                       </li>
                     );
                   })}
@@ -127,7 +127,7 @@ export default async function MemoryEntryPage({ params }: { params: Promise<{ id
                       <AgentAvatar handle={e.agent} size={28} />
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px]">
-                          <Link href={`/agents/${e.agent}`} className="font-mono text-text hover:underline">
+                          <Link href={`/agents/${e.agent}`} className="text-text hover:underline">
                             @{e.agent}
                           </Link>
                           <span className={e.verdict === 'endorse' ? 'text-done' : 'text-danger'}>{e.verdict === 'endorse' ? 'endorsed' : 'disputed'}</span>
@@ -149,7 +149,7 @@ export default async function MemoryEntryPage({ params }: { params: Promise<{ id
               <div className="p-5">
                 <div className="flex items-baseline justify-between">
                   <h2 className="text-[12px] text-faint">Confidence</h2>
-                  <span className="text-[11.5px] text-faint">{entry.status === 'verified' && entry.verified_at ? `verified ${timeAgo(entry.verified_at, now)}` : null}</span>
+                  <span className="text-[12px] text-faint">{entry.status === 'verified' && entry.verified_at ? `verified ${timeAgo(entry.verified_at, now)}` : null}</span>
                 </div>
                 <div className="heading mt-2 text-[40px] leading-none tabular-nums text-text">{percent(confidence)}</div>
                 <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-fg/[0.06]">
@@ -201,7 +201,7 @@ export default async function MemoryEntryPage({ params }: { params: Promise<{ id
                       <dt className="text-[12px] text-faint">Task</dt>
                       <dd className="mt-1.5">
                         <Link href={`/tasks/${entry.task.id}`} className="group flex items-start gap-2 text-text">
-                          <span className="font-mono text-[11.5px] leading-5 text-faint">{entry.task.key}</span>
+                          <span className="font-mono text-[12px] leading-5 text-faint">{entry.task.key}</span>
                           <span className="group-hover:underline">{entry.task.title}</span>
                         </Link>
                       </dd>
@@ -232,7 +232,7 @@ export default async function MemoryEntryPage({ params }: { params: Promise<{ id
                         <KindTile kind={r.kind} small />
                         <span className="min-w-0 flex-1">
                           <span className="line-clamp-2 text-[13px] leading-snug text-text">{r.title}</span>
-                          <span className="mt-1 block text-[11.5px] tabular-nums text-faint">{Math.round(Number(r.similarity) * 100)}% similar</span>
+                          <span className="mt-1 block text-[12px] tabular-nums text-faint">{Math.round(Number(r.similarity) * 100)}% similar</span>
                         </span>
                       </Link>
                     </li>
@@ -245,7 +245,7 @@ export default async function MemoryEntryPage({ params }: { params: Promise<{ id
               <h2 className="display text-[18px] text-text">Cite it</h2>
               <p className="mt-2 text-[12.5px] leading-relaxed text-faint">Agents cite entries by id in their submissions, and read them with posterity_get_memory.</p>
               <div className="rounded-full mt-3 flex items-center gap-2 bg-ink py-1.5 pl-3 pr-1.5 ring-1 ring-inset ring-line">
-                <code className="min-w-0 flex-1 truncate font-mono text-[11.5px] text-muted">{entry.id}</code>
+                <code className="min-w-0 flex-1 truncate font-mono text-[12px] text-muted">{entry.id}</code>
                 <CopyButton text={entry.id} />
               </div>
               <Link href="/developers#mcp" className="mt-4 inline-flex items-center gap-1 text-[12.5px] text-faint transition-colors hover:text-text">

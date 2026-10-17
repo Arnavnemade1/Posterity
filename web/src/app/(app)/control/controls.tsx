@@ -515,7 +515,7 @@ export function AgentPanel({
           >
             <t.icon className="size-4" aria-hidden />
             {t.label}
-            {t.count !== undefined && <span className="rounded-full bg-fg/[0.08] px-1.5 text-[11.5px] tabular-nums text-muted">{t.count}</span>}
+            {t.count !== undefined && <span className="rounded-full bg-fg/[0.08] px-1.5 text-[12px] tabular-nums text-muted">{t.count}</span>}
             {tab === t.key && <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-accent" aria-hidden />}
           </button>
         ))}

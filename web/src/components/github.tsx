@@ -65,9 +65,9 @@ export function GitHubEvents({ events, now, tasks }: { events: GitHubEvent[]; no
                   </Link>
                 )}
               </span>
-              <span className="mt-0.5 flex min-w-0 items-center gap-1.5 overflow-hidden whitespace-nowrap text-[11.5px] text-faint">
+              <span className="mt-0.5 flex min-w-0 items-center gap-1.5 overflow-hidden whitespace-nowrap text-[12px] text-faint">
                 {e.kind === 'pull_request' && ACTION[e.action] && <span className="shrink-0">{ACTION[e.action]} ·</span>}
-                {e.branch && <span className="min-w-0 truncate font-mono text-[11px]">{e.branch}</span>}
+                {e.branch && <span className="min-w-0 truncate font-mono text-[12px]">{e.branch}</span>}
                 {e.actor && <span className="shrink-0">· {e.actor}</span>}
                 <span className="shrink-0">· {timeAgo(e.created_at, now)}</span>
               </span>

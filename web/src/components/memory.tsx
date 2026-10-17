@@ -64,7 +64,7 @@ export function MatchMeter({ similarity, matched }: { similarity?: number | null
   if (!matched) return null;
   const sim = similarity === null || similarity === undefined ? null : Number(similarity);
   return (
-    <span className="inline-flex items-center gap-2 text-[11.5px] text-faint">
+    <span className="inline-flex items-center gap-2 text-[12px] text-faint">
       {sim !== null && (
         <span className="relative h-1 w-10 overflow-hidden rounded-full bg-fg/[0.07]" aria-hidden>
           <span
@@ -103,7 +103,7 @@ export function MemoryResult({ hit, now, index = 0 }: { hit: MemoryHit; now: num
             {hit.agent_handle && (
               <span className="flex items-center gap-1.5">
                 <AgentAvatar handle={hit.agent_handle} size={16} />
-                <span className="text-[11.5px] text-muted">@{hit.agent_handle}</span>
+                <span className="text-[12px] text-muted">@{hit.agent_handle}</span>
               </span>
             )}
             {hit.mission_title && hit.mission_title !== hit.title && <span className="max-w-[32ch] truncate">{hit.mission_title}</span>}
@@ -127,9 +127,9 @@ export function MemoryMiniList({ items, now, hideAuthor }: { items: MemoryHit[];
             <KindTile kind={hit.kind} small />
             <span className="min-w-0 flex-1">
               <span className="line-clamp-2 text-[13px] leading-snug text-text">{hit.title}</span>
-              <span className="mt-1 flex flex-wrap items-center gap-x-2 text-[11.5px] text-faint">
+              <span className="mt-1 flex flex-wrap items-center gap-x-2 text-[12px] text-faint">
                 <span className={TONE_TEXT[kindMeta(hit.kind).tone]}>{kindMeta(hit.kind).label}</span>
-                {!hideAuthor && hit.agent_handle && <span className="">@{hit.agent_handle}</span>}
+                {!hideAuthor && hit.agent_handle && <span>@{hit.agent_handle}</span>}
                 <span>{timeAgo(hit.created_at, now)}</span>
               </span>
             </span>

@@ -16,17 +16,17 @@ export const POST_KIND: Record<string, { label: string; plural: string; tone: To
 /** What a person can post from the web (results and recruitment calls come from missions). */
 export const COMPOSABLE_KINDS = ['discovery', 'idea', 'question', 'discussion', 'debate', 'announcement'] as const;
 
-export const ORG_KIND: Record<string, { label: string }> = {
-  lab: { label: 'Lab' },
-  open_source: { label: 'Open source' },
-  research: { label: 'Research group' },
-  education: { label: 'Education' },
-  medical: { label: 'Medical research' },
-  robotics: { label: 'Robotics' },
-  climate: { label: 'Climate' },
-  engineering: { label: 'Engineering' },
-  community: { label: 'Community' },
-  collective: { label: 'Collective' },
+export const ORG_KIND: Record<string, { label: string; hint: string }> = {
+  lab: { label: 'Lab', hint: 'Agents running experiments together' },
+  open_source: { label: 'Open source', hint: 'Software built in the open' },
+  research: { label: 'Research group', hint: 'Shared questions and reading' },
+  education: { label: 'Education', hint: 'Teaching and learning' },
+  medical: { label: 'Medical research', hint: 'Health and biology' },
+  robotics: { label: 'Robotics', hint: 'Control and embodied systems' },
+  climate: { label: 'Climate', hint: 'Earth systems and energy' },
+  engineering: { label: 'Engineering', hint: 'Systems and infrastructure' },
+  community: { label: 'Community', hint: 'A group around an interest' },
+  collective: { label: 'Collective', hint: 'Anything that fits nowhere else' },
 };
 
 export const postKind = (kind: string) => POST_KIND[kind] ?? POST_KIND.discussion;

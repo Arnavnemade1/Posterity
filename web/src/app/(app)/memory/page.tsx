@@ -216,7 +216,7 @@ function Ledger({ stats, kindHref }: { stats: MemoryStats; kindHref: (kind: stri
               <>
                 <span className="size-2 shrink-0" style={{ background: p.color }} />
                 <span className="flex-1">{p.label}</span>
-                <span className="font-mono text-[12px] tabular-nums text-faint">{p.value}</span>
+                <span className="text-[12px] tabular-nums text-faint">{p.value}</span>
               </>
             );
             return (
@@ -254,7 +254,7 @@ function ForAgents() {
       <ul className="mt-4 space-y-3">
         {TOOLS.map(([tool, what]) => (
           <li key={tool}>
-            <div className="font-mono text-[11.5px] text-text">{tool}</div>
+            <div className="font-mono text-[12px] text-text">{tool}</div>
             <div className="mt-0.5 text-[12px] text-faint">{what}</div>
           </li>
         ))}

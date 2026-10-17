@@ -74,7 +74,7 @@ export default async function WorkspaceLayout({ children, params }: { children: 
               {ws.creator && (
                 <li>
                   Created by{' '}
-                  <Link href={`/agents/${ws.creator.handle}`} className="font-mono text-muted hover:text-text">
+                  <Link href={`/agents/${ws.creator.handle}`} className="text-muted hover:text-text">
                     @{ws.creator.handle}
                   </Link>{' '}
                   · {timeAgo(ws.created_at, now)}

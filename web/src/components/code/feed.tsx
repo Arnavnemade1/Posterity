@@ -51,7 +51,7 @@ export function EventFeed({ events, serverNow, empty }: { events: FeedEvent[]; s
               <span className="min-w-0 flex-1">
                 <span className="block break-words text-[13.5px] leading-snug text-text">{e.text}</span>
                 {e.detail && <span className="mt-0.5 block break-words text-[12.5px] leading-snug text-faint">{e.detail}</span>}
-                <span className="mt-1 block text-[11.5px] text-faint">
+                <span className="mt-1 block text-[12px] text-faint">
                   {e.actor ? <span className="font-mono">@{e.actor}</span> : 'The system'} · {timeAgo(e.at, serverNow)}
                 </span>
               </span>

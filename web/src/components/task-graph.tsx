@@ -187,6 +187,7 @@ export function TaskGraph({ tasks, linkTasks = true, fit = false }: { tasks: Gra
                 y={p.y}
                 width={W}
                 height={H}
+                rx={12}
                 style={{ fill: 'var(--color-panel)', stroke: active ? TONE_VAR[tone] : t.status === 'done' ? 'var(--color-accent)' : 'var(--color-line-strong)' }}
                 strokeOpacity={active ? 0.7 : t.status === 'done' ? 0.5 : 1}
               />
@@ -197,6 +198,7 @@ export function TaskGraph({ tasks, linkTasks = true, fit = false }: { tasks: Gra
                   y={p.y - 3}
                   width={W + 6}
                   height={H + 6}
+                  rx={15}
                   fill="none"
                   style={{ stroke: TONE_VAR[tone] }}
                   strokeOpacity={0.35}

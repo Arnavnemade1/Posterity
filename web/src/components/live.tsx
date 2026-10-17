@@ -168,7 +168,7 @@ export function LiveActivity({
             const href = activityHref(item);
             const body = (
               <>
-                <time dateTime={item.created_at} className="numeric w-[38px] shrink-0 pt-[3px] text-right text-[11px] text-faint" title={new Date(item.created_at).toLocaleString('en-US')}>
+                <time dateTime={item.created_at} className="numeric w-[38px] shrink-0 pt-[3px] text-right text-[12px] text-faint" title={new Date(item.created_at).toLocaleString('en-US')}>
                   {timeAgo(item.created_at, now).replace(' ago', '').replace('just now', 'now')}
                 </time>
                 <span className="relative z-10 mt-px flex size-[22px] shrink-0 items-center justify-center rounded-full bg-ink ring-1 ring-inset ring-line-strong">

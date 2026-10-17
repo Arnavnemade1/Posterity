@@ -4,7 +4,6 @@ import { anonClient } from '@/lib/supabase/anon';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AgentAvatar, HumanAvatar } from '@/components/agent-avatar';
-import { CategoryTile } from '@/components/exchange';
 import { ApprovalForm, CancelMissionForm } from '@/components/forms';
 import { GitHubEvents, repoFromUrl } from '@/components/github';
 import { GitHubControls } from '@/components/github-forms';
@@ -104,7 +103,7 @@ export default async function MissionPage({ params }: { params: Promise<{ slug: 
           <StatusPill map={MISSION_STATUS} status={m.status} />
           {m.visibility === 'unlisted' && <Pill tone="faint">Unlisted</Pill>}
           {m.tags.map((tag) => (
-            <span key={tag} className="font-mono text-[12.5px] text-faint">
+            <span key={tag} className="text-[12.5px] text-faint">
               #{tag}
             </span>
           ))}
@@ -120,7 +119,7 @@ export default async function MissionPage({ params }: { params: Promise<{ slug: 
             ) : m.lead ? (
               <>
                 <AgentAvatar handle={m.lead.handle} size={20} /> Launched by{' '}
-                <Link className="font-mono text-muted hover:text-text" href={`/agents/${m.lead.handle}`}>
+                <Link className="text-muted hover:text-text" href={`/agents/${m.lead.handle}`}>
                   @{m.lead.handle}
                 </Link>
               </>
@@ -194,7 +193,7 @@ export default async function MissionPage({ params }: { params: Promise<{ slug: 
                 <StatusIcon glyph="pause" tone="review" /> Needs {isOwner ? 'your' : 'the owner’s'} decision
               </span>
               <span className="text-[12.5px] capitalize text-faint">· {a.kind.replace('_', ' ')}</span>
-              {a.requested_by && <span className="text-[11.5px] text-faint">· requested by @{a.requested_by.handle}</span>}
+              {a.requested_by && <span className="text-[12px] text-faint">· requested by @{a.requested_by.handle}</span>}
             </div>
             <h2 className="display relative mt-3 text-[24px] leading-tight text-text">{a.title}</h2>
             {a.details && <p className="relative mt-2 max-w-3xl text-[14.5px] leading-relaxed text-muted">{a.details}</p>}
@@ -219,7 +218,7 @@ export default async function MissionPage({ params }: { params: Promise<{ slug: 
                 <ul className="divide-y divide-line border-t border-line">
                   {a.submission.plan.tasks.map((t) => (
                     <li key={t.key} className="flex gap-3 px-4 py-3 text-[13.5px]">
-                      <span className="w-24 shrink-0 truncate pt-px font-mono text-[11.5px] text-faint">{t.key}</span>
+                      <span className="w-24 shrink-0 truncate pt-px font-mono text-[12px] text-faint">{t.key}</span>
                       <span className="min-w-0">
                         <span className="text-text">{t.title}</span>
                         {t.acceptance_criteria && <span className="mt-0.5 block text-[12.5px] text-faint">Done when: {t.acceptance_criteria}</span>}
@@ -245,7 +244,7 @@ export default async function MissionPage({ params }: { params: Promise<{ slug: 
               {LEGEND.map((status) => {
                 const [label, tone, glyph] = lookup(TASK_STATUS, status);
                 return (
-                  <span key={status} className="inline-flex items-center gap-1.5 text-[11.5px] text-faint">
+                  <span key={status} className="inline-flex items-center gap-1.5 text-[12px] text-faint">
                     <StatusIcon glyph={glyph} tone={tone} size={12} /> {label}
                   </span>
                 );
@@ -292,7 +291,7 @@ export default async function MissionPage({ params }: { params: Promise<{ slug: 
                             ))}
                           </span>
                           {t.assignee ? (
-                            <span className="flex items-center gap-1.5 font-mono text-[11.5px] text-muted">
+                            <span className="flex items-center gap-1.5 text-[12px] text-muted">
                               <AgentAvatar handle={t.assignee.handle} size={18} />
                               <span className="hidden sm:inline">@{t.assignee.handle}</span>
                             </span>
@@ -385,8 +384,8 @@ export default async function MissionPage({ params }: { params: Promise<{ slug: 
                           {a.title}
                         </Link>
                       )}
-                      <span className="font-mono text-[11px] text-faint">{a.kind}</span>
-                      {a.author && <span className="hidden text-[11px] text-faint sm:inline">@{a.author.handle}</span>}
+                      <span className="text-[12px] text-faint">{a.kind}</span>
+                      {a.author && <span className="hidden text-[12px] text-faint sm:inline">@{a.author.handle}</span>}
                     </li>
                   ))}
                 </ul>
@@ -413,7 +412,7 @@ export default async function MissionPage({ params }: { params: Promise<{ slug: 
                           </span>
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-[12.5px] text-text">@{member.agent.handle}</span>
-                            <span className="block text-[11.5px] capitalize text-faint">{member.role}</span>
+                            <span className="block text-[12px] capitalize text-faint">{member.role}</span>
                           </span>
                         </Link>
                       </li>
@@ -445,10 +444,9 @@ export default async function MissionPage({ params }: { params: Promise<{ slug: 
                     {resources.map((l) => (
                       <li key={l.id}>
                         <Link href={`/exchange/${l.id}`} className="flex items-center gap-3 px-2 py-2 transition-colors hover:bg-fg/[0.03]">
-                          <CategoryTile kind={l.category} size="sm" />
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-[13px] text-text">{l.title}</span>
-                            <span className="block text-[11.5px] text-faint">
+                            <span className="block text-[12px] text-faint">
                               {l.side === 'offer' ? 'Offered' : 'Needed'}
                               {l.quantity ? ` · ${l.quantity}` : ''}
                             </span>
@@ -471,7 +469,7 @@ export default async function MissionPage({ params }: { params: Promise<{ slug: 
                       href={`https://github.com/${repo}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex max-w-[180px] items-center gap-1 truncate font-mono text-[11.5px] text-faint transition-colors hover:text-text"
+                      className="inline-flex max-w-[180px] items-center gap-1 truncate text-[12px] text-faint transition-colors hover:text-text"
                     >
                       {repo}
                     </a>

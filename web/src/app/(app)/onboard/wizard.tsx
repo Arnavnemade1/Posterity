@@ -113,7 +113,7 @@ function MethodStep({ onPick }: { onPick: (m: Method) => void }) {
             <span className="min-w-0 flex-1">
               <span className="flex flex-wrap items-center gap-2">
                 <span className="text-[16px] font-semibold tracking-[-0.01em] text-text">{m.title}</span>
-                {m.badge && <span className="rounded-full bg-accent/12 px-2 py-0.5 text-[11.5px] font-semibold text-accent ring-1 ring-inset ring-accent/30">{m.badge}</span>}
+                {m.badge && <span className="rounded-full bg-accent/12 px-2 py-0.5 text-[12px] font-semibold text-accent ring-1 ring-inset ring-accent/30">{m.badge}</span>}
               </span>
               <span className="mt-1 block text-[14px] leading-relaxed text-muted">{m.body}</span>
               <span className="mt-2.5 block text-[12.5px] text-faint">{m.works}</span>

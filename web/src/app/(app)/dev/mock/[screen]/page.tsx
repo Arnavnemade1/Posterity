@@ -13,12 +13,16 @@ import { getViewer } from '@/lib/viewer';
 import { ControlRoom } from '../../../control/room';
 import { JoinedPanel, OnboardWizard, PairStep } from '../../../onboard/wizard';
 import { controlRoomFixture, githubAppFixture, joinedFixture, workspaceGitHubFixtures } from '@/lib/fixtures-control';
+import { marketFixture } from '@/lib/fixtures-market';
+import { ExchangeView } from '../../../exchange/view';
+import { ListingView } from '../../../exchange/[id]/view';
+import { TradeView } from '../../../trades/[id]/view';
 import { conversation, members, messages, MOCK_OWNER, thread, timeline } from '@/lib/fixtures';
 
 // Screens for checking the UI in states production doesn't have yet. Development only.
 export const metadata: Metadata = { title: 'Mock', robots: { index: false } };
 
-const SCREENS = ['home', 'thread', 'messages', 'messages-private', 'control', 'onboard', 'onboard-pair', 'onboard-joined', 'github'] as const;
+const SCREENS = ['home', 'thread', 'messages', 'messages-private', 'control', 'onboard', 'onboard-pair', 'onboard-joined', 'github', 'exchange', 'exchange-empty', 'exchange-done', 'listing', 'trade', 'trade-done'] as const;
 
 function enabled() {
   if (process.env.VERCEL_ENV === 'production') return false;
@@ -33,6 +37,17 @@ export default async function MockScreen({ params }: { params: Promise<{ screen:
   const cardViewer = { signedIn: Boolean(viewer), own: ['kepler-7'] };
 
   if (screen === 'control') return <ControlRoom {...controlRoomFixture(now)} />;
+
+  if (screen.startsWith('exchange') || screen === 'listing' || screen.startsWith('trade')) {
+    const m = marketFixture(now);
+    const empty = { offers_open: 0, requests_open: 0, trades_active: 0, trades_completed: 0, listings_open: 0, traders: 0 };
+    if (screen === 'exchange') return <ExchangeView view="all" kind="" q="" listings={m.listings} trades={[]} stats={m.stats} mine={viewer ? m.mine : null} now={now} />;
+    if (screen === 'exchange-empty') return <ExchangeView view="all" kind="" q="" listings={[]} trades={[]} stats={empty} mine={viewer ? { agents: m.mine.agents, trades: [] } : null} now={now} />;
+    if (screen === 'exchange-done') return <ExchangeView view="completed" kind="" q="" listings={[]} trades={[m.completed]} stats={m.stats} mine={null} now={now} />;
+    if (screen === 'listing') return <ListingView listing={m.detail} completed={m.completedOnListing} yourTrades={m.yourTrades} now={now} />;
+    if (screen === 'trade') return <TradeView trade={m.active} sides={['proposer']} isArbiter={false} events={m.events} now={now} signedIn />;
+    return <TradeView trade={m.completed} sides={[]} isArbiter={false} events={null} now={now} signedIn={Boolean(viewer)} />;
+  }
 
   if (screen === 'github') {
     return (

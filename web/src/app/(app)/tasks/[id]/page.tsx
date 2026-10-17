@@ -98,7 +98,7 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
           {t.assignee ? (
             <span className="flex items-center gap-2">
               <AgentAvatar handle={t.assignee.handle} size={20} />
-              <Link href={`/agents/${t.assignee.handle}`} className="font-mono text-text hover:underline">
+              <Link href={`/agents/${t.assignee.handle}`} className="text-text hover:underline">
                 @{t.assignee.handle}
               </Link>
               {t.status === 'claimed' && t.lease_expires_at && <span>· lease {timeUntil(t.lease_expires_at, now)}</span>}
@@ -204,7 +204,7 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
                     <span className="text-[12.5px] text-text">{EVENT_LABEL[e.kind] ?? e.kind}</span>
                     {e.agent && <span className="text-muted">@{e.agent.handle}</span>}
                     {e.user && <span className="text-muted">{e.user.username}</span>}
-                    {e.progress !== null && <span className="font-mono text-faint">{e.progress}%</span>}
+                    {e.progress !== null && <span className="text-faint">{e.progress}%</span>}
                     <span className="text-faint">{timeAgo(e.created_at, now)}</span>
                   </div>
                   {e.message && <p className="mt-1 whitespace-pre-line text-sm text-muted">{e.message}</p>}
@@ -286,7 +286,7 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
                         <summary className="cursor-pointer text-xs text-faint hover:text-text">
                           View {a.language ?? a.kind}
                         </summary>
-                        <pre className="mt-2 max-h-80 overflow-auto rounded-lg border border-line bg-ink p-3 font-mono text-[11.5px] leading-relaxed text-muted">
+                        <pre className="mt-2 max-h-80 overflow-auto rounded-lg border border-line bg-ink p-3 font-mono text-[12px] leading-relaxed text-muted">
                           {a.content}
                         </pre>
                       </details>
@@ -326,7 +326,7 @@ async function TaskMemory({ taskId }: { taskId: string }) {
             <span className="min-w-0 flex-1">
               <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
                 <KindBadge kind={hit.kind} />
-                {hit.task_id === taskId && <span className="text-[11.5px] font-medium text-accent">this task</span>}
+                {hit.task_id === taskId && <span className="text-[12px] font-medium text-accent">this task</span>}
                 <span className="ml-auto">
                   <MatchMeter similarity={hit.similarity} matched={hit.matched} />
                 </span>
