@@ -768,6 +768,54 @@ export type Database = {
           },
         ]
       }
+      blob_merges: {
+        Row: {
+          base_sha: string
+          conflict: boolean
+          conflict_hunks: number
+          created_at: string
+          marked_sha: string | null
+          merged_sha: string | null
+          ours_sha: string
+          theirs_sha: string
+        }
+        Insert: {
+          base_sha: string
+          conflict: boolean
+          conflict_hunks?: number
+          created_at?: string
+          marked_sha?: string | null
+          merged_sha?: string | null
+          ours_sha: string
+          theirs_sha: string
+        }
+        Update: {
+          base_sha?: string
+          conflict?: boolean
+          conflict_hunks?: number
+          created_at?: string
+          marked_sha?: string | null
+          merged_sha?: string | null
+          ours_sha?: string
+          theirs_sha?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blob_merges_marked_sha_fkey"
+            columns: ["marked_sha"]
+            isOneToOne: false
+            referencedRelation: "blobs"
+            referencedColumns: ["sha256"]
+          },
+          {
+            foreignKeyName: "blob_merges_merged_sha_fkey"
+            columns: ["merged_sha"]
+            isOneToOne: false
+            referencedRelation: "blobs"
+            referencedColumns: ["sha256"]
+          },
+        ]
+      }
       blobs: {
         Row: {
           content: string | null
@@ -883,8 +931,15 @@ export type Database = {
           created_by: string | null
           frozen_reason: string | null
           head: string
+          max_change_files: number | null
+          merge_methods: string[]
+          merge_queue: boolean
           name: string
           protected: boolean
+          queue_depth: number
+          require_owner_review: boolean
+          required_approvals: number | null
+          required_checks: string[]
           task_id: string | null
           updated_at: string
           workspace_id: string
@@ -894,8 +949,15 @@ export type Database = {
           created_by?: string | null
           frozen_reason?: string | null
           head: string
+          max_change_files?: number | null
+          merge_methods?: string[]
+          merge_queue?: boolean
           name: string
           protected?: boolean
+          queue_depth?: number
+          require_owner_review?: boolean
+          required_approvals?: number | null
+          required_checks?: string[]
           task_id?: string | null
           updated_at?: string
           workspace_id: string
@@ -905,8 +967,15 @@ export type Database = {
           created_by?: string | null
           frozen_reason?: string | null
           head?: string
+          max_change_files?: number | null
+          merge_methods?: string[]
+          merge_queue?: boolean
           name?: string
           protected?: boolean
+          queue_depth?: number
+          require_owner_review?: boolean
+          required_approvals?: number | null
+          required_checks?: string[]
           task_id?: string | null
           updated_at?: string
           workspace_id?: string
@@ -1045,16 +1114,22 @@ export type Database = {
           author_agent_id: string | null
           base_commit: string | null
           body: string
+          claim_overlaps: Json
           closed_at: string | null
           conflicts: string[]
           created_at: string
           head_commit: string | null
           id: string
+          merge_method: string | null
+          merge_state: Json
           mergeable: boolean | null
           merged_at: string | null
           merged_by: string | null
           merged_commit: string | null
+          needs_refresh: boolean
           number: number
+          owner_groups: Json
+          restack_from: string | null
           source_branch: string
           status: string
           submission_id: string | null
@@ -1070,16 +1145,22 @@ export type Database = {
           author_agent_id?: string | null
           base_commit?: string | null
           body?: string
+          claim_overlaps?: Json
           closed_at?: string | null
           conflicts?: string[]
           created_at?: string
           head_commit?: string | null
           id?: string
+          merge_method?: string | null
+          merge_state?: Json
           mergeable?: boolean | null
           merged_at?: string | null
           merged_by?: string | null
           merged_commit?: string | null
+          needs_refresh?: boolean
           number: number
+          owner_groups?: Json
+          restack_from?: string | null
           source_branch: string
           status?: string
           submission_id?: string | null
@@ -1095,16 +1176,22 @@ export type Database = {
           author_agent_id?: string | null
           base_commit?: string | null
           body?: string
+          claim_overlaps?: Json
           closed_at?: string | null
           conflicts?: string[]
           created_at?: string
           head_commit?: string | null
           id?: string
+          merge_method?: string | null
+          merge_state?: Json
           mergeable?: boolean | null
           merged_at?: string | null
           merged_by?: string | null
           merged_commit?: string | null
+          needs_refresh?: boolean
           number?: number
+          owner_groups?: Json
+          restack_from?: string | null
           source_branch?: string
           status?: string
           submission_id?: string | null
@@ -1259,6 +1346,68 @@ export type Database = {
           },
         ]
       }
+      codeowners_rules: {
+        Row: {
+          blob_sha: string
+          created_at: string
+          errors: Json
+          rules: Json
+        }
+        Insert: {
+          blob_sha: string
+          created_at?: string
+          errors?: Json
+          rules: Json
+        }
+        Update: {
+          blob_sha?: string
+          created_at?: string
+          errors?: Json
+          rules?: Json
+        }
+        Relationships: []
+      }
+      commit_changes: {
+        Row: {
+          commit_id: string
+          new_blob: string | null
+          new_mode: string | null
+          old_blob: string | null
+          old_mode: string | null
+          path: string
+          status: string
+          workspace_id: string
+        }
+        Insert: {
+          commit_id: string
+          new_blob?: string | null
+          new_mode?: string | null
+          old_blob?: string | null
+          old_mode?: string | null
+          path: string
+          status: string
+          workspace_id: string
+        }
+        Update: {
+          commit_id?: string
+          new_blob?: string | null
+          new_mode?: string | null
+          old_blob?: string | null
+          old_mode?: string | null
+          path?: string
+          status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commit_changes_commit_id_fkey"
+            columns: ["commit_id"]
+            isOneToOne: false
+            referencedRelation: "commits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commit_mirrors: {
         Row: {
           commit_id: string
@@ -1303,8 +1452,9 @@ export type Database = {
           message: string
           origin: Json | null
           parents: string[]
+          root: string
           stats: Json
-          tree: string
+          tree: string | null
           workspace_id: string
         }
         Insert: {
@@ -1315,8 +1465,9 @@ export type Database = {
           message: string
           origin?: Json | null
           parents?: string[]
+          root: string
           stats?: Json
-          tree: string
+          tree?: string | null
           workspace_id: string
         }
         Update: {
@@ -1327,8 +1478,9 @@ export type Database = {
           message?: string
           origin?: Json | null
           parents?: string[]
+          root?: string
           stats?: Json
-          tree?: string
+          tree?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -1338,6 +1490,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "agents"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commits_root_fkey"
+            columns: ["root"]
+            isOneToOne: false
+            referencedRelation: "tree_nodes"
+            referencedColumns: ["sha256"]
           },
           {
             foreignKeyName: "commits_tree_fkey"
@@ -2457,6 +2616,157 @@ export type Database = {
           },
         ]
       }
+      merge_jobs: {
+        Row: {
+          attempts: number
+          created_at: string
+          key: string
+          kind: string
+          last_error: string | null
+          locked_until: string | null
+          payload: Json
+          workspace_id: string | null
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          key: string
+          kind: string
+          last_error?: string | null
+          locked_until?: string | null
+          payload: Json
+          workspace_id?: string | null
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          key?: string
+          kind?: string
+          last_error?: string | null
+          locked_until?: string | null
+          payload?: Json
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merge_jobs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      merge_queue: {
+        Row: {
+          change_request_id: string
+          created_at: string
+          enqueued_by: string | null
+          finished_at: string | null
+          id: number
+          landed_commit: string | null
+          method: string
+          queued_at: string | null
+          reason: string | null
+          spec_base: string | null
+          spec_commit: string | null
+          spec_head: string | null
+          status: string
+          system: boolean
+          target_branch: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          change_request_id: string
+          created_at?: string
+          enqueued_by?: string | null
+          finished_at?: string | null
+          id?: never
+          landed_commit?: string | null
+          method?: string
+          queued_at?: string | null
+          reason?: string | null
+          spec_base?: string | null
+          spec_commit?: string | null
+          spec_head?: string | null
+          status?: string
+          system?: boolean
+          target_branch: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          change_request_id?: string
+          created_at?: string
+          enqueued_by?: string | null
+          finished_at?: string | null
+          id?: never
+          landed_commit?: string | null
+          method?: string
+          queued_at?: string | null
+          reason?: string | null
+          spec_base?: string | null
+          spec_commit?: string | null
+          spec_head?: string | null
+          status?: string
+          system?: boolean
+          target_branch?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merge_queue_change_request_id_fkey"
+            columns: ["change_request_id"]
+            isOneToOne: false
+            referencedRelation: "change_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merge_queue_enqueued_by_fkey"
+            columns: ["enqueued_by"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merge_queue_landed_commit_fkey"
+            columns: ["landed_commit"]
+            isOneToOne: false
+            referencedRelation: "commits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merge_queue_spec_base_fkey"
+            columns: ["spec_base"]
+            isOneToOne: false
+            referencedRelation: "commits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merge_queue_spec_commit_fkey"
+            columns: ["spec_commit"]
+            isOneToOne: false
+            referencedRelation: "commits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merge_queue_spec_head_fkey"
+            columns: ["spec_head"]
+            isOneToOne: false
+            referencedRelation: "commits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merge_queue_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mission_integrations: {
         Row: {
           created_at: string
@@ -3114,6 +3424,70 @@ export type Database = {
           },
         ]
       }
+      path_claims: {
+        Row: {
+          agent_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          note: string | null
+          pattern: string
+          prefix: string
+          regex: string
+          released_at: string | null
+          task_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          note?: string | null
+          pattern: string
+          prefix: string
+          regex: string
+          released_at?: string | null
+          task_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          note?: string | null
+          pattern?: string
+          prefix?: string
+          regex?: string
+          released_at?: string | null
+          task_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "path_claims_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "path_claims_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "path_claims_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_reads: {
         Row: {
           agent_id: string
@@ -3572,6 +3946,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      rename_pairs: {
+        Row: {
+          base_root: string
+          created_at: string
+          pairs: Json
+          side_root: string
+        }
+        Insert: {
+          base_root: string
+          created_at?: string
+          pairs: Json
+          side_root: string
+        }
+        Update: {
+          base_root?: string
+          created_at?: string
+          pairs?: Json
+          side_root?: string
+        }
+        Relationships: []
       }
       reports: {
         Row: {
@@ -4499,6 +4894,30 @@ export type Database = {
           },
         ]
       }
+      tree_nodes: {
+        Row: {
+          created_at: string
+          entries: Json
+          file_count: number
+          sha256: string
+          total_bytes: number
+        }
+        Insert: {
+          created_at?: string
+          entries: Json
+          file_count: number
+          sha256: string
+          total_bytes: number
+        }
+        Update: {
+          created_at?: string
+          entries?: Json
+          file_count?: number
+          sha256?: string
+          total_bytes?: number
+        }
+        Relationships: []
+      }
       trees: {
         Row: {
           created_at: string
@@ -5138,6 +5557,33 @@ export type Database = {
         Returns: Json
       }
       clean_attachments: { Args: { p_items: Json }; Returns: Json }
+      code_after: { Args: { p_workspaces: string[] }; Returns: number }
+      code_claim: { Args: { p_limit?: number }; Returns: Json }
+      code_fail_job: {
+        Args: { p_error: string; p_key: string; p_kind: string }
+        Returns: undefined
+      }
+      code_put_text: {
+        Args: { p_content: string; p_sha1: string }
+        Returns: string
+      }
+      code_store_merge: {
+        Args: {
+          p_base: string
+          p_conflict: boolean
+          p_content: string
+          p_hunks?: number
+          p_ours: string
+          p_sha1: string
+          p_theirs: string
+        }
+        Returns: Json
+      }
+      code_store_renames: {
+        Args: { p_base_root: string; p_pairs: Json; p_side_root: string }
+        Returns: undefined
+      }
+      code_sweep: { Args: never; Returns: undefined }
       complete_mission: { Args: { p_mission: string }; Returns: undefined }
       complete_trade: {
         Args: { p_reason: string; p_trade: string }
@@ -5199,6 +5645,10 @@ export type Database = {
         Returns: Json
       }
       cr_approval_state: { Args: { p_cr: string }; Returns: Json }
+      cr_checks_state: {
+        Args: { p_commit: string; p_cr: string; p_required: string[] }
+        Returns: Json
+      }
       cr_comment: {
         Args: {
           p_agent: string
@@ -5208,6 +5658,19 @@ export type Database = {
           p_path?: string
           p_reply_to?: string
           p_side?: string
+        }
+        Returns: Json
+      }
+      cr_dequeue: {
+        Args: { p_agent: string; p_cr: string; p_reason?: string }
+        Returns: Json
+      }
+      cr_enqueue: {
+        Args: {
+          p_agent: string
+          p_cr: string
+          p_method?: string
+          p_system?: boolean
         }
         Returns: Json
       }
@@ -5226,6 +5689,41 @@ export type Database = {
         Returns: string
       }
       cr_json: { Args: { p_cr: string }; Returns: Json }
+      cr_land: {
+        Args: {
+          p_agent: string
+          p_cr: string
+          p_message: string
+          p_method: string
+          p_pending_ok: boolean
+        }
+        Returns: Json
+      }
+      cr_mark_landed: {
+        Args: {
+          p_agent: string
+          p_commit: string
+          p_cr: string
+          p_head: string
+          p_method: string
+        }
+        Returns: undefined
+      }
+      cr_merge_blockers: {
+        Args: {
+          p_agent: string
+          p_cr: string
+          p_method?: string
+          p_skip_checks?: boolean
+        }
+        Returns: string[]
+      }
+      cr_merge_message: {
+        Args: { p_cr: string; p_method: string }
+        Returns: string
+      }
+      cr_owner_state: { Args: { p_cr: string }; Returns: Json }
+      cr_queue_json: { Args: { p_entry: number }; Returns: Json }
       cr_refresh: { Args: { p_cr: string }; Returns: undefined }
       cr_report_check: {
         Args: {
@@ -5244,6 +5742,8 @@ export type Database = {
         Args: { p_agent: string; p_comment: string; p_resolved?: boolean }
         Returns: Json
       }
+      cr_restack: { Args: { p_cr: string }; Returns: number }
+      cr_restack_one: { Args: { p_cr: string }; Returns: string }
       create_comment: {
         Args: {
           p_agent: string
@@ -5533,6 +6033,7 @@ export type Database = {
           p_force?: boolean
           p_manifest: Json
           p_message: string
+          p_modes?: Json
           p_origin: Json
           p_parents: string[]
           p_repo?: number
@@ -5699,6 +6200,7 @@ export type Database = {
         Args: { p_agent: string; p_message?: string; p_org: string }
         Returns: Json
       }
+      kick_code_worker: { Args: never; Returns: undefined }
       kick_embedder: { Args: never; Returns: undefined }
       kick_github_sync: { Args: never; Returns: undefined }
       leave_org: { Args: { p_agent: string; p_org: string }; Returns: Json }
@@ -5803,7 +6305,13 @@ export type Database = {
       memory_query: { Args: { p_text: string }; Returns: unknown }
       memory_stats: { Args: never; Returns: Json }
       merge_change_request: {
-        Args: { p_agent: string; p_cr: string; p_message?: string }
+        Args: {
+          p_agent: string
+          p_cr: string
+          p_message?: string
+          p_method?: string
+          p_pending_ok?: boolean
+        }
         Returns: Json
       }
       mission_owner: { Args: { p_mission: string }; Returns: string }
@@ -6658,6 +7166,10 @@ export type Database = {
         Args: { p_mission: string; p_repo: string }
         Returns: Json
       }
+      web_cr_status: {
+        Args: { p_number: number; p_slug: string }
+        Returns: Json
+      }
       web_create_agent: {
         Args: {
           p_bio?: string
@@ -6792,14 +7304,24 @@ export type Database = {
         Returns: Json
       }
       web_workspace_github: { Args: { p_ws: string }; Returns: Json }
+      web_ws_diff: {
+        Args: { p_from: string; p_limit?: number; p_slug: string; p_to: string }
+        Returns: Json
+      }
       web_ws_log: {
         Args: {
+          p_before?: string
           p_limit?: number
           p_offset?: number
           p_path?: string
           p_ref?: string
           p_slug: string
         }
+        Returns: Json
+      }
+      web_ws_queue: { Args: { p_slug: string }; Returns: Json }
+      web_ws_tree: {
+        Args: { p_path?: string; p_ref?: string; p_slug: string }
         Returns: Json
       }
       who_to_follow: {
@@ -6842,7 +7364,7 @@ export type Database = {
         Returns: boolean
       }
       ws_ancestors: {
-        Args: { p_commit: string }
+        Args: { p_commit: string; p_min_generation?: number }
         Returns: {
           generation: number
           id: string
@@ -6856,10 +7378,45 @@ export type Database = {
         Args: { p_shas: string[]; p_ws: string }
         Returns: string[]
       }
+      ws_branch_json: {
+        Args: { b: Database["public"]["Tables"]["branches"]["Row"] }
+        Returns: Json
+      }
       ws_can_push: {
         Args: { p_agent: string; p_branch: string; p_ws: string }
         Returns: boolean
       }
+      ws_cherry_pick: {
+        Args: {
+          p_agent: string
+          p_branch: string
+          p_commit: string
+          p_pending_ok?: boolean
+          p_ws: string
+        }
+        Returns: Json
+      }
+      ws_claim_conflicts: {
+        Args: { p_agent: string; p_paths: string[]; p_ws: string }
+        Returns: Json
+      }
+      ws_claim_json: {
+        Args: { p: Database["public"]["Tables"]["path_claims"]["Row"] }
+        Returns: Json
+      }
+      ws_claim_paths: {
+        Args: {
+          p_agent: string
+          p_hours?: number
+          p_note?: string
+          p_patterns: string[]
+          p_task?: string
+          p_ws: string
+        }
+        Returns: Json
+      }
+      ws_codeowners_blob: { Args: { p_root: string }; Returns: string }
+      ws_codeowners_compile: { Args: { p_blob: string }; Returns: Json }
       ws_commit: {
         Args: {
           p_agent: string
@@ -6867,6 +7424,17 @@ export type Database = {
           p_changes: Json
           p_expected_head: string
           p_message: string
+          p_ws: string
+        }
+        Returns: Json
+      }
+      ws_compose: {
+        Args: {
+          p_author: string
+          p_message: string
+          p_method: string
+          p_onto: string
+          p_src: string
           p_ws: string
         }
         Returns: Json
@@ -6897,14 +7465,45 @@ export type Database = {
       }
       ws_detail: { Args: { p_agent: string; p_ws: string }; Returns: Json }
       ws_diff: {
-        Args: { p_agent: string; p_from: string; p_to: string; p_ws: string }
+        Args: {
+          p_agent: string
+          p_from: string
+          p_limit?: number
+          p_renames?: boolean
+          p_to: string
+          p_ws: string
+        }
         Returns: Json
       }
+      ws_diff_json: {
+        Args: {
+          p_a: string
+          p_b: string
+          p_limit?: number
+          p_renames?: boolean
+        }
+        Returns: Json
+      }
+      ws_diff_roots: {
+        Args: { p_a: string; p_b: string }
+        Returns: {
+          new_blob: string
+          new_mode: string
+          old_blob: string
+          old_mode: string
+          path: string
+        }[]
+      }
       ws_dir_conflict: { Args: { p_manifest: Json }; Returns: string }
+      ws_empty_root: { Args: never; Returns: string }
+      ws_exact_pairs: { Args: { p_changes: Json }; Returns: Json }
       ws_file: {
         Args: { p_agent: string; p_path: string; p_ref: string; p_ws: string }
         Returns: Json
       }
+      ws_flatten: { Args: { p_root: string }; Returns: Json }
+      ws_glob_prefix: { Args: { p_pattern: string }; Returns: string }
+      ws_glob_regex: { Args: { p_pattern: string }; Returns: string }
       ws_handle: { Args: { p_agent: string }; Returns: string }
       ws_id: { Args: { p_ref: string }; Returns: string }
       ws_is_ancestor: { Args: { p_a: string; p_b: string }; Returns: boolean }
@@ -6920,13 +7519,26 @@ export type Database = {
         }
         Returns: Json
       }
+      ws_list_claims: { Args: { p_agent: string; p_ws: string }; Returns: Json }
       ws_log: {
         Args: {
           p_agent: string
+          p_before?: string
           p_limit?: number
           p_offset?: number
           p_path?: string
           p_ref: string
+          p_ws: string
+        }
+        Returns: Json
+      }
+      ws_log_page: {
+        Args: {
+          p_before: string
+          p_head: string
+          p_limit: number
+          p_offset: number
+          p_path: string
           p_ws: string
         }
         Returns: Json
@@ -6939,9 +7551,30 @@ export type Database = {
           p_from: string
           p_into: string
           p_message?: string
+          p_pending_ok?: boolean
           p_resolutions?: Json
           p_ws: string
         }
+        Returns: Json
+      }
+      ws_merge_conflicts: {
+        Args: { p_agent: string; p_from: string; p_into: string; p_ws: string }
+        Returns: Json
+      }
+      ws_merge_path: {
+        Args: {
+          b: string
+          bm: string
+          o: string
+          om: string
+          p_path: string
+          t: string
+          tm: string
+        }
+        Returns: Json
+      }
+      ws_merge_plan: {
+        Args: { p_base: string; p_ours: string; p_theirs: string }
         Returns: Json
       }
       ws_missing_blobs: {
@@ -6957,6 +7590,21 @@ export type Database = {
         }
         Returns: undefined
       }
+      ws_node_hash: { Args: { p_entries: Json }; Returns: string }
+      ws_owner_agents: { Args: { p_owners: Json }; Returns: string[] }
+      ws_owners_for: {
+        Args: { p_paths: string[]; p_root: string }
+        Returns: Json
+      }
+      ws_path_owners: {
+        Args: {
+          p_agent: string
+          p_paths: string[]
+          p_ref: string
+          p_ws: string
+        }
+        Returns: Json
+      }
       ws_protect_branch: {
         Args: {
           p_agent: string
@@ -6966,18 +7614,85 @@ export type Database = {
         }
         Returns: Json
       }
+      ws_queue_branch_name: {
+        Args: { p_number: number; p_target: string }
+        Returns: string
+      }
+      ws_queue_finish: {
+        Args: {
+          p_commit?: string
+          p_entry: number
+          p_reason: string
+          p_status: string
+        }
+        Returns: undefined
+      }
+      ws_queue_kick: { Args: { p_ws: string }; Returns: Json }
+      ws_queue_list: {
+        Args: { p_agent: string; p_target?: string; p_ws: string }
+        Returns: Json
+      }
+      ws_queue_process: {
+        Args: { p_target: string; p_ws: string }
+        Returns: Json
+      }
+      ws_queue_set_branch: {
+        Args: { p_commit: string; p_name: string; p_ws: string }
+        Returns: undefined
+      }
+      ws_queue_touch: { Args: { p_cr: string }; Returns: undefined }
+      ws_queue_try: {
+        Args: { p_target: string; p_ws: string }
+        Returns: boolean
+      }
+      ws_raise_conflict: {
+        Args: { p_conflicts: Json; p_hint: string }
+        Returns: undefined
+      }
+      ws_raise_pending: { Args: { p_pending: Json }; Returns: undefined }
       ws_rank: { Args: { p_role: string }; Returns: number }
       ws_read_blobs: {
         Args: { p_agent: string; p_shas: string[]; p_ws: string }
         Returns: Json
       }
       ws_readable: { Args: { p_ws: string }; Returns: boolean }
+      ws_rebase: {
+        Args: {
+          p_agent: string
+          p_branch: string
+          p_onto: string
+          p_pending_ok?: boolean
+          p_ws: string
+        }
+        Returns: Json
+      }
       ws_refresh_crs: {
         Args: { p_branch: string; p_ws: string }
         Returns: undefined
       }
+      ws_release_claims: {
+        Args: { p_agent: string; p_patterns?: string[]; p_ws: string }
+        Returns: Json
+      }
+      ws_replay_list: {
+        Args: { p_onto: string; p_src: string }
+        Returns: string[]
+      }
+      ws_replay_onto: {
+        Args: { p_list: string[]; p_onto: string; p_ws: string }
+        Returns: Json
+      }
+      ws_request_merges: {
+        Args: { p_pending: Json; p_ws: string }
+        Returns: number
+      }
       ws_resolve_ref: { Args: { p_ref: string; p_ws: string }; Returns: string }
       ws_role: { Args: { p_agent: string; p_ws: string }; Returns: string }
+      ws_root: { Args: { p_commit: string }; Returns: string }
+      ws_set_branch_rules: {
+        Args: { p_agent: string; p_name: string; p_rules: Json; p_ws: string }
+        Returns: Json
+      }
       ws_set_member: {
         Args: {
           p_agent: string
@@ -6987,6 +7702,10 @@ export type Database = {
         }
         Returns: Json
       }
+      ws_side_renames: {
+        Args: { p_base: string; p_changes: Json; p_other: Json; p_side: string }
+        Returns: Json
+      }
       ws_store_tree: { Args: { p_manifest: Json }; Returns: string }
       ws_three_way: {
         Args: { p_base: Json; p_ours: Json; p_theirs: Json }
@@ -6994,7 +7713,9 @@ export type Database = {
       }
       ws_tree: {
         Args: {
+          p_after?: string
           p_agent: string
+          p_limit?: number
           p_path: string
           p_recursive?: boolean
           p_ref: string
@@ -7002,10 +7723,33 @@ export type Database = {
         }
         Returns: Json
       }
+      ws_tree_edit: {
+        Args: {
+          p_base?: string
+          p_changes: Json
+          p_node: string
+          p_strict?: boolean
+        }
+        Returns: Json
+      }
+      ws_tree_entry: { Args: { p_path: string; p_root: string }; Returns: Json }
+      ws_tree_from_manifest: {
+        Args: { p_manifest: Json; p_modes?: Json }
+        Returns: string
+      }
       ws_tree_hash: { Args: { p_manifest: Json }; Returns: string }
       ws_unique_slug: { Args: { p_text: string }; Returns: string }
       ws_valid_branch: { Args: { p: string }; Returns: boolean }
       ws_valid_path: { Args: { p: string }; Returns: boolean }
+      ws_walk: {
+        Args: { p_node: string; p_prefix?: string }
+        Returns: {
+          blob: string
+          mode: string
+          path: string
+          size: number
+        }[]
+      }
       ws_write_commit: {
         Args: {
           p_author: string
@@ -7014,6 +7758,19 @@ export type Database = {
           p_manifest: Json
           p_message: string
           p_parents: string[]
+          p_ws: string
+        }
+        Returns: Json
+      }
+      ws_write_root_commit: {
+        Args: {
+          p_author: string
+          p_branch: string
+          p_expected: string
+          p_message: string
+          p_move?: boolean
+          p_parents: string[]
+          p_root: string
           p_ws: string
         }
         Returns: Json

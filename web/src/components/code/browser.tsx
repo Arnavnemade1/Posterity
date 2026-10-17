@@ -10,9 +10,8 @@ import {
   blobMeta,
   blobTexts,
   getLog,
-  getManifest,
+  getTreeNode,
   listBranches,
-  listDir,
   resolveRef,
   type WorkspaceRow,
 } from '@/lib/code';
@@ -48,11 +47,10 @@ export async function CodeBrowser({
     );
   }
   const now = requestTime();
-  const manifest = await getManifest(resolved.commit);
+  const node = await getTreeNode(ws.slug, resolved.commit, path);
   const refParam = resolved.branch === ws.default_branch ? null : resolved.branch ?? resolved.commit;
-  const isFile = path !== '' && path in manifest;
-  const isDir = path === '' || Object.keys(manifest).some((p) => p.startsWith(`${path}/`));
-  if (!isFile && !isDir) notFound();
+  const isFile = node?.kind === 'file';
+  if (!node || !node.kind) notFound();
 
   const log = await getLog(ws.slug, resolved.branch ?? resolved.commit, null, 1, 0);
   const head = log?.commits[0] ?? null;
@@ -87,7 +85,7 @@ export async function CodeBrowser({
   );
 
   if (isFile) {
-    const sha = manifest[path];
+    const sha = node.file!.sha256;
     const [meta] = [(await blobMeta([sha])).get(sha)];
     const ext = path.split('.').pop()?.toLowerCase() ?? '';
     const raw = ws.visibility === 'private' ? null : `${apiBase()}/workspaces/${ws.slug}/files?path=${encodeURIComponent(path)}&ref=${encodeURIComponent(resolved.commit)}&raw=true`;
@@ -102,6 +100,7 @@ export async function CodeBrowser({
           {meta && <span>{size(meta.size)}</span>}
           {text !== null && <span>{text === '' ? 0 : text.replace(/\n$/, '').split('\n').length} lines</span>}
           {text !== null && languageOf(path) && <span>{languageOf(path)}</span>}
+          {node.file?.executable && <span>executable</span>}
           <span className="ml-auto flex items-center gap-4">
             {text !== null && /^(md|markdown)$/.test(ext) && (
               <Link href={`${filePath(base, path, null)}?${new URLSearchParams({ ...(refParam ? { ref: refParam } : {}), view: markdown ? 'code' : 'preview' })}`} className="hover:text-text">
@@ -139,8 +138,7 @@ export async function CodeBrowser({
     );
   }
 
-  const entries = listDir(manifest, path);
-  const metas = await blobMeta(entries.flatMap((e) => (e.sha ? [e.sha] : [])));
+  const entries = node.entries ?? [];
   const readme = entries.find((e) => e.type === 'file' && /^readme(\.md|\.markdown)?$/i.test(e.name));
   const readmeText = readme?.sha && /\.(md|markdown)$/i.test(readme.name) ? (await blobTexts([readme.sha])).get(readme.sha) ?? null : null;
 
@@ -156,7 +154,7 @@ export async function CodeBrowser({
                 {e.type === 'dir' ? <Folder className="size-4 shrink-0 text-open" aria-hidden /> : <FileIcon className="size-4 shrink-0 text-faint" aria-hidden />}
                 <span className={cx('min-w-0 flex-1 truncate', e.type === 'dir' ? 'font-medium text-text' : 'font-mono text-[13px] text-prose')}>{e.name}</span>
                 <span className="numeric shrink-0 text-[12px] text-faint">
-                  {e.type === 'dir' ? `${e.files} file${e.files === 1 ? '' : 's'}` : e.sha && metas.get(e.sha) ? size(metas.get(e.sha)!.size) : ''}
+                  {e.type === 'dir' ? `${(e.files ?? 0).toLocaleString('en')} file${e.files === 1 ? '' : 's'}` : e.size != null ? size(e.size) : ''}
                 </span>
               </Link>
             </li>

@@ -75,9 +75,9 @@ begin
                  and not has_function_privilege('anon', 'public.web_github_overview()', 'execute')
                  and not has_function_privilege('authenticated', 'public.gh_link(uuid, uuid, uuid, text, text, boolean)', 'execute')
                  and not has_function_privilege('authenticated', 'public.gh_claim_installation(bigint, uuid, text)', 'execute')
-                 and not has_function_privilege('anon', 'public.gh_import_commit(uuid, text, text[], text, jsonb, text, jsonb, bigint, text, text, boolean)', 'execute')
+                 and not has_function_privilege('anon', 'public.gh_import_commit(uuid, text, text[], text, jsonb, text, jsonb, bigint, text, text, boolean, jsonb)', 'execute')
                  and not has_function_privilege('authenticated', 'public.gh_claim(int)', 'execute')
-                 and has_function_privilege('authenticated', 'public.web_ws_log(text, text, text, int, int)', 'execute'),
+                 and has_function_privilege('authenticated', 'public.web_ws_log(text, text, text, int, int, text)', 'execute'),
     'ok_gate', public.autonomy_gate(a, 'github_import') = 'ask'
                and public.autonomy_gate(auto, 'github_import') = 'allow'
                and public.autonomy_gate(x, 'github_import') = 'allow'

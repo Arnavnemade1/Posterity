@@ -33,6 +33,16 @@ const fail = (status: number, code: string, message: string, hint?: string) =>
 const BASE = 'https://api.test/functions/v1/api';
 const client = (fetch: typeof globalThis.fetch, apiKey = 'pst_test') => new Posterity({ apiKey, baseUrl: `${BASE}/`, fetch, retries: 2 });
 
+test('targeted edits preserve concurrency guards and previews; conflicts are not retried', async () => {
+  const { fetch, calls } = mockFetch(ok({ status: 'preview', changed_files: ['a.ts'] }), fail(409, 'head_moved', 'Read the new head'));
+  const input = { branch: 'agent/fix', expected_head: 'a'.repeat(64), message: 'Fix', files: [{ path: 'a.ts', edits: [{ old_text: 'old', new_text: 'new' }] }] };
+  await client(fetch).workspaces.edit('test space', { ...input, dry_run: true });
+  expect(calls[0].url.pathname).toEndWith('/workspaces/test%20space/edits');
+  expect(calls[0].body).toEqual({ ...input, dry_run: true });
+  await expect(client(fetch).workspaces.edit('test space', input)).rejects.toMatchObject({ code: 'head_moved' });
+  expect(calls).toHaveLength(2);
+});
+
 describe('requests', () => {
   test('sends the key, JSON bodies and the base path', async () => {
     const { fetch, calls } = mockFetch(ok({ task_id: 't1', status: 'claimed', renewed: false }));
@@ -282,5 +292,64 @@ describe('workspaces', () => {
     expect(calls[4].url.pathname).toBe('/functions/v1/api/workspaces/lab/github/unlink');
     await posterity.workspaces.githubRepos();
     expect(calls[5].url.pathname).toBe('/functions/v1/api/github/repos');
+  });
+  test('merges wait out pending line merges; queues, claims, owners and rules', async () => {
+    const { fetch, calls } = mockFetch(
+      ok({ status: 'pending', retry_after: 0 }, 202),
+      ok({ status: 'merged', commit: 'm1', fast_forward: false, resolved: 1 }),
+      ok({ status: 'queued', number: 4, queue: { status: 'testing', test_branch: 'queue/main/4' } }),
+      ok({ queue: [] }),
+    );
+    const posterity = client(fetch);
+    const merged = await posterity.workspaces.merge('lab', { into: 'me/x', from: 'main', resolutions: { 'a.ts': { content: 'x' } } });
+    expect(merged.status).toBe('merged');
+    expect(calls.length).toBe(2);
+    expect(calls[1].body).toEqual(calls[0].body);
+    const queued = await posterity.workspaces.mergeChangeRequest('lab', 4, { method: 'squash' });
+    expect(queued.status).toBe('queued');
+    expect(calls[2].body).toEqual({ method: 'squash' });
+    await posterity.workspaces.queue('lab', 'main');
+    expect(calls[3].url.search).toBe('?target=main');
+  });
+
+  test('the coordination routes', async () => {
+    const { fetch, calls } = mockFetch(ok({}));
+    const posterity = client(fetch);
+    await posterity.workspaces.mergeChangeRequest('lab', 2, 'Ship it');
+    expect(calls[0].body).toEqual({ message: 'Ship it' });
+    await posterity.workspaces.enqueue('lab', 2, 'rebase');
+    expect(calls[1].url.pathname).toBe('/functions/v1/api/workspaces/lab/change-requests/2/queue');
+    expect(calls[1].body).toEqual({ method: 'rebase' });
+    await posterity.workspaces.dequeue('lab', 2, 'Later');
+    expect(calls[2].url.pathname).toBe('/functions/v1/api/workspaces/lab/change-requests/2/queue/remove');
+    await posterity.workspaces.claim('lab', { patterns: ['src/api/'], note: 'Auth', hours: 2 });
+    expect(calls[3].body).toEqual({ patterns: ['src/api/'], note: 'Auth', hours: 2 });
+    await posterity.workspaces.releaseClaims('lab');
+    expect(calls[4].url.pathname).toBe('/functions/v1/api/workspaces/lab/claims/release');
+    await posterity.workspaces.owners('lab', ['a.ts', 'docs/b.md']);
+    expect(calls[5].url.search).toBe('?paths=a.ts%2Cdocs%2Fb.md');
+    await posterity.workspaces.setBranchRules('lab', 'main', { merge_queue: true, required_checks: ['ci'] });
+    expect(calls[6].body).toEqual({ name: 'main', merge_queue: true, required_checks: ['ci'] });
+    await posterity.workspaces.rebase('lab', { branch: 'me/x', onto: 'main' });
+    expect(calls[7].url.pathname).toBe('/functions/v1/api/workspaces/lab/rebase');
+    await posterity.workspaces.cherryPick('lab', { branch: 'me/x', commit: 'abc' });
+    expect(calls[8].url.pathname).toBe('/functions/v1/api/workspaces/lab/cherry-pick');
+    await posterity.workspaces.conflicts('lab', 'me/x', 'main');
+    expect(calls[9].url.search).toBe('?into=me%2Fx&from=main');
+    await posterity.workspaces.changeRequestConflicts('lab', 2);
+    expect(calls[10].url.pathname).toBe('/functions/v1/api/workspaces/lab/change-requests/2/conflicts');
+    await posterity.workspaces.log('lab', { before: 'c9', limit: 5 });
+    expect(calls[11].url.search).toBe('?before=c9&limit=5');
+  });
+
+  test('allFiles follows the pages of a tree from one commit', async () => {
+    const { fetch, calls } = mockFetch(
+      ok({ commit: 'c1', entries: [{ path: 'a', type: 'file' }], next: 'a' }),
+      ok({ commit: 'c1', entries: [{ path: 'b', type: 'file', executable: true }], next: null }),
+    );
+    const all = await client(fetch).workspaces.allFiles('lab', 'main');
+    expect(all.entries.map((e) => e.path)).toEqual(['a', 'b']);
+    expect(calls[1].url.searchParams.get('ref')).toBe('c1');
+    expect(calls[1].url.searchParams.get('after')).toBe('a');
   });
 });

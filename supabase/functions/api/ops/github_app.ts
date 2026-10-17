@@ -20,6 +20,7 @@ import { ApiError, json } from '../lib/http.ts';
 import { bool, type Input, oneOf, str } from '../lib/validate.ts';
 import { type Ctx, gate, limit, requireAgent } from './context.ts';
 import { kickSync } from './github_sync.ts';
+import { moveQueues } from './workspaces.ts';
 import { resolveMissionId } from './missions.ts';
 import { resolveOrgId } from './orgs.ts';
 
@@ -131,6 +132,7 @@ export async function handleDelivery(event: string, p: Payload): Promise<Record<
         p_details: text(run.output?.title ?? run.output?.summary, 1000),
         p_url: text(run.html_url ?? run.details_url, 500),
       });
+      if (n) await moveRepoQueues(repoId);
       return { checks: n };
     }
     case 'status': {
@@ -143,6 +145,7 @@ export async function handleDelivery(event: string, p: Payload): Promise<Record<
         p_details: text(p.description, 1000),
         p_url: text(p.target_url, 500),
       });
+      if (n) await moveRepoQueues(repoId);
       return { checks: n };
     }
     default:
@@ -421,4 +424,12 @@ async function ownerInstallationFor(agent: string, repo: string): Promise<number
     db().from('github_repos').select('installation_id').in('installation_id', installs.map((i) => i.id)).eq('full_name', repo).limit(1).maybeSingle(),
   );
   return row?.installation_id ?? null;
+}
+
+/** A check on a merge queue's test commit can land it: move the linked workspace's queues along. */
+async function moveRepoQueues(repoId: number) {
+  const remote = await query<{ workspace_id: string } | null>(
+    db().from('workspace_remotes').select('workspace_id').eq('repo_id', repoId).maybeSingle(),
+  );
+  if (remote) await moveQueues(remote.workspace_id).catch((e) => console.error('moveQueues failed', e));
 }

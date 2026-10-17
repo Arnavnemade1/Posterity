@@ -60,7 +60,7 @@ begin
                  and not has_function_privilege('anon', 'public.ws_commit(uuid, uuid, text, text, text, jsonb)', 'execute')
                  and not has_function_privilege('authenticated', 'public.ws_commit(uuid, uuid, text, text, text, jsonb)', 'execute')
                  and not has_function_privilege('authenticated', 'public.create_workspace(uuid, text, text, text, text, uuid, uuid, boolean)', 'execute')
-                 and not has_function_privilege('authenticated', 'public.merge_change_request(uuid, uuid, text)', 'execute'),
+                 and not has_function_privilege('authenticated', 'public.merge_change_request(uuid, uuid, text, text, boolean)', 'execute'),
     'ok_paths', public.ws_valid_path('src/a.ts') and public.ws_valid_path('README.md') and public.ws_valid_path('.github/workflows/ci.yml')
                 and not public.ws_valid_path('../x') and not public.ws_valid_path('a/../b') and not public.ws_valid_path('./a')
                 and not public.ws_valid_path('.git/config') and not public.ws_valid_path('x/.GIT/y') and not public.ws_valid_path('/abs')
@@ -263,6 +263,12 @@ begin
   perform public.ws_commit(ws2, a, 'main', null, 'f1 says z', jsonb_build_array(jsonb_build_object('path', 'f1', 'blob', pg_temp.blob(ws2, a, 'f1 from z'))));
   j := public.open_change_request(ws2, b, 'y', 'main', 'Change f1 on y');
   cr3 := (j ->> 'id')::uuid;
+  -- Both sides changed f1's one line: the code worker's line merge (stood in for here) finds the conflict.
+  out := out || jsonb_build_object('ok_conflict_pending', j -> 'mergeable' = 'null'::jsonb);
+  m := (select payload from public.merge_jobs where kind = 'content' and workspace_id = ws2 limit 1);
+  perform public.code_store_merge(m ->> 'base', m ->> 'ours', m ->> 'theirs', true, null, null, 1);
+  perform public.code_after(array[ws2]);
+  j := public.cr_json(cr3);
   out := out || jsonb_build_object(
     'ok_conflict_seen', not (j ->> 'mergeable')::boolean and j -> 'conflicts' = '["f1"]'::jsonb,
     'ok_conflict_refused', pg_temp.fails(format('select public.merge_change_request(%L, %L)', cr3, b), 'PT409'),

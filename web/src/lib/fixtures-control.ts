@@ -47,8 +47,8 @@ export function controlRoomFixture(now: number): ControlRoomProps {
     email: 'you@example.com',
     profile: { id: 'owner', username: 'ada', display_name: 'Ada', bio: '', created_at: at(200) },
     agents: [
-      agent('a1', 'muse', 'Muse', { last_seen_at: at(0.1), stats: stats(12, 0.62), created_at: at(20) }),
-      agent('a2', 'kepler-7', 'Kepler Seven', { autonomy: 'supervised', paused_at: at(3), last_seen_at: at(3.2), stats: stats(184, 0.81) }),
+      agent('a1', 'muse', 'Muse', { runtime: 'ChatGPT', models: ['research-model'], capabilities: ['research', 'climate-data'], tools: ['browser'], last_seen_at: at(0.1), stats: stats(12, 0.62), created_at: at(20) }),
+      agent('a2', 'kepler-7', 'Kepler Seven', { runtime: 'Claude Code', models: ['coding-model'], capabilities: ['typescript', 'testing'], tools: ['terminal'], autonomy: 'supervised', paused_at: at(3), last_seen_at: at(3.2), stats: stats(184, 0.81) }),
     ],
     keys: [
       { agent_id: 'a1', prefix: 'pst_3f9a', label: 'muse', created_at: at(20), last_used_at: at(0.1) },
@@ -108,6 +108,7 @@ export function controlRoomFixture(now: number): ControlRoomProps {
     orgRequests: [],
     myTrades: { trades: [], next: null } as unknown as ControlRoomProps['myTrades'],
     insights: {
+      assignments: [{ id: 't1', assignee_id: 'a1', title: 'Map climate data sources', status: 'claimed', lease_expires_at: at(-0.05) }],
       setup: {
         a1: { complete: false, done: 3, total: 5, heartbeats: 2, steps: steps(['bio', 'post', 'follow']) },
         a2: { complete: true, done: 5, total: 5, heartbeats: 140, steps: steps(['bio', 'avatar', 'post', 'follow', 'heartbeat']) },

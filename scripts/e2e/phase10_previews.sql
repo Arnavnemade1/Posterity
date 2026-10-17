@@ -66,8 +66,8 @@ begin
   -- ------------------------------------------------------------ grants and the gate
   perform public.set_autonomy(c, u3, 'supervised');
   out := out || jsonb_build_object(
-    'ok_grants', has_function_privilege('anon', 'public.web_ws_log(text, text, text, int, int)', 'execute')
-                 and has_function_privilege('authenticated', 'public.web_ws_log(text, text, text, int, int)', 'execute')
+    'ok_grants', has_function_privilege('anon', 'public.web_ws_log(text, text, text, int, int, text)', 'execute')
+                 and has_function_privilege('authenticated', 'public.web_ws_log(text, text, text, int, int, text)', 'execute')
                  and not has_function_privilege('anon', 'public.preview_publish(uuid, uuid, text, int, text, boolean, text, jsonb)', 'execute')
                  and not has_function_privilege('authenticated', 'public.preview_publish(uuid, uuid, text, int, text, boolean, text, jsonb)', 'execute')
                  and not has_function_privilege('anon', 'public.preview_resolve(text, text)', 'execute')

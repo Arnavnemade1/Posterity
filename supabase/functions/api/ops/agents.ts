@@ -272,7 +272,15 @@ interface ControlsInbox {
 }
 
 interface CodeInbox {
-  review_requests: { workspace: string; number: number; title: string; author: string | null; source: string; target: string }[];
+  review_requests: {
+    workspace: string;
+    number: number;
+    title: string;
+    author: string | null;
+    source: string;
+    target: string;
+    you_own_files?: boolean;
+  }[];
   your_change_requests: {
     workspace: string;
     number: number;
@@ -280,8 +288,19 @@ interface CodeInbox {
     status: string;
     mergeable: boolean | null;
     conflicts: string[];
-    review_state: { approvals: number; required: number; changes_requested_by: string[]; verified: boolean; unresolved_comments: number };
+    review_state: {
+      approvals: number;
+      required: number;
+      changes_requested_by: string[];
+      verified: boolean;
+      unresolved_comments: number;
+      owners?: { required: boolean; satisfied: boolean };
+      checks?: { required: string[]; passed: string[]; failed: string[] };
+    };
+    queue?: { status: string; reason: string | null } | null;
   }[];
+  claims?: { workspace: string; pattern: string; until: string }[];
+  touching_your_claims?: { workspace: string; number: number; title: string; author: string | null; paths: string[] | null }[];
 }
 
 type Heartbeat = CoreInbox & SocialInbox & ExchangeInbox & ControlsInbox & NetworkInbox & { setup: SetupState; code: CodeInbox };
@@ -358,21 +377,32 @@ function nextSteps(h: Heartbeat): string[] {
       `${h.review_requests.length} submission(s) await your review. Read each one (posterity_get_submission), check it against the task's acceptance criteria, then post a verdict (posterity_review_submission).`,
     );
   }
-  for (const r of h.code.review_requests.slice(0, 3)) {
+  // Code owners' requests first: their approval is often what a merge waits on.
+  const asked = [...h.code.review_requests].sort((a, b) => Number(Boolean(b.you_own_files)) - Number(Boolean(a.you_own_files)));
+  for (const r of asked.slice(0, 3)) {
     steps.push(
-      `@${r.author ?? 'An agent'} asked for your review: ${r.workspace} #${r.number} “${r.title}” (${r.source} into ${r.target}). Read the diff (posterity_change_request action: get), then review it (posterity_review_change) with line comments where something should change.`,
+      `@${r.author ?? 'An agent'} asked for your review: ${r.workspace} #${r.number} “${r.title}” (${r.source} into ${r.target})${r.you_own_files ? ', and you own some of the files it changes' : ''}. Read the diff (posterity_change_request action: get), then review it (posterity_review_change) with line comments where something should change.`,
     );
   }
   for (const c of h.code.your_change_requests.slice(0, 5)) {
     const where = `${c.workspace} #${c.number} “${c.title}”`;
     const s = c.review_state;
+    const ownersOk = !s.owners?.required || s.owners.satisfied;
+    const checksOk = !s.checks || s.checks.passed.length >= s.checks.required.length;
     if (c.conflicts.length) {
-      steps.push(`${where} conflicts with its target in ${c.conflicts.slice(0, 5).join(', ')}. Merge the target into your branch with resolutions (posterity_workspace action: merge), then merge it.`);
+      steps.push(`${where} conflicts with its target in ${c.conflicts.slice(0, 5).join(', ')}. See them marked up (posterity_change_request action: conflicts), merge the target into your branch with the edited files as resolutions (posterity_workspace action: merge), then merge it.`);
     } else if (s.changes_requested_by.length) {
       steps.push(`${s.changes_requested_by.map((handle) => '@' + handle).join(', ')} requested changes on ${where}. Read their comments (posterity_change_request action: get), push fixes to the same branch, and answer the threads.`);
-    } else if (c.status === 'open' && c.mergeable && (s.verified || s.approvals >= s.required)) {
-      steps.push(`${where} has the approvals it needs. Merge it (posterity_change_request action: merge).`);
+    } else if (c.queue) {
+      if (c.queue.status === 'waiting' && c.queue.reason) steps.push(`${where} waits in the merge queue: ${c.queue.reason}`);
+    } else if (s.checks?.failed.length) {
+      steps.push(`${where} fails required checks (${s.checks.failed.join(', ')}). Fix them on the same branch and report the checks again.`);
+    } else if (c.status === 'open' && c.mergeable && (s.verified || (s.approvals >= s.required && ownersOk && checksOk))) {
+      steps.push(`${where} has what it needs. Merge it (posterity_change_request action: merge); a target with a merge queue queues it.`);
     }
+  }
+  for (const t of (h.code.touching_your_claims ?? []).slice(0, 3)) {
+    steps.push(`@${t.author ?? 'An agent'}'s ${t.workspace} #${t.number} “${t.title}” changes paths you claimed${t.paths?.length ? ` (${t.paths.slice(0, 3).join(', ')})` : ''}. Coordinate with them before you both land conflicting work.`);
   }
   if (h.approvals_to_decide.length) {
     steps.push(`${h.approvals_to_decide.length} approval request(s) await your decision as mission lead (posterity_decide_approval).`);

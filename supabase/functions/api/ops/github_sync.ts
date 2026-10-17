@@ -34,7 +34,7 @@ const PUSH_BATCH = 40;
 const TREE_CHUNK_ENTRIES = 400;
 const TREE_CHUNK_BYTES = 2_500_000;
 const FILE_MAX = 5_242_880;
-const SYNC_FILES_MAX = 5000;
+const SYNC_FILES_MAX = 100_000;
 const SYNC_FETCH_MAX = 1500;
 const IMPORT_BYTES_MAX = 50 * 1_048_576;
 const IMPORT_STREAM_MAX = 80 * 1_048_576;
@@ -76,6 +76,8 @@ export interface PlanChange {
   binary: boolean | null;
   size: number | null;
   existed: boolean;
+  /** The file's mode in the workspace (absent from plans made before workspaces had modes). */
+  executable?: boolean | null;
 }
 
 export interface PlanCommit {
@@ -126,6 +128,8 @@ export interface ImportArgs {
   parents: string[];
   expected: string | null;
   manifest: Record<string, string>;
+  /** Executable files: {"path": "x"}. */
+  modes?: Record<string, 'x'>;
   message: string;
   origin: Record<string, unknown>;
   repo?: number;
@@ -265,7 +269,7 @@ export async function mirrorCommits(gh: GitHub, store: SyncStore, ctx: JobContex
     const baseTree = first ? (first.tree ?? created.get(first.id)!.tree) : undefined;
 
     let exec = baseTree ? execByTree.get(baseTree) : new Set<string>();
-    if (!exec && c.changes.some((ch) => ch.existed && ch.sha256)) {
+    if (!exec && c.changes.some((ch) => ch.existed && ch.sha256 && typeof ch.executable !== 'boolean')) {
       exec = await executablePaths(gh, repo, baseTree!);
       execByTree.set(baseTree!, exec);
     }
@@ -280,7 +284,8 @@ export async function mirrorCommits(gh: GitHub, store: SyncStore, ctx: JobContex
       }
       const data = bytes.get(ch.sha256);
       if (!data) throw new SyncProblem(`The file ${ch.path} could not be read`);
-      const mode = exec?.has(ch.path) ? '100755' : '100644';
+      // Workspaces know which files are executable; plans without modes keep what GitHub had.
+      const mode = (typeof ch.executable === 'boolean' ? ch.executable : exec?.has(ch.path)) ? '100755' : '100644';
       if (!ch.binary) {
         entries.push({ entry: { path: ch.path, mode, type: 'blob', content: decoder.decode(data) }, bytes: data.length + 100 });
       } else {
@@ -382,8 +387,17 @@ async function pool<T>(items: T[], size: number, fn: (item: T) => Promise<void>)
   }));
 }
 
-/** A tree on GitHub as a workspace manifest: files stored here as needed; symlinks, submodules and big files skipped. */
-export async function importTree(gh: GitHub, store: SyncStore, ws: string, repo: string, tree: string): Promise<{ manifest: Record<string, string>; skipped: string[] }> {
+/**
+ * A tree on GitHub as a workspace manifest and its executable files: files stored here as needed;
+ * symlinks, submodules and big files skipped.
+ */
+export async function importTree(
+  gh: GitHub,
+  store: SyncStore,
+  ws: string,
+  repo: string,
+  tree: string,
+): Promise<{ manifest: Record<string, string>; modes: Record<string, 'x'>; skipped: string[] }> {
   const listing = await gh.get<{ tree: { path: string; mode: string; type: string; sha: string; size?: number }[]; truncated: boolean }>(
     `/repos/${repo}/git/trees/${tree}?recursive=1`,
   );
@@ -428,8 +442,12 @@ export async function importTree(gh: GitHub, store: SyncStore, ws: string, repo:
     for (const file of batch) known[file.git_sha1] = file.sha256;
   }
   const manifest: Record<string, string> = {};
-  for (const f of files) manifest[f.path] = known[f.sha];
-  return { manifest, skipped };
+  const modes: Record<string, 'x'> = {};
+  for (const f of files) {
+    manifest[f.path] = known[f.sha];
+    if (f.mode === '100755') modes[f.path] = 'x';
+  }
+  return { manifest, modes, skipped };
 }
 
 interface GitCommit {
@@ -456,7 +474,7 @@ async function importGitHubCommit(
   between: CompareCommit[] = [],
 ): Promise<string> {
   const commit = await gh.get<GitCommit>(`/repos/${remote.repo}/git/commits/${sha}`);
-  const { manifest, skipped } = await importTree(gh, store, ctx.workspace.id, remote.repo, commit.tree.sha);
+  const { manifest, modes, skipped } = await importTree(gh, store, ctx.workspace.id, remote.repo, commit.tree.sha);
   const subject = (m: string) => m.split('\n')[0].slice(0, 120);
   const message = between.length > 1
     ? `Sync ${between.length} commits from GitHub\n\n${between.slice(-20).map((c) => `- ${c.sha.slice(0, 7)} ${subject(c.commit.message)}${c.commit.author ? ` (${c.commit.author.name})` : ''}`).join('\n')}` +
@@ -468,6 +486,7 @@ async function importGitHubCommit(
     parents: target.parents,
     expected: target.expected,
     manifest,
+    modes,
     message: message.slice(0, 4000),
     origin: {
       provider: 'github',
@@ -721,6 +740,7 @@ export async function importRepository(
   let sha: string | null = null;
   let root: string | null = null;
   const manifest: Record<string, string> = {};
+  const modes: Record<string, 'x'> = {};
   const skipped: string[] = [];
   let pending: HashedFile[] = [];
   let pendingBytes = 0;
@@ -762,6 +782,7 @@ export async function importRepository(
       }
       const file = await hashFile(entry.data);
       manifest[path] = file.sha256;
+      if (entry.mode & 0o111) modes[path] = 'x';
       pending.push(file);
       pendingBytes += file.size;
       if (pending.length >= 200 || pendingBytes > 3_000_000) await flush();
@@ -781,6 +802,7 @@ export async function importRepository(
     parents: [ws.head],
     expected: ws.head,
     manifest,
+    modes,
     message: `Import ${label}${source.ref ? ` at ${source.ref}` : ''}${sha ? ` (${sha.slice(0, 7)})` : ''}`,
     origin: {
       provider: 'github',
@@ -865,6 +887,7 @@ export const dbStore: SyncStore = {
       p_sha: a.sha ?? null,
       p_tree: a.tree ?? null,
       p_force: a.force ?? false,
+      p_modes: a.modes && Object.keys(a.modes).length ? a.modes : null,
     }),
   openSyncCr: (ws, source, title, body) => rpc('gh_open_sync_cr', { p_ws: ws, p_source: source, p_title: title, p_body: body }),
   prContext: (cr) => rpc('gh_pr_context', { p_cr: cr }),

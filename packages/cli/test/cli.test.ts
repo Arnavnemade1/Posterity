@@ -52,6 +52,55 @@ describe('arguments', () => {
   });
 });
 
+describe('isolated agent profiles', () => {
+  test('selects identities per command and never exposes keys in the directory', async () => {
+    const { fetch, calls } = mockFetch((call) => ({ json: { handle: call.headers.authorization?.includes('research') ? 'researcher' : 'coder', stats: {} } }));
+    await run(['login', 'pst_coder_12345678'], fetch);
+    await run(['login', 'pst_research_12345678', '--profile', 'research'], fetch);
+    await run(['whoami'], fetch);
+    await run(['whoami', '--profile', 'research'], fetch);
+    expect(calls.slice(-2).map((c) => c.headers.authorization)).toEqual(['Bearer pst_coder_12345678', 'Bearer pst_research_12345678']);
+    expect((await stat(join(dir, 'profiles/research/credentials.json'))).mode & 0o777).toBe(0o600);
+    out.length = 0;
+    await run(['profiles', '--json'], fetch);
+    expect(JSON.parse(out[0]).profiles.map((p: { name: string }) => p.name)).toEqual(['default', 'research']);
+    expect(out[0]).not.toContain('pst_');
+    await run(['logout', '--profile', 'research'], fetch);
+    expect(await run(['whoami', '--profile', 'research'], fetch)).toBe(1);
+    expect(await run(['whoami'], fetch)).toBe(0);
+  });
+
+  test('explicit and environment profiles cannot fall back to an ambient key', async () => {
+    const { fetch, calls } = mockFetch(() => ({ json: { handle: 'agent', stats: {} } }));
+    await run(['login', 'pst_named_12345678', '--profile', 'named'], fetch);
+    env.POSTERITY_KEY = 'pst_wrong_12345678';
+    env.POSTERITY_PROFILE = 'missing';
+    const before = calls.length;
+    expect(await run(['whoami'], fetch)).toBe(1);
+    expect(calls.length).toBe(before);
+    expect(await run(['whoami', '--profile', 'named'], fetch)).toBe(0);
+    expect(calls.at(-1)?.headers.authorization).toBe('Bearer pst_named_12345678');
+    expect(await run(['whoami', '--profile', '../escape'], fetch)).toBe(1);
+    expect(await run(['whoami', '--profile', 'named', '--api', 'https://wrong.test'], fetch)).toBe(1);
+    expect(calls.length).toBe(before + 1);
+  });
+});
+
+test('remote edits preview and commit with explicit head and workspace', async () => {
+  env.POSTERITY_KEY = 'pst_test_12345678';
+  const file = join(dir, 'edits.json');
+  const body = { branch: 'scout/fix', expected_head: 'a'.repeat(64), message: 'Fix', files: [{ path: 'a.ts', edits: [{ old_text: 'old', new_text: 'new' }] }] };
+  await writeFile(file, JSON.stringify(body));
+  const { fetch, calls } = mockFetch((call) => ({ json: (call.body as { dry_run?: boolean }).dry_run
+    ? { status: 'preview', changed_files: ['a.ts'], files: [{ path: 'a.ts', hunks: [] }] }
+    : { commit: 'b'.repeat(64), branch: 'scout/fix' } }));
+  expect(await run(['ws', 'edit', file, '--ws', 'project', '--dry-run'], fetch)).toBe(0);
+  expect(calls[0].body).toEqual({ ...body, dry_run: true });
+  expect(calls[0].url).toBe(`${API}/workspaces/project/edits`);
+  expect(await run(['ws', 'edit', file, '--ws', 'project'], fetch)).toBe(0);
+  expect(calls[1].body).toEqual(body);
+});
+
 describe('register', () => {
   test('saves the key privately and passes the pairing code', async () => {
     const { fetch, calls } = mockFetch(() => ({

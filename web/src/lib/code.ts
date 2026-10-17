@@ -135,40 +135,38 @@ export async function resolveRef(workspace: Pick<WorkspaceRow, 'id' | 'default_b
 
 // ----------------------------------------------------------------------------- trees and files
 
-export type Manifest = Record<string, string>;
-
-export async function getManifest(commit: string): Promise<Manifest> {
-  const supabase = await createClient();
-  const { data } = await supabase.from('commits').select('trees:trees!commits_tree_fkey(manifest)').eq('id', commit).maybeSingle();
-  const tree = data as unknown as { trees: { manifest: Manifest } | null } | null;
-  return tree?.trees?.manifest ?? {};
-}
-
 export interface DirEntry {
   name: string;
   path: string;
   type: 'dir' | 'file';
   sha?: string;
+  /** Files under a folder; a file's bytes. */
   files?: number;
+  size?: number;
+  executable?: boolean;
 }
 
-/** The entries directly inside a folder of a manifest: folders first, then files, by name. */
-export function listDir(manifest: Manifest, dir: string): DirEntry[] {
-  const prefix = dir ? `${dir}/` : '';
-  const dirs = new Map<string, number>();
-  const files: DirEntry[] = [];
-  for (const [path, sha] of Object.entries(manifest)) {
-    if (!path.startsWith(prefix)) continue;
-    const rest = path.slice(prefix.length);
-    const slash = rest.indexOf('/');
-    if (slash === -1) files.push({ name: rest, path, type: 'file', sha });
-    else dirs.set(rest.slice(0, slash), (dirs.get(rest.slice(0, slash)) ?? 0) + 1);
-  }
+export interface TreeNode {
+  commit: string;
+  path: string;
+  /** null: nothing at that path. */
+  kind: 'dir' | 'file' | null;
+  file?: { sha256: string; size: number; binary: boolean; executable: boolean };
+  /** A folder's entries: folders first, then files. */
+  entries?: DirEntry[];
+}
+
+/** A folder or a file of a workspace at a ref, read from its folder tree (any size of workspace). */
+export async function getTreeNode(slug: string, ref: string, path: string): Promise<TreeNode | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('web_ws_tree', { p_slug: slug, p_ref: ref, p_path: path });
+  if (error || !data) return null;
+  const node = data as unknown as TreeNode & { entries?: (DirEntry & { sha: string | null; files: number | null })[] };
   const collator = new Intl.Collator('en', { numeric: true });
-  return [
-    ...[...dirs].map(([name, count]) => ({ name, path: `${prefix}${name}`, type: 'dir' as const, files: count })).sort((a, b) => collator.compare(a.name, b.name)),
-    ...files.sort((a, b) => collator.compare(a.name, b.name)),
-  ];
+  const entries = node.entries
+    ?.map((e) => ({ ...e, sha: e.sha ?? undefined, files: e.files ?? undefined }))
+    .sort((a, b) => (a.type === b.type ? collator.compare(a.name, b.name) : a.type === 'dir' ? -1 : 1));
+  return { ...node, entries };
 }
 
 export interface BlobMeta {
@@ -258,7 +256,11 @@ export interface Hunk {
 
 export interface DiffFile {
   path: string;
-  status: 'added' | 'modified' | 'deleted';
+  status: 'added' | 'modified' | 'deleted' | 'renamed';
+  /** Where a renamed file came from. */
+  oldPath?: string;
+  executable?: boolean;
+  modeChanged?: boolean;
   binary: boolean;
   oldSize: number | null;
   newSize: number | null;
@@ -272,20 +274,41 @@ const PATCH_FILES = 40;
 const PATCH_SOURCE_MAX = 400_000;
 const PATCH_LINES = 3000;
 
-/** What changed between two commits (null: from nothing), with line hunks for the first text files. */
-export async function diffCommits(from: string | null, to: string): Promise<{ files: DiffFile[]; total: number }> {
-  const [before, after] = await Promise.all([from ? getManifest(from) : Promise.resolve({} as Manifest), getManifest(to)]);
-  const paths = [...new Set([...Object.keys(before), ...Object.keys(after)])].filter((p) => before[p] !== after[p]).sort();
-  const meta = await blobMeta(paths.flatMap((p) => [before[p], after[p]]).filter(Boolean));
-  const files: DiffFile[] = paths.map((path) => {
-    const o = before[path] ? meta.get(before[path]) : undefined;
-    const n = after[path] ? meta.get(after[path]) : undefined;
+interface DiffRow {
+  path: string;
+  status: DiffFile['status'];
+  old_path?: string;
+  old_sha: string | null;
+  new_sha: string | null;
+  old_size: number | null;
+  new_size: number | null;
+  binary: boolean;
+  executable?: boolean;
+  mode_changed?: boolean;
+}
+
+/**
+ * What changed between two commits of a workspace (null: from nothing), renames found, with line hunks
+ * for the first text files. Big diffs list their first files and say how many there are.
+ */
+export async function diffCommits(slug: string, from: string | null, to: string): Promise<{ files: DiffFile[]; total: number; truncated: boolean }> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc('web_ws_diff', { p_slug: slug, p_from: from ?? '', p_to: to, p_limit: 3000 });
+  const result = (data ?? { files: [], total: 0, truncated: false }) as unknown as { files: DiffRow[]; total: number; truncated: boolean };
+  const before: Record<string, string> = {};
+  const after: Record<string, string> = {};
+  const files: DiffFile[] = result.files.map((r) => {
+    if (r.old_sha) before[r.path] = r.old_sha;
+    if (r.new_sha) after[r.path] = r.new_sha;
     return {
-      path,
-      status: !before[path] ? 'added' : !after[path] ? 'deleted' : 'modified',
-      binary: Boolean(n?.is_binary ?? o?.is_binary),
-      oldSize: o?.size ?? null,
-      newSize: n?.size ?? null,
+      path: r.path,
+      status: r.status,
+      ...(r.old_path ? { oldPath: r.old_path } : {}),
+      ...(r.executable ? { executable: true } : {}),
+      ...(r.mode_changed ? { modeChanged: true } : {}),
+      binary: Boolean(r.binary),
+      oldSize: r.old_size,
+      newSize: r.new_size,
       added: 0,
       removed: 0,
       hunks: null,
@@ -327,7 +350,7 @@ export async function diffCommits(from: string | null, to: string): Promise<{ fi
     }
     f.hunks = kept;
   }
-  return { files, total: files.length };
+  return { files, total: result.total, truncated: result.truncated };
 }
 
 // ----------------------------------------------------------------------------- change requests
@@ -362,6 +385,51 @@ const CR_SELECT =
   'id, workspace_id, number, title, body, status, source_branch, target_branch, base_commit, head_commit, target_head, mergeable, conflicts, ' +
   'task_id, submission_id, verified_at, merged_commit, merged_at, closed_at, created_at, updated_at, ' +
   'author:agents!change_requests_author_agent_id_fkey(handle), merged_by:agents!change_requests_merged_by_fkey(handle)';
+
+export interface CrQueue {
+  status: 'waiting' | 'queued' | 'testing' | 'landed' | 'failed' | 'cancelled';
+  reason: string | null;
+  position: number | null;
+  method: string;
+  test_branch: string | null;
+  test_commit: string | null;
+  checks: { required: string[]; passed: string[]; failed: string[]; pending: string[] } | null;
+}
+
+/** What the code pages show beyond the row: queue entry, what blocks it, owners, checks, stack, claims. */
+export interface CrStatusInfo {
+  queue: CrQueue | null;
+  blocked_by: string[] | null;
+  merge_method: string | null;
+  merge_state: { pending?: number; files?: number; fast_forward?: boolean } | null;
+  size: { files: number; large: boolean } | null;
+  stack: { depends_on: number | null; dependents: number[] } | null;
+  claims_touched: { path: string; agent: string; pattern: string }[] | null;
+  review_state: {
+    owners?: { required: boolean; satisfied: boolean; groups: { owners: string[]; paths: number; sample: string[]; approved_by: string | null }[] };
+    checks?: { required: string[]; passed: string[]; failed: string[]; pending: string[] };
+  } | null;
+}
+
+export async function getCrStatus(slug: string, number: number): Promise<CrStatusInfo | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('web_cr_status', { p_slug: slug, p_number: number });
+  return error || !data ? null : (data as unknown as CrStatusInfo);
+}
+
+export interface QueueRow extends CrQueue {
+  number: number;
+  title: string;
+  author: string | null;
+  target: string;
+}
+
+/** A workspace's merge queues and path claims. */
+export async function getWorkspaceQueue(slug: string): Promise<{ queue: QueueRow[]; claims: { agent: string; pattern: string; note: string | null; expires_at: string }[] }> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc('web_ws_queue', { p_slug: slug });
+  return (data as unknown as { queue: QueueRow[]; claims: { agent: string; pattern: string; note: string | null; expires_at: string }[] }) ?? { queue: [], claims: [] };
+}
 
 export async function listChangeRequests(workspaceId: string, status: 'open' | 'merged' | 'closed' | 'all', limit = 60): Promise<ChangeRequestRow[]> {
   const supabase = await createClient();

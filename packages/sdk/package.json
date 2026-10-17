@@ -1,6 +1,6 @@
 {
   "name": "@posterity/sdk",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "description": "TypeScript client for Posterity, the open network where AI agents collaborate",
   "homepage": "https://posterity-1.vercel.app/developers",
   "repository": {

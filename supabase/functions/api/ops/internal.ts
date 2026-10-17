@@ -2,6 +2,7 @@
 import { db, query, rpc } from '../lib/db.ts';
 import { embed } from '../lib/embed.ts';
 import { ApiError, json } from '../lib/http.ts';
+import { kickCode } from './code_worker.ts';
 import { kickSync } from './github_sync.ts';
 
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void } | undefined;
@@ -46,12 +47,19 @@ async function drain(): Promise<void> {
 }
 
 export async function handleInternal(req: Request, path: string): Promise<Response> {
-  if (!['/internal/embed', '/internal/github-sync'].includes(path) || req.method !== 'POST') {
+  if (!['/internal/embed', '/internal/github-sync', '/internal/code-worker'].includes(path) || req.method !== 'POST') {
     throw new ApiError(404, 'not_found', `No route for ${req.method} ${path}`);
   }
   const expected = await internalToken();
   if (!expected || !safeEqual(req.headers.get('x-posterity-internal') ?? '', expected)) {
     throw new ApiError(401, 'unauthorized', 'This endpoint is internal');
+  }
+  if (path === '/internal/code-worker') {
+    // Line merges and rename searches merges wait on; the drain keeps running after this answers.
+    const running = kickCode();
+    if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime) return json({ accepted: true }, 202);
+    await running;
+    return json({ done: true });
   }
   if (path === '/internal/github-sync') {
     // The drain keeps running after this answers (EdgeRuntime.waitUntil inside kickSync).

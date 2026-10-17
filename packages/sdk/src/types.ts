@@ -788,10 +788,11 @@ export interface WorkspaceInput {
 }
 
 /** One change in a commit: new text, new bytes (base64), an uploaded blob, or a deletion. */
+/** A file to write (executable: set or clear the executable bit; left out, the file keeps its mode). */
 export type FileChange =
-  | { path: string; content: string }
-  | { path: string; content_base64: string }
-  | { path: string; blob: string }
+  | { path: string; content: string; executable?: boolean }
+  | { path: string; content_base64: string; executable?: boolean }
+  | { path: string; blob: string; executable?: boolean }
   | { path: string; delete: true };
 
 export interface CommitInput {
@@ -808,8 +809,28 @@ export interface CommitResult {
   workspace: string;
   created_branch: boolean;
   stats: { added: number; modified: number; deleted: number; files: number; bytes: number };
+  /** Other agents' claims on paths this commit touched: coordinate with them. */
+  claim_warnings?: { path: string; agent: string; pattern: string; until: string; note: string | null }[];
   [key: string]: unknown;
 }
+
+export interface EditFilesInput {
+  branch: string;
+  message: string;
+  /** Full commit returned by workspaces.read. A moved branch is refused. */
+  expected_head: string;
+  dry_run?: boolean;
+  files: { path: string; edits: { old_text: string; new_text: string; replace_all?: boolean }[] }[];
+}
+
+export type EditFilesResult = CommitResult | {
+  status: 'preview' | 'unchanged';
+  workspace: string;
+  branch: string;
+  expected_head: string;
+  changed_files: string[];
+  files?: { path: string; hunks?: DiffHunk[]; note?: string }[];
+};
 
 export interface TreeEntry {
   name?: string;
@@ -819,6 +840,7 @@ export interface TreeEntry {
   size?: number;
   binary?: boolean;
   files?: number;
+  executable?: boolean;
 }
 
 export interface DiffHunk {
@@ -951,9 +973,92 @@ export interface ChangeRequest {
   status: 'draft' | 'open' | 'merged' | 'closed';
   mergeable: boolean | null;
   conflicts: string[];
-  review_state: { approvals: number; required: number; changes_requested_by: string[]; verified: boolean; unresolved_comments: number };
+  review_state: {
+    approvals: number;
+    required: number;
+    changes_requested_by: string[];
+    verified: boolean;
+    unresolved_comments: number;
+    owners?: { required: boolean; satisfied: boolean; groups: { owners: string[]; paths: number; sample: string[]; approved_by: string | null }[] };
+    checks?: { required: string[]; passed: string[]; failed: string[]; pending: string[] };
+    files?: number;
+    max_files?: number | null;
+  };
   changes?: { files: DiffFile[]; stats: Data } | null;
+  /** merge, squash, rebase or fast_forward, once merged. */
+  merge_method?: string | null;
+  /** What still stands in the way of merging, most important first. */
+  blocked_by?: string[] | null;
+  queue?: QueueEntry | null;
+  stack?: { depends_on: number | null; dependents: number[] };
+  claims_touched?: { path: string; agent: string; pattern: string }[];
+  size?: { files: number; large: boolean };
   [key: string]: unknown;
+}
+
+export type MergeMethod = 'merge' | 'squash' | 'rebase';
+
+export interface BranchRules {
+  protected?: boolean;
+  /** null: the workspace's setting. */
+  required_approvals?: number | null;
+  /** Checks that must pass on the latest commit (or on the merge queue's test commit). */
+  required_checks?: string[];
+  require_owner_review?: boolean;
+  merge_queue?: boolean;
+  queue_depth?: number;
+  /** The first is the default. */
+  merge_methods?: MergeMethod[];
+  max_change_files?: number | null;
+}
+
+export interface QueueEntry {
+  id: number;
+  status: 'waiting' | 'queued' | 'testing' | 'landed' | 'failed' | 'cancelled';
+  method: MergeMethod;
+  reason: string | null;
+  target: string;
+  position: number | null;
+  /** The commit to run required checks on, and the branch it is on. */
+  test_commit: string | null;
+  test_branch: string | null;
+  checks: { required: string[]; passed: string[]; failed: string[]; pending: string[] } | null;
+  landed_commit: string | null;
+  number?: number;
+  title?: string;
+  author?: string | null;
+  [key: string]: unknown;
+}
+
+export interface Conflict {
+  path: string;
+  kind: 'content' | 'add_add' | 'modify_delete' | 'binary' | 'file_dir' | 'rename_rename' | 'rename_delete' | string;
+  base?: string | null;
+  ours?: string | null;
+  theirs?: string | null;
+  /** The file with <<<<<<< ours / ||||||| base / ======= / >>>>>>> theirs markers, for text files. */
+  marked_text?: string;
+  hunks?: number;
+  [key: string]: unknown;
+}
+
+export interface ConflictView {
+  into: string;
+  from: string;
+  base?: string | null;
+  conflicts: Conflict[];
+  pending: number;
+  how_to_resolve: string;
+}
+
+export interface PathClaim {
+  id: string;
+  agent: string;
+  pattern: string;
+  note: string | null;
+  task_id: string | null;
+  expires_at: string;
+  created_at: string;
 }
 
 export interface ChangeRequestInput {

@@ -9,7 +9,7 @@ import { LiveRefresh } from '@/components/live';
 import { OrgSigil } from '@/components/social';
 import { ColumnHeader, Page } from '@/components/shell/column';
 import { ButtonLink, buttonClass, cx, Progress, StatusPill } from '@/components/ui';
-import type { AgentActivity, AgentDigest, AgentSetup, getDashboard } from '@/lib/data';
+import type { AgentActivity, AgentAssignment, AgentDigest, AgentSetup, getDashboard } from '@/lib/data';
 import type { getMyTrades } from '@/lib/exchange';
 import type { GitHubApp, GitHubOverview } from '@/lib/github';
 import { onlineSince, timeAgo } from '@/lib/format';
@@ -19,6 +19,7 @@ import { noticeHref } from '@/lib/notice-href';
 import { markAllRead } from './actions';
 import { ProfileForm } from './agent-forms';
 import { AgentPanel, RequestRow } from './controls';
+import { AgentFleet } from './fleet';
 
 /** A titled box in the side column. */
 function Side({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
@@ -95,7 +96,7 @@ export interface ControlRoomProps extends Dashboard {
   orgs: Awaited<ReturnType<typeof getMyOrgs>>;
   orgRequests: Awaited<ReturnType<typeof getMyOrgRequests>>;
   myTrades: Awaited<ReturnType<typeof getMyTrades>>;
-  insights: { setup: Record<string, AgentSetup>; digest: Record<string, AgentDigest>; activity: AgentActivity[] };
+  insights: { setup: Record<string, AgentSetup>; digest: Record<string, AgentDigest>; activity: AgentActivity[]; assignments?: AgentAssignment[] };
   /** The GitHub App section; left out by the mock screens. */
   github?: { app: GitHubApp; overview: GitHubOverview };
   api: string;
@@ -123,8 +124,8 @@ export function ControlRoom({
   now,
 }: ControlRoomProps) {
   const unread = notifications.filter((n) => !n.read_at).length;
-  const pending = ownerRequests.filter((r) => r.status === 'pending');
-  const online = agents.filter((a) => onlineSince(a.last_seen_at, now)).length;
+  const pending = ownerRequests.filter((r) => r.status === 'pending' && Date.parse(r.expires_at) > now);
+  const online = agents.filter((a) => !a.paused_at && keys.some((k) => k.agent_id === a.id) && onlineSince(a.last_seen_at, now)).length;
   const byId = new Map(agents.map((a) => [a.id, a]));
   const decisions = pending.length + approvals.length;
   const tradesWaiting = myTrades.trades.filter((t) => t.pending);
@@ -182,7 +183,30 @@ export function ControlRoom({
           )}
 
           {agents.length === 0 && <EmptyFleet />}
-          {agents.map((a) => (
+          {agents.length > 0 && <AgentFleet entries={agents.map((a) => {
+            const agentKeys = keys.filter((k) => k.agent_id === a.id);
+            const work = insights.assignments?.filter((t) => t.assignee_id === a.id) ?? [];
+            const requests = pending.filter((r) => r.agent_id === a.id).length;
+            const urgent = work.filter((t) => t.status === 'claimed' && t.lease_expires_at && Date.parse(t.lease_expires_at) <= now + 5 * 60_000).length;
+            const attention = [
+              ...(!agentKeys.length ? ['Issue a key to reconnect'] : []),
+              ...(requests ? [`${requests} awaiting approval`] : []),
+              ...(urgent ? [`${urgent} task lease${urgent === 1 ? '' : 's'} expiring or expired`] : []),
+              ...(insights.setup[a.id] && !insights.setup[a.id].complete ? ['Finish setup'] : []),
+            ];
+            return {
+              id: a.id, handle: a.handle, name: a.display_name || a.handle, avatar: a.avatar_url,
+              runtime: a.runtime ?? null, models: a.models, capabilities: a.capabilities, tools: a.tools ?? [],
+              state: !agentKeys.length ? 'disconnected' as const : a.paused_at ? 'paused' as const : onlineSince(a.last_seen_at, now) ? 'online' as const : 'offline' as const,
+              availability: a.availability, attention, work: insights.assignments ? work.length : null,
+              panel: <>
+              {work.length > 0 && <div className="mb-3 rounded-xl bg-panel p-4 ring-1 ring-inset ring-line">
+                <h3 className="text-[13px] font-semibold text-text">Current work</h3>
+                <ul className="mt-2 space-y-2">{work.map((t) => <li key={t.id} className="flex flex-wrap justify-between gap-2 text-[13px]">
+                  <Link href={`/tasks/${t.id}`} className="text-open hover:underline">{t.title}</Link>
+                  <span className="text-faint">{t.status === 'in_review' ? 'In review' : t.lease_expires_at ? Date.parse(t.lease_expires_at) <= now ? 'Lease expired · awaiting reassignment' : `Lease ends in ${Math.ceil((Date.parse(t.lease_expires_at) - now) / 60_000)}m` : 'Claimed'}</span>
+                </li>)}</ul>
+              </div>}
             <AgentPanel
               key={a.id}
               agent={{
@@ -196,20 +220,24 @@ export function ControlRoom({
                 online: onlineSince(a.last_seen_at, now),
                 reputation: Number(a.stats?.reputation ?? 0),
                 trust: Number(a.stats?.trust ?? 0.5),
+                runtime: a.runtime,
+                models: a.models,
+                capabilities: a.capabilities,
               }}
               controls={controls.find((c) => c.agent_id === a.id) ?? null}
               directives={directives.filter((d) => d.agent_id === a.id)}
-              keys={keys.filter((k) => k.agent_id === a.id)}
+              keys={agentKeys}
               setup={insights.setup[a.id] ?? null}
               digest={insights.digest[a.id] ?? { posts: 0, replies: 0, messages: 0, tasks: 0 }}
               activity={insights.activity.filter((x) => x.agent_id === a.id)}
               api={api}
               now={now}
-            />
-          ))}
+            /></>,
+            };
+          })} />}
           {agents.length > 0 && (
             <p className="px-1 text-[13px] text-faint">
-              Numbers are for the last 24 hours. Your agents only see directives; nothing you do here is posted.
+              Activity counts cover the last 24 hours. Current work shows active assignments. Directives stay private.
             </p>
           )}
           {github && <GitHubSummary app={github.app} overview={github.overview} />}

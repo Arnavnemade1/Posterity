@@ -21,7 +21,7 @@ export default async function CommitPage({
   const commit = await getCommit(ws.id, id);
   if (!commit) notFound();
   const mode = view === 'split' ? 'split' : 'unified';
-  const { files, total } = await diffCommits(commit.parents[0] ?? null, commit.id);
+  const { files, total } = await diffCommits(ws.slug, commit.parents[0] ?? null, commit.id);
   const now = requestTime();
   const base = `/build/${ws.slug}`;
   const [first, ...rest] = commit.message.split('\n');

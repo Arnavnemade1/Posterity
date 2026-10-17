@@ -30,12 +30,23 @@ interface PgError {
   hint?: string | null;
 }
 
+/** A JSON object the engine attached to an error (e.g. a merge's conflicts), for the error body. */
+function structuredDetail(detail: string | null | undefined): Record<string, unknown> | undefined {
+  if (!detail?.startsWith('{')) return undefined;
+  try {
+    const parsed = JSON.parse(detail);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /** Engine errors carry SQLSTATE PTxxx, which maps straight to HTTP status xxx. */
 export function toApiError(error: PgError): ApiError {
   const custom = /^PT(\d{3})$/.exec(error.code ?? '');
   if (custom) {
     const status = Number(custom[1]);
-    return new ApiError(status, errorCode(status), error.message);
+    return new ApiError(status, errorCode(status), error.message, undefined, structuredDetail(error.details));
   }
   switch (error.code) {
     case '22P02':

@@ -1,14 +1,17 @@
 // Workspaces: files, commits, branches and change requests that agents build together.
 //
-// The engine (phase10_workspaces.sql) commits and merges atomically and decides who may do what.
-// This layer hashes and stores file contents (text inline in the database, binaries in a private
-// Storage bucket), accepts files inline in commits so an agent with only curl can work, computes
-// line diffs (cached per pair of blobs) and streams archives.
+// The engine (phase10_workspaces.sql, phase12_trees.sql) commits and merges atomically and decides
+// who may do what. This layer hashes and stores file contents (text inline in the database, binaries
+// in a private Storage bucket), accepts files inline in commits so an agent with only curl can work,
+// computes line diffs (cached per pair of blobs), works out the line merges a merge waits on (the code
+// worker, inline when it can) and streams archives.
 import { structuredPatch } from 'npm:diff@5.2.0';
 import { asText, BLOB_MAX, BUCKET, fromBase64, gitSha1, sha256Hex, toBase64 } from '../lib/blobs.ts';
 import { db, query, rpc } from '../lib/db.ts';
-import { ApiError, CORS_HEADERS } from '../lib/http.ts';
+import { ApiError, CORS_HEADERS, Deferred } from '../lib/http.ts';
+import { applyTextEdits } from '../lib/text_edits.ts';
 import { array, bool, id, type Input, int, object, oneOf, optionalId, str, strList } from '../lib/validate.ts';
+import { runCodeJobs } from './code_worker.ts';
 import { type Ctx, gate, limit, requireAgent } from './context.ts';
 import { resolveMissionId } from './missions.ts';
 import { resolveOrgId } from './orgs.ts';
@@ -111,6 +114,7 @@ interface Change {
   delete?: unknown;
   content?: unknown;
   content_base64?: unknown;
+  executable?: unknown;
 }
 
 /**
@@ -138,20 +142,93 @@ const pathHint = (slug: string) => ({
   web: `GET /workspaces/${slug}`,
 });
 
+// ----------------------------------------------------------------------------- merges that wait
+
+/**
+ * Run a merge (or rebase, cherry-pick) that may wait on line merges: the engine answers status
+ * "pending" and queues them. Work them out here, within a budget, and ask again; if some are still
+ * being worked out, answer 202. Nothing was written yet, and the code worker finishes the rest, so
+ * asking again shortly after completes it.
+ */
+async function settleMerges<T extends { status?: string }>(ws: string, run: () => Promise<T>): Promise<T> {
+  let result = await run();
+  for (let round = 0; round < 4 && result?.status === 'pending'; round++) {
+    const { done } = await runCodeJobs({ workspace: ws, budgetMs: 700, wallMs: 12_000 });
+    if (!done) break;
+    result = await run();
+  }
+  if (result?.status === 'pending') {
+    throw new Deferred({
+      ...result,
+      status: 'pending',
+      retry_after: 10,
+      hint: 'Some files need a line-by-line merge that is still being worked out. Nothing was written yet; ask again in a few seconds.',
+    });
+  }
+  return result;
+}
+
+interface Conflict {
+  path: string;
+  kind: string;
+  base?: string | null;
+  ours?: string | null;
+  theirs?: string | null;
+  marked?: string | null;
+  [key: string]: unknown;
+}
+
+const MARKED_INLINE = 300_000;
+
+/**
+ * What merging `from` into `into` conflicts on: each file with how it conflicts and, for text, the file
+ * with conflict markers to edit (ours = into, theirs = from). Line merges still being worked out are
+ * worked out first.
+ */
+async function conflicts(ws: string, agent: string | null, into: string, from: string) {
+  const ask = () => rpc<{ into: string; from: string; base: string | null; conflicts: Conflict[]; pending: number }>(
+    'ws_merge_conflicts',
+    { p_ws: ws, p_agent: agent, p_into: into, p_from: from },
+  );
+  let result = await ask();
+  for (let round = 0; round < 4 && result.pending > 0; round++) {
+    const { done } = await runCodeJobs({ workspace: ws, budgetMs: 700, wallMs: 12_000 });
+    if (!done) break;
+    result = await ask();
+  }
+  const marked = result.conflicts.map((c) => c.marked).filter((s): s is string => Boolean(s));
+  const texts = marked.length ? await readBlobs(ws, agent, marked) : new Map<string, BlobRow>();
+  return {
+    ...result,
+    conflicts: result.conflicts.map((c) => {
+      const row = c.marked ? texts.get(c.marked) : undefined;
+      return row?.content != null && row.content.length <= MARKED_INLINE ? { ...c, marked_text: row.content } : c;
+    }),
+    how_to_resolve: result.conflicts.length
+      ? `Edit each file (the marked text shows "ours" = ${into}, "theirs" = ${from}), then merge again with resolutions: {"path": {"content": "..."} | "<blob sha256>" | null to delete}.`
+      : 'Nothing conflicts.',
+  };
+}
+
 // ----------------------------------------------------------------------------- workspaces
 
 const WORKSPACE_ACTIONS = [
   'list', 'get', 'create', 'update', 'set_member', 'remove_member', 'create_branch', 'delete_branch', 'protect_branch', 'merge',
+  'conflicts', 'rebase', 'cherry_pick', 'set_rules', 'queue', 'claim', 'release_claims', 'claims', 'owners',
 ] as const;
 
-export const WORKSPACE_READS = new Set(['list', 'get']);
+export const WORKSPACE_READS = new Set(['list', 'get', 'conflicts', 'queue', 'claims', 'owners']);
+
+const RULE_KEYS = ['protected', 'required_approvals', 'required_checks', 'require_owner_review', 'merge_queue', 'queue_depth', 'merge_methods', 'max_change_files'] as const;
 
 /**
  * list (q, mine, mission), get, create (name, slug?, description?, visibility?, mission?, org?,
  * open_contribution?), update (maintainers: name, description, visibility, open_contribution,
  * default_branch, required_approvals), set_member / remove_member (handle, role), create_branch
- * (name, from?), delete_branch (name), protect_branch (name, protected?), merge (into, from, message?,
- * resolutions?).
+ * (name, from?), delete_branch (name), protect_branch (name, protected?), set_rules (maintainers: name,
+ * and any of the branch rules), merge (into, from, message?, resolutions?), conflicts (into, from),
+ * rebase (branch, onto?), cherry_pick (branch, commit), queue (target?), claim (patterns, task_id?,
+ * note?, hours?), release_claims (patterns?), claims, owners (paths, ref?).
  */
 export async function workspaceTool(ctx: Ctx, input: Input) {
   const action = oneOf(input, 'action', WORKSPACE_ACTIONS) ?? 'list';
@@ -188,6 +265,25 @@ export async function workspaceTool(ctx: Ctx, input: Input) {
       how_to_contribute: contribute,
       ...pathHint(detail.slug),
     };
+  }
+
+  if (action === 'conflicts') {
+    const ws = await wsId(input);
+    return conflicts(ws, ctx.agent?.id ?? null, str(input, 'into', { required: true, max: 100 })!, str(input, 'from', { required: true, max: 100 })!);
+  }
+  if (action === 'queue') {
+    const ws = await wsId(input);
+    return { queue: await rpc('ws_queue_list', { p_ws: ws, p_agent: ctx.agent?.id ?? null, p_target: str(input, 'target', { max: 100 }) ?? null }) };
+  }
+  if (action === 'claims') {
+    const ws = await wsId(input);
+    return { claims: await rpc('ws_list_claims', { p_ws: ws, p_agent: ctx.agent?.id ?? null }) };
+  }
+  if (action === 'owners') {
+    const ws = await wsId(input);
+    const paths = strList(input, 'paths', { max: 1000, itemMax: 500 }) ?? [];
+    if (!paths.length) throw new ApiError(400, 'bad_request', 'paths is required: the files to look up');
+    return rpc('ws_path_owners', { p_ws: ws, p_agent: ctx.agent?.id ?? null, p_ref: str(input, 'ref', { max: 100 }) ?? null, p_paths: paths });
   }
 
   const agent = requireAgent(ctx);
@@ -243,6 +339,26 @@ export async function workspaceTool(ctx: Ctx, input: Input) {
       return rpc('ws_delete_branch', { p_ws: ws, p_agent: agent.id, p_name: str(input, 'name', { required: true, max: 100 }) });
     case 'protect_branch':
       return rpc('ws_protect_branch', { p_ws: ws, p_agent: agent.id, p_name: str(input, 'name', { required: true, max: 100 }), p_protected: bool(input, 'protected') ?? true });
+    case 'set_rules': {
+      const rules: Record<string, unknown> = {};
+      for (const key of RULE_KEYS) if (key in input) rules[key] = input[key];
+      if (!Object.keys(rules).length) {
+        throw new ApiError(400, 'bad_request', `Nothing to set: give any of ${RULE_KEYS.join(', ')}`);
+      }
+      return rpc('ws_set_branch_rules', { p_ws: ws, p_agent: agent.id, p_name: str(input, 'name', { required: true, max: 100 }), p_rules: rules });
+    }
+    case 'claim':
+      await limit(`ws_claims:${agent.id}`, 3600, 120, 'path claims per hour');
+      return rpc('ws_claim_paths', {
+        p_ws: ws,
+        p_agent: agent.id,
+        p_patterns: strList(input, 'patterns', { max: 20, itemMax: 300 }) ?? [],
+        p_task: optionalId(input, 'task_id') ?? null,
+        p_note: str(input, 'note', { max: 300 }) ?? null,
+        p_hours: int(input, 'hours', { min: 1, max: 168 }) ?? 4,
+      });
+    case 'release_claims':
+      return rpc('ws_release_claims', { p_ws: ws, p_agent: agent.id, p_patterns: strList(input, 'patterns', { max: 50, itemMax: 300 }) ?? null });
     case 'merge': {
       await limit(`ws_commits:${agent.id}`, 3600, 240, 'commits per hour');
       const raw = object(input, 'resolutions') ?? {};
@@ -254,14 +370,36 @@ export async function workspaceTool(ctx: Ctx, input: Input) {
         else if (typeof value === 'object') resolutions[path] = await contentBlob(ws, agent.id, value as Change, `resolutions["${path}"]`, budget);
         else throw new ApiError(400, 'bad_request', `resolutions["${path}"] must be a blob sha256, {"content": "..."} or null`);
       }
-      return rpc('ws_merge_branches', {
-        p_ws: ws,
-        p_agent: agent.id,
-        p_into: str(input, 'into', { required: true, max: 100 }),
-        p_from: str(input, 'from', { required: true, max: 100 }),
-        p_message: str(input, 'message', { max: 4000, trim: false }) ?? null,
-        p_resolutions: resolutions,
-      });
+      const into = str(input, 'into', { required: true, max: 100 });
+      const from = str(input, 'from', { required: true, max: 100 });
+      const message = str(input, 'message', { max: 4000, trim: false }) ?? null;
+      return settleMerges(ws, () =>
+        rpc<{ status?: string }>('ws_merge_branches', {
+          p_ws: ws,
+          p_agent: agent.id,
+          p_into: into,
+          p_from: from,
+          p_message: message,
+          p_resolutions: resolutions,
+          p_pending_ok: true,
+        })
+      );
+    }
+    case 'rebase': {
+      await limit(`ws_commits:${agent.id}`, 3600, 240, 'commits per hour');
+      const branch = str(input, 'branch', { required: true, max: 100 });
+      const onto = str(input, 'onto', { max: 100 }) ?? null;
+      return settleMerges(ws, () =>
+        rpc<{ status?: string }>('ws_rebase', { p_ws: ws, p_agent: agent.id, p_branch: branch, p_onto: onto, p_pending_ok: true })
+      );
+    }
+    case 'cherry_pick': {
+      await limit(`ws_commits:${agent.id}`, 3600, 240, 'commits per hour');
+      const branch = str(input, 'branch', { required: true, max: 100 });
+      const commit = str(input, 'commit', { required: true, max: 64 });
+      return settleMerges(ws, () =>
+        rpc<{ status?: string }>('ws_cherry_pick', { p_ws: ws, p_agent: agent.id, p_branch: branch, p_commit: commit, p_pending_ok: true })
+      );
     }
   }
 }
@@ -270,8 +408,9 @@ export async function workspaceTool(ctx: Ctx, input: Input) {
 
 /**
  * Commit to a branch: {branch, message, expected_head?, changes: [{path, content | content_base64 |
- * blob} | {path, delete: true}]}. A branch that does not exist yet is created from expected_head (or
- * the default branch). If the branch moved since expected_head, nothing is written (409 head_moved).
+ * blob, executable?} | {path, delete: true}]}. A file keeps its mode unless "executable" says
+ * otherwise. A branch that does not exist yet is created from expected_head (or the default branch).
+ * If the branch moved since expected_head, nothing is written (409 head_moved).
  */
 export async function commitTool(ctx: Ctx, input: Input) {
   const agent = requireAgent(ctx);
@@ -285,8 +424,17 @@ export async function commitTool(ctx: Ctx, input: Input) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new ApiError(400, 'bad_request', `changes[${i}] must be an object`);
     const change = raw as Change;
     if (typeof change.path !== 'string') throw new ApiError(400, 'bad_request', `changes[${i}].path is required`);
+    if (change.executable !== undefined && typeof change.executable !== 'boolean') {
+      throw new ApiError(400, 'bad_request', `changes[${i}].executable must be true or false`);
+    }
     if (change.delete === true) resolved.push({ path: change.path, delete: true });
-    else resolved.push({ path: change.path, blob: await contentBlob(ws, agent.id, change, `changes[${i}] (${change.path})`, budget) });
+    else {
+      resolved.push({
+        path: change.path,
+        blob: await contentBlob(ws, agent.id, change, `changes[${i}] (${change.path})`, budget),
+        ...(typeof change.executable === 'boolean' ? { executable: change.executable } : {}),
+      });
+    }
   }
   const result = await rpc<{ commit: string; branch: string; workspace: string; created_branch: boolean }>('ws_commit', {
     p_ws: ws,
@@ -296,23 +444,96 @@ export async function commitTool(ctx: Ctx, input: Input) {
     p_message: str(input, 'message', { required: true, max: 4000, trim: false }),
     p_changes: resolved,
   });
+  // Advisory: other agents said they are working on some of these paths.
+  const claimed = await rpc<{ path: string; agent: string; pattern: string; until: string }[]>('ws_claim_conflicts', {
+    p_ws: ws,
+    p_agent: agent.id,
+    p_paths: resolved.map((c) => c.path),
+  }).catch(() => []);
   return {
     ...result,
+    ...(claimed.length
+      ? { claim_warnings: claimed, claim_hint: 'Other agents claimed some of these paths (posterity_workspace action: claims). Coordinate with them before your change requests collide.' }
+      : {}),
     next: `When the work is ready, propose it: POST /workspaces/${result.workspace}/change-requests {"source": "${result.branch}", "title": "..."} (posterity_change_request action: open).`,
   };
 }
 
 // ----------------------------------------------------------------------------- files and diffs
 
+/** Small remote edits for agents with HTTP or MCP, using the same atomic commit engine. */
+export async function editTool(ctx: Ctx, input: Input) {
+  const agent = requireAgent(ctx);
+  await limit(`ws_edits:${agent.id}`, 3600, 240, 'edit requests per hour');
+  const ws = await wsId(input);
+  const branch = str(input, 'branch', { required: true, max: 100 })!;
+  const message = str(input, 'message', { required: true, max: 4000, trim: false })!;
+  const head = str(input, 'expected_head', { required: true, max: 64 })!;
+  if (!SHA_RE.test(head)) throw new ApiError(400, 'bad_request', 'expected_head must be the full commit sha256 returned when you read the file');
+  const dryRun = bool(input, 'dry_run') ?? false;
+  const files = array(input, 'files', 100);
+  if (!files?.length) throw new ApiError(400, 'bad_request', 'files is required: [{path, edits: [{old_text, new_text}]}]');
+  await rpc('ws_assert_read', { p_ws: ws, p_agent: agent.id });
+  const current = await rpc<string>('ws_resolve_ref', { p_ws: ws, p_ref: branch });
+  if (current !== head) throw new ApiError(409, 'head_moved', 'The branch moved since you read it',
+    'Read the current files and reapply your edits; do not retry with a different head blindly.', { expected_head: head, current_head: current });
+  const paths = new Set<string>();
+  const changes: { path: string; content: string }[] = [];
+  const previews: { path: string; hunks?: Hunk[]; note?: string }[] = [];
+  let bytes = 0;
+  for (const raw of files) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new ApiError(400, 'bad_request', 'Each file must be an object');
+    const file = raw as Input;
+    const path = str(file, 'path', { required: true, max: 500 })!;
+    if (paths.has(path)) throw new ApiError(400, 'bad_request', `${path}: put all replacements in one files entry`);
+    paths.add(path);
+    const source = await rpc<{ binary: boolean; content: string | null; size: number }>('ws_file', {
+      p_ws: ws, p_agent: agent.id, p_ref: head, p_path: path,
+    });
+    if (source.binary || source.content === null) throw new ApiError(400, 'bad_request', `${path}: targeted edits require a text file`);
+    if (source.size > INLINE_MAX) throw new ApiError(413, 'payload_too_large', `${path}: targeted edits support files up to 4 MB`);
+    const content = applyTextEdits(source.content, file.edits, path);
+    bytes += new TextEncoder().encode(content).length;
+    if (bytes > INLINE_MAX) throw new ApiError(413, 'payload_too_large', 'Edited files can total at most 4 MB');
+    if (content !== source.content) {
+      changes.push({ path, content });
+      if (dryRun) {
+        if (source.content.length > PATCH_SOURCE_MAX || content.length > PATCH_SOURCE_MAX) {
+          previews.push({ path, note: 'Edit validated. File is too large for an inline diff; review the exact replacements before committing.' });
+        } else {
+          const hunks = hunksOf(path, source.content, content);
+          const lines = hunks.reduce((n, h) => n + h.lines.length, 0);
+          previews.push(lines > PATCH_LINES
+            ? { path, note: `Edit validated. Diff exceeds ${PATCH_LINES} lines; review the exact replacements before committing.` }
+            : { path, hunks });
+        }
+      }
+    }
+  }
+  // Validate every file before uploading anything. ws_commit checks the head again under its lock.
+  if (dryRun || !changes.length) return {
+    status: dryRun ? 'preview' : 'unchanged', workspace: input.workspace, branch,
+    expected_head: head, changed_files: changes.map((f) => f.path), ...(dryRun ? { files: previews } : {}),
+  };
+  return commitTool(ctx, { workspace: input.workspace, branch, message, expected_head: head, changes });
+}
+
 interface DiffFile {
   path: string;
-  status: 'added' | 'modified' | 'deleted';
+  status: 'added' | 'modified' | 'deleted' | 'renamed';
+  /** For a renamed file, where it was. */
+  old_path?: string;
   old_sha: string | null;
   new_sha: string | null;
   binary: boolean;
+  executable?: boolean;
+  mode_changed?: boolean;
   hunks?: unknown;
   note?: string;
 }
+
+/** Files listed in one diff; a larger one says how many there are (total) and stops there. */
+const DIFF_FILES_MAX = 3000;
 
 const PATCH_FILES = 60;
 const PATCH_LINES = 3000;
@@ -326,7 +547,8 @@ function hunksOf(path: string, before: string, after: string): Hunk[] {
 
 /** Line hunks for the text files of a diff. Pairs of changed blobs are cached in blob_diffs. */
 async function withPatches(ws: string, agent: string | null, files: DiffFile[]): Promise<DiffFile[]> {
-  const text = files.filter((f) => !f.binary).slice(0, PATCH_FILES);
+  // A file renamed without edits has no lines to show.
+  const text = files.filter((f) => !f.binary && f.old_sha !== f.new_sha).slice(0, PATCH_FILES);
   const pairs = text.filter((f) => f.old_sha && f.new_sha);
   const cached = new Map<string, Hunk[]>();
   if (pairs.length) {
@@ -365,25 +587,41 @@ async function withPatches(ws: string, agent: string | null, files: DiffFile[]):
     const { error } = await db().from('blob_diffs').upsert(fresh, { onConflict: 'old_sha,new_sha', ignoreDuplicates: true });
     if (error) console.error('blob_diffs cache write failed', error);
   }
-  return files.map((f) => patched.get(f.path) ?? (f.binary ? f : { ...f, note: `Line diffs cover the first ${PATCH_FILES} text files.` }));
+  return files.map((f) =>
+    patched.get(f.path) ?? (f.binary || f.old_sha === f.new_sha ? f : { ...f, note: `Line diffs cover the first ${PATCH_FILES} text files.` })
+  );
 }
 
 async function diff(ws: string, agent: string | null, from: string | null, to: string | null, patch: boolean) {
-  const result = await rpc<{ from: string; to: string; files: DiffFile[] }>('ws_diff', { p_ws: ws, p_agent: agent, p_from: from, p_to: to });
+  const result = await rpc<{ from: string; to: string; files: DiffFile[]; total: number; truncated: boolean }>('ws_diff', {
+    p_ws: ws,
+    p_agent: agent,
+    p_from: from,
+    p_to: to,
+    p_renames: true,
+    p_limit: DIFF_FILES_MAX,
+  });
   const stats = {
-    files: result.files.length,
+    files: result.total,
     added: result.files.filter((f) => f.status === 'added').length,
     modified: result.files.filter((f) => f.status === 'modified').length,
     deleted: result.files.filter((f) => f.status === 'deleted').length,
+    renamed: result.files.filter((f) => f.status === 'renamed').length,
   };
-  return { ...result, stats, files: patch ? await withPatches(ws, agent, result.files) : result.files };
+  return {
+    ...result,
+    stats,
+    ...(result.truncated ? { note: `This diff changes ${result.total} files; the first ${DIFF_FILES_MAX} are listed.` } : {}),
+    files: patch ? await withPatches(ws, agent, result.files) : result.files,
+  };
 }
 
 const FILES_ACTIONS = ['tree', 'read', 'log', 'diff', 'show'] as const;
 
 /**
- * Read a workspace: tree (ref?, path?, recursive?), read (path, ref?), log (ref?, path?, limit,
- * offset), diff (from, to, patch?), show (commit, patch?).
+ * Read a workspace: tree (ref?, path?, recursive?, after?, limit?: recursive listings come a page at
+ * a time, continue with after = the previous page's next), read (path, ref?), log (ref?, path?, limit,
+ * before? = the previous page's next, or offset), diff (from, to, patch?), show (commit, patch?).
  */
 export async function filesTool(ctx: Ctx, input: Input) {
   const action = oneOf(input, 'action', FILES_ACTIONS) ?? 'tree';
@@ -392,7 +630,15 @@ export async function filesTool(ctx: Ctx, input: Input) {
   const ref = str(input, 'ref', { max: 100 }) ?? null;
   switch (action) {
     case 'tree':
-      return rpc('ws_tree', { p_ws: ws, p_agent: agent, p_ref: ref, p_path: str(input, 'path', { max: 500 }) ?? null, p_recursive: bool(input, 'recursive') ?? false });
+      return rpc('ws_tree', {
+        p_ws: ws,
+        p_agent: agent,
+        p_ref: ref,
+        p_path: str(input, 'path', { max: 500 }) ?? null,
+        p_recursive: bool(input, 'recursive') ?? false,
+        p_after: str(input, 'after', { max: 500, trim: false }) ?? null,
+        p_limit: int(input, 'limit', { min: 1, max: 50_000 }) ?? null,
+      });
     case 'read': {
       const file = await rpc<{ path: string; sha256: string; size: number; binary: boolean; content: string | null; storage_path: string | null; commit: string }>(
         'ws_file',
@@ -417,6 +663,7 @@ export async function filesTool(ctx: Ctx, input: Input) {
         p_path: str(input, 'path', { max: 500 }) ?? null,
         p_limit: int(input, 'limit', { min: 1, max: 100 }) ?? 30,
         p_offset: int(input, 'offset', { min: 0 }) ?? 0,
+        p_before: str(input, 'before', { max: 64 }) ?? null,
       });
     case 'diff':
       return diff(ws, agent, str(input, 'from', { required: true, max: 100 })!, str(input, 'to', { max: 100 }) ?? null, bool(input, 'patch') ?? true);
@@ -516,14 +763,14 @@ function ustarSplit(name: string): { prefix: string; base: string } | null {
   return null;
 }
 
-function tarHeader(name: string, size: number, mtime: number, type = '0'): Uint8Array {
+function tarHeader(name: string, size: number, mtime: number, type = '0', mode = '0000644'): Uint8Array {
   const block = new Uint8Array(512);
   const enc = new TextEncoder();
   const put = (text: string, offset: number, length: number) => block.set(enc.encode(text).subarray(0, length), offset);
   // A name ustar cannot hold is truncated here; the PAX header before it carries the full one.
   const { prefix, base } = ustarSplit(name) ?? { prefix: '', base: name };
   put(base, 0, 100);
-  put('0000644\0', 100, 8);
+  put(`${mode}\0`, 100, 8);
   put('0000000\0', 108, 8);
   put('0000000\0', 116, 8);
   put(octal(size, 12), 124, 12);
@@ -543,7 +790,7 @@ function tarHeader(name: string, size: number, mtime: number, type = '0'): Uint8
 const padding = (length: number) => new Uint8Array((512 - (length % 512)) % 512);
 
 /** A tar entry; a name ustar cannot hold gets a PAX header with the full path first. */
-function* tarEntry(name: string, data: Uint8Array, mtime: number): Generator<Uint8Array> {
+function* tarEntry(name: string, data: Uint8Array, mtime: number, executable = false): Generator<Uint8Array> {
   if (!ustarSplit(name)) {
     // A PAX record is "<length> path=<name>\n", where <length> counts the whole record, itself included.
     const rest = new TextEncoder().encode(` path=${name}\n`).length;
@@ -554,22 +801,47 @@ function* tarEntry(name: string, data: Uint8Array, mtime: number): Generator<Uin
     yield record;
     yield padding(record.length);
   }
-  yield tarHeader(name, data.length, mtime);
+  yield tarHeader(name, data.length, mtime, '0', executable ? '0000755' : '0000644');
   yield data;
   yield padding(data.length);
+}
+
+interface TreeEntry {
+  path: string;
+  sha256: string;
+  size: number;
+  binary: boolean;
+  executable?: boolean;
+}
+
+/** Every file at a ref, a page of the engine's recursive listing at a time. */
+async function allFiles(ws: string, agent: string | null, ref: string | null): Promise<{ commit: string; entries: TreeEntry[] }> {
+  const entries: TreeEntry[] = [];
+  let commit = ref;
+  let after: string | null = null;
+  for (;;) {
+    const page: { commit: string; entries: TreeEntry[]; next: string | null } = await rpc('ws_tree', {
+      p_ws: ws,
+      p_agent: agent,
+      p_ref: commit,
+      p_path: null,
+      p_recursive: true,
+      p_after: after,
+      p_limit: 20_000,
+    });
+    // Later pages read the same commit even if the branch moves meanwhile.
+    commit = page.commit;
+    for (const e of page.entries) entries.push(e);
+    if (!page.next) return { commit: page.commit, entries };
+    after = page.next;
+  }
 }
 
 /** The files at a ref as a .tar.gz stream (up to 50 MB of files). */
 export async function archive(ctx: Ctx, input: Input) {
   const ws = await wsId(input);
   const agent = ctx.agent?.id ?? null;
-  const tree = await rpc<{ commit: string; entries: { path: string; sha256: string; size: number; binary: boolean }[] }>('ws_tree', {
-    p_ws: ws,
-    p_agent: agent,
-    p_ref: str(input, 'ref', { max: 100 }) ?? null,
-    p_path: null,
-    p_recursive: true,
-  });
+  const tree = await allFiles(ws, agent, str(input, 'ref', { max: 100 }) ?? null);
   const total = tree.entries.reduce((sum, e) => sum + (e.size ?? 0), 0);
   if (total > ARCHIVE_MAX) {
     throw new ApiError(413, 'payload_too_large', `Archives are limited to ${ARCHIVE_MAX / 1_048_576} MB of files; this one has ${Math.round(total / 1_048_576)} MB`, 'Clone it with the CLI instead: posterity ws clone <workspace>.');
@@ -585,7 +857,7 @@ export async function archive(ctx: Ctx, input: Input) {
         const row = rows.get(e.sha256);
         if (!row) continue;
         const data = row.binary ? await binaryBytes(row) : new TextEncoder().encode(row.content ?? '');
-        yield* tarEntry(`${root}/${e.path}`, data, mtime);
+        yield* tarEntry(`${root}/${e.path}`, data, mtime, e.executable === true);
       }
     }
     yield new Uint8Array(1024);
@@ -616,9 +888,9 @@ export async function archive(ctx: Ctx, input: Input) {
 
 // ----------------------------------------------------------------------------- change requests
 
-const CR_ACTIONS = ['list', 'get', 'open', 'update', 'comment', 'resolve', 'merge', 'close', 'reopen', 'check'] as const;
+const CR_ACTIONS = ['list', 'get', 'open', 'update', 'comment', 'resolve', 'merge', 'close', 'reopen', 'check', 'conflicts', 'enqueue', 'dequeue'] as const;
 
-export const CR_READS = new Set(['list', 'get']);
+export const CR_READS = new Set(['list', 'get', 'conflicts']);
 
 interface CrJson {
   id: string;
@@ -627,15 +899,38 @@ interface CrJson {
   status: string;
   base_commit: string | null;
   head_commit: string | null;
+  mergeable: boolean | null;
   protected_target: boolean;
   target: string;
   source: string;
   title: string;
 }
 
+/**
+ * Move a workspace's merge queues along, in a call of its own (a queue's lock comes before the rows it
+ * changes, so nothing else may be held), working out the line merges they wait on when that is quick.
+ */
+export async function moveQueues(ws: string) {
+  await rpc('ws_queue_kick', { p_ws: ws });
+  const { done } = await runCodeJobs({ workspace: ws, budgetMs: 700, wallMs: 10_000 });
+  if (done) await rpc('ws_queue_kick', { p_ws: ws });
+}
+
+/**
+ * A change request as it stands: one still open whose mergeability is unknown (line merges being
+ * worked out, or a refresh the sweep has not reached) is brought up to date first, within a budget.
+ */
+async function currentCr(ws: string, cr: string): Promise<CrJson> {
+  const json = await rpc<CrJson>('cr_json', { p_cr: cr });
+  if ((json.status !== 'open' && json.status !== 'draft') || json.mergeable !== null) return json;
+  await rpc('cr_refresh', { p_cr: cr });
+  await runCodeJobs({ workspace: ws, budgetMs: 500, wallMs: 8000 });
+  return rpc<CrJson>('cr_json', { p_cr: cr });
+}
+
 /** A change request with its reviews, comments, checks and the files it changes. */
 async function crDetail(ws: string, agent: string | null, cr: string, patch: boolean) {
-  const json = await rpc<CrJson>('cr_json', { p_cr: cr });
+  const json = await currentCr(ws, cr);
   const [reviews, comments, checks, previews, changes] = await Promise.all([
     query(
       db().from('cr_reviews')
@@ -670,8 +965,10 @@ async function crDetail(ws: string, agent: string | null, cr: string, patch: boo
 /**
  * list (status?), get (number, patch?), open (source, target?, title, body?, task_id?, draft?),
  * update (number, title?, body?, draft?), comment (number, body, path?, line?, side?, reply_to?),
- * resolve (number, comment_id, resolved?), merge (number, message?), close / reopen (number), check
- * (number, name, status, details?, url?, commit?).
+ * resolve (number, comment_id, resolved?), merge (number, message?, method?: merge|squash|rebase),
+ * close / reopen (number), check (number, name, status, details?, url?, commit?), conflicts (number:
+ * what to resolve on the source branch, as merging the target into it), enqueue (number, method?: the
+ * target's merge queue lands it once it is ready), dequeue (number, reason?).
  */
 export async function changeRequestTool(ctx: Ctx, input: Input) {
   const action = oneOf(input, 'action', CR_ACTIONS) ?? 'list';
@@ -693,11 +990,15 @@ export async function changeRequestTool(ctx: Ctx, input: Input) {
   if (action === 'get') {
     return crDetail(ws, viewer, await crId(ws, viewer, input), bool(input, 'patch') ?? true);
   }
+  if (action === 'conflicts') {
+    const json = await rpc<CrJson>('cr_json', { p_cr: await crId(ws, viewer, input) });
+    return { change_request: json.number, source: json.source, target: json.target, ...(await conflicts(ws, viewer, json.source, json.target)) };
+  }
 
   const agent = requireAgent(ctx);
   if (action === 'open') {
     await limit(`ws_crs:${agent.id}`, 3600, 30, 'change requests per hour');
-    return rpc('open_change_request', {
+    const opened = await rpc<CrJson>('open_change_request', {
       p_ws: ws,
       p_agent: agent.id,
       p_source: str(input, 'source', { required: true, max: 100 }),
@@ -707,6 +1008,10 @@ export async function changeRequestTool(ctx: Ctx, input: Input) {
       p_task: optionalId(input, 'task_id') ?? null,
       p_draft: bool(input, 'draft') ?? false,
     });
+    // Line merges it waits on are usually quick: answer with whether it merges.
+    if (opened.mergeable !== null) return opened;
+    await runCodeJobs({ workspace: ws, budgetMs: 500, wallMs: 8000 });
+    return rpc('cr_json', { p_cr: opened.id });
   }
   const cr = await crId(ws, agent.id, input);
   switch (action) {
@@ -739,13 +1044,42 @@ export async function changeRequestTool(ctx: Ctx, input: Input) {
         await gate(ctx, 'merge_protected', input, `Merge ${json.workspace} #${json.number} (“${json.title}”) into the protected branch ${json.target}`);
       }
       await limit(`ws_commits:${agent.id}`, 3600, 240, 'commits per hour');
-      return rpc('merge_change_request', { p_cr: cr, p_agent: agent.id, p_message: str(input, 'message', { max: 4000, trim: false }) ?? null });
+      const message = str(input, 'message', { max: 4000, trim: false }) ?? null;
+      // Without a method the target branch's first allowed one is used.
+      const method = oneOf(input, 'method', ['merge', 'squash', 'rebase'] as const) ?? null;
+      const merged = await settleMerges(ws, () =>
+        rpc<{ status?: string }>('merge_change_request', { p_cr: cr, p_agent: agent.id, p_message: message, p_method: method, p_pending_ok: true })
+      );
+      if (merged.status !== 'queued') return merged;
+      // A branch with a merge queue took it: move the queue along now, and answer where it stands.
+      await moveQueues(ws);
+      return { ...(await rpc<CrJson>('cr_json', { p_cr: cr })), status: 'queued' };
+    }
+    case 'enqueue': {
+      const json = await rpc<CrJson>('cr_json', { p_cr: cr });
+      if (json.protected_target) {
+        await gate(ctx, 'merge_protected', input, `Queue ${json.workspace} #${json.number} (“${json.title}”) to land in the protected branch ${json.target}`);
+      }
+      await rpc('cr_enqueue', {
+        p_cr: cr,
+        p_agent: agent.id,
+        p_method: oneOf(input, 'method', ['merge', 'squash', 'rebase'] as const) ?? null,
+        p_system: false,
+      });
+      await moveQueues(ws);
+      const now = await rpc<CrJson & { queue: unknown }>('cr_json', { p_cr: cr });
+      return { queue: now.queue, change_request: now };
+    }
+    case 'dequeue': {
+      const entry = await rpc('cr_dequeue', { p_cr: cr, p_agent: agent.id, p_reason: str(input, 'reason', { max: 300 }) ?? null });
+      await moveQueues(ws);
+      return { queue: entry };
     }
     case 'close':
     case 'reopen':
       return rpc('set_change_request_state', { p_cr: cr, p_agent: agent.id, p_action: action });
-    case 'check':
-      return rpc('cr_report_check', {
+    case 'check': {
+      const row = await rpc<{ status: string }>('cr_report_check', {
         p_cr: cr,
         p_agent: agent.id,
         p_name: str(input, 'name', { required: true, max: 100 }),
@@ -754,6 +1088,9 @@ export async function changeRequestTool(ctx: Ctx, input: Input) {
         p_url: str(input, 'url', { max: 2000 }) ?? null,
         p_commit: str(input, 'commit', { max: 64 }) ?? null,
       });
+      if (row.status !== 'queued' && row.status !== 'running') await moveQueues(ws);
+      return row;
+    }
   }
 }
 
@@ -763,16 +1100,19 @@ export async function reviewChangeRequest(ctx: Ctx, input: Input) {
   await limit(`ws_reviews:${agent.id}`, 3600, 120, 'change request reviews per hour');
   const ws = await wsId(input);
   const cr = await crId(ws, agent.id, input);
-  return rpc('review_change_request', {
+  const verdict = oneOf(input, 'verdict', ['approve', 'request_changes', 'comment'] as const) ??
+    (() => {
+      throw new ApiError(400, 'bad_request', 'verdict is required: approve, request_changes or comment');
+    })();
+  const result = await rpc('review_change_request', {
     p_cr: cr,
     p_agent: agent.id,
-    p_verdict: oneOf(input, 'verdict', ['approve', 'request_changes', 'comment'] as const) ??
-      (() => {
-        throw new ApiError(400, 'bad_request', 'verdict is required: approve, request_changes or comment');
-      })(),
+    p_verdict: verdict,
     p_body: str(input, 'body', { max: 8000, trim: false }) ?? '',
     p_comments: array(input, 'comments', 50) ?? [],
   });
+  if (verdict !== 'comment') await moveQueues(ws);
+  return result;
 }
 
 // ----------------------------------------------------------------------------- tasks

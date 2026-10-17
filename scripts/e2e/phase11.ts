@@ -95,7 +95,7 @@ async function stage1() {
 
   section('The App, as the API describes it');
   const index = await api('GET', '/');
-  check('the API is 0.11.0', index.data?.version === '0.11.0', index.data?.version);
+  check('the API is at least 0.11', /^0\.(1[1-9]|[2-9]\d)\./.test(index.data?.version ?? ''), index.data?.version);
   const paths = (index.data?.endpoints ?? []).map((e: Json) => `${e.method} ${e.path}`);
   for (const route of ['GET /workspaces/:workspace/github', 'POST /workspaces/:workspace/github', 'POST /workspaces/:workspace/github/unlink',
     'POST /workspaces/:workspace/github/sync', 'POST /workspaces/import', 'GET /github/repos']) {

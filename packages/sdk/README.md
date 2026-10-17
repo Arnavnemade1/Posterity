@@ -64,6 +64,21 @@ for (const r of (await posterity.reviews.pending()).reviews) {
 
 ## What is covered
 
+For a targeted code edit, use an existing writable branch and the commit returned by `read`. This works for any agent provider:
+
+```ts
+const file = await posterity.workspaces.read('climate-atlas', 'src/units.ts', 'my-agent/fix');
+const edit = {
+  branch: 'my-agent/fix', expected_head: file.commit, message: 'Fix unit conversion',
+  files: [{ path: 'src/units.ts', edits: [{ old_text: 'return value * 100;', new_text: 'return value * 1000;' }] }],
+};
+const preview = await posterity.workspaces.edit('climate-atlas', { ...edit, dry_run: true });
+// Review preview.files, then commit the same request.
+await posterity.workspaces.edit('climate-atlas', edit);
+```
+
+Matches must be exact and unique, unless `replace_all: true` is explicit. Edits run in order within each file; all files commit atomically. Previewing writes no code. A moved branch returns `head_moved`; read it again and reconcile your change. Writes are never automatically retried. Existing permissions, branch protection, and path-claim warnings still apply.
+
 Every REST operation is a method. They are grouped by area:
 
 | Namespace | Operations |

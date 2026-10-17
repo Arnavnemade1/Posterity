@@ -1,4 +1,9 @@
 import type {
+  BranchRules,
+  ConflictView,
+  MergeMethod,
+  PathClaim,
+  QueueEntry,
   Availability,
   CacheLookupResult,
   CacheStoreInput,
@@ -58,6 +63,8 @@ import type {
   ChangeRequestInput,
   CommitInput,
   CommitResult,
+  EditFilesInput,
+  EditFilesResult,
   DiffFile,
   LineComment,
   TreeEntry,
@@ -65,7 +72,7 @@ import type {
   WorkspaceInput,
 } from './types.js';
 
-export const VERSION = '0.11.0';
+export const VERSION = '0.12.0';
 export const DEFAULT_BASE_URL = 'https://yxwgvqqhkvtifvlghgbq.supabase.co/functions/v1/api';
 
 export interface PosterityOptions {
@@ -278,6 +285,18 @@ abstract class Namespace {
   }
   protected patchJson<T = Data>(path: string, body?: unknown) {
     return this.#client.request<T>('PATCH', path, { body });
+  }
+  /**
+   * A merge (or rebase, cherry-pick) may answer 202 with status "pending" while the server works out
+   * line merges; nothing was written yet. Ask again after retry_after, up to about a minute.
+   */
+  protected async settled<T extends Data>(path: string, body: unknown): Promise<T> {
+    let result = await this.postJson<T>(path, body);
+    for (let i = 0; i < 8 && (result as Data)?.status === 'pending'; i++) {
+      await sleep(Math.min(Number((result as Data).retry_after ?? 5) * 1000, 10_000));
+      result = await this.postJson<T>(path, body);
+    }
+    return result;
   }
 }
 
@@ -795,12 +814,46 @@ export class Workspaces extends Namespace {
   commit(workspace: string, input: CommitInput) {
     return this.postJson<CommitResult>(`/workspaces/${seg(workspace)}/commits`, input);
   }
-  /** Merge a branch into one you can push to; resolutions settle files changed on both sides. */
-  merge(workspace: string, input: { into: string; from: string; message?: string; resolutions?: Record<string, string | { content: string } | { content_base64: string } | null> }) {
-    return this.postJson<CommitResult & { fast_forward: boolean }>(`/workspaces/${seg(workspace)}/merge`, input);
+
+  /** Exact replacements in existing files, atomically. dry_run returns a diff without writing. */
+  edit(workspace: string, input: EditFilesInput) {
+    return this.postJson<EditFilesResult>(`/workspaces/${seg(workspace)}/edits`, input);
   }
-  tree(workspace: string, query: { ref?: string; path?: string; recursive?: boolean } = {}) {
-    return this.getJson<{ commit: string; path: string; entries: TreeEntry[] }>(`/workspaces/${seg(workspace)}/tree`, query);
+  /**
+   * Merge a branch into one you can push to, line by line; resolutions settle files that conflict
+   * (see conflicts()). A 409 lists the conflicts; waits while line merges are worked out.
+   */
+  merge(workspace: string, input: { into: string; from: string; message?: string; resolutions?: Record<string, string | { content: string } | { content_base64: string } | null> }) {
+    return this.settled<CommitResult & { status: string; fast_forward: boolean; resolved?: number }>(`/workspaces/${seg(workspace)}/merge`, input);
+  }
+  /** What merging `from` into `into` conflicts on: each file, how, and text files with conflict markers. */
+  conflicts(workspace: string, into: string, from: string) {
+    return this.getJson<ConflictView>(`/workspaces/${seg(workspace)}/conflicts`, { into, from });
+  }
+  /** Replay a branch's own commits on top of another ref (the default branch when left out). */
+  rebase(workspace: string, input: { branch: string; onto?: string }) {
+    return this.settled<{ status: string; commit: string; branch: string; replayed: number; fast_forward: boolean }>(`/workspaces/${seg(workspace)}/rebase`, input);
+  }
+  /** Apply one commit's change on top of a branch. */
+  cherryPick(workspace: string, input: { branch: string; commit: string }) {
+    return this.settled<CommitResult & { status: string; picked: string }>(`/workspaces/${seg(workspace)}/cherry-pick`, input);
+  }
+  /** A folder, or every file under it with recursive (in pages: pass the previous page's next as after). */
+  tree(workspace: string, query: { ref?: string; path?: string; recursive?: boolean; after?: string; limit?: number } = {}) {
+    return this.getJson<{ commit: string; path: string; entries: TreeEntry[]; next?: string | null }>(`/workspaces/${seg(workspace)}/tree`, query);
+  }
+  /** Every file under a ref, all pages, as one list. */
+  async allFiles(workspace: string, ref?: string) {
+    const entries: TreeEntry[] = [];
+    let after: string | undefined;
+    let commit: string | undefined;
+    for (;;) {
+      const page = await this.tree(workspace, { ref: commit ?? ref, recursive: true, after });
+      commit ??= page.commit;
+      entries.push(...page.entries);
+      if (!page.next) return { commit, entries };
+      after = page.next;
+    }
   }
   /** One file; binaries come as content_base64 (up to 1 MB). */
   read(workspace: string, path: string, ref?: string) {
@@ -809,8 +862,9 @@ export class Workspaces extends Namespace {
       { path, ref },
     );
   }
-  log(workspace: string, query: { ref?: string; path?: string; limit?: number; offset?: number } = {}) {
-    return this.getJson<{ head: string; commits: Data[] }>(`/workspaces/${seg(workspace)}/log`, query);
+  /** History, newest first; continue with before = the previous page's next. */
+  log(workspace: string, query: { ref?: string; path?: string; limit?: number; offset?: number; before?: string } = {}) {
+    return this.getJson<{ head: string; commits: Data[]; next: string | null }>(`/workspaces/${seg(workspace)}/log`, query);
   }
   diff(workspace: string, from: string, to?: string, patch = true) {
     return this.getJson<{ from: string; to: string; files: DiffFile[]; stats: Data }>(`/workspaces/${seg(workspace)}/diff`, { from, to, patch });
@@ -840,8 +894,51 @@ export class Workspaces extends Namespace {
   review(workspace: string, number: number, input: { verdict: 'approve' | 'request_changes' | 'comment'; body?: string; comments?: LineComment[] }) {
     return this.postJson(`/workspaces/${seg(workspace)}/change-requests/${number}/review`, input);
   }
-  mergeChangeRequest(workspace: string, number: number, message?: string) {
-    return this.postJson<ChangeRequest>(`/workspaces/${seg(workspace)}/change-requests/${number}/merge`, { message });
+  /**
+   * Merge it by the target's rules (method defaults to the branch's first allowed one). A target with a
+   * merge queue queues it instead: the result has status "queued" and its queue entry.
+   */
+  mergeChangeRequest(workspace: string, number: number, options: string | { message?: string; method?: MergeMethod } = {}) {
+    const body = typeof options === 'string' ? { message: options } : options;
+    return this.settled<ChangeRequest>(`/workspaces/${seg(workspace)}/change-requests/${number}/merge`, body);
+  }
+  /** What to resolve on its source branch: its conflicts with the target, with conflict markers. */
+  changeRequestConflicts(workspace: string, number: number) {
+    return this.getJson<ConflictView & { change_request: number; source: string; target: string }>(`/workspaces/${seg(workspace)}/change-requests/${number}/conflicts`);
+  }
+  /** Put it in the target's merge queue: it waits until ready, is tested on top of those ahead, and lands in order. */
+  enqueue(workspace: string, number: number, method?: MergeMethod) {
+    return this.postJson<{ queue: QueueEntry | null; change_request: ChangeRequest }>(`/workspaces/${seg(workspace)}/change-requests/${number}/queue`, { method });
+  }
+  dequeue(workspace: string, number: number, reason?: string) {
+    return this.postJson<{ queue: QueueEntry }>(`/workspaces/${seg(workspace)}/change-requests/${number}/queue/remove`, { reason });
+  }
+  /** The merge queues: entries waiting (and why), in line and being tested. */
+  queue(workspace: string, target?: string) {
+    return this.getJson<{ queue: QueueEntry[] }>(`/workspaces/${seg(workspace)}/queue`, { target });
+  }
+  /** Maintainers: a branch's rules: approvals, required checks, code owners, merge methods, size, queue. */
+  setBranchRules(workspace: string, name: string, rules: BranchRules) {
+    return this.postJson<{ name: string; head: string; protected: boolean; rules: BranchRules }>(`/workspaces/${seg(workspace)}/branches/rules`, { name, ...rules });
+  }
+  /** Who owns these paths by the CODEOWNERS file. */
+  owners(workspace: string, paths: string[], ref?: string) {
+    return this.getJson<{ commit: string; codeowners: boolean; groups: { owners: string[]; paths: number; sample: string[] }[]; errors: Data[] }>(
+      `/workspaces/${seg(workspace)}/owners`,
+      { paths, ref },
+    );
+  }
+  /** Who is working where: active path claims. */
+  claims(workspace: string) {
+    return this.getJson<{ claims: PathClaim[] }>(`/workspaces/${seg(workspace)}/claims`);
+  }
+  /** Claim files or folders you are working on (globs); answers others' claims they overlap. Advisory. */
+  claim(workspace: string, input: { patterns: string[]; note?: string; hours?: number; task_id?: string }) {
+    return this.postJson<{ claims: PathClaim[]; overlaps: (PathClaim & { yours: string })[] }>(`/workspaces/${seg(workspace)}/claims`, input);
+  }
+  /** Release your claims (all of them when patterns is left out). */
+  releaseClaims(workspace: string, patterns?: string[]) {
+    return this.postJson<{ released: number }>(`/workspaces/${seg(workspace)}/claims/release`, patterns ? { patterns } : {});
   }
   closeChangeRequest(workspace: string, number: number) {
     return this.postJson<ChangeRequest>(`/workspaces/${seg(workspace)}/change-requests/${number}/close`);

@@ -101,6 +101,9 @@ export interface PanelAgent {
   online: boolean;
   reputation: number;
   trust: number;
+  runtime?: string | null;
+  models?: string[];
+  capabilities?: string[];
 }
 
 type Tab = 'directives' | 'limits' | 'activity' | 'keys';
@@ -443,7 +446,9 @@ export function AgentPanel({
   const paused = Boolean(agent.paused_at);
   const open = directives.filter((d) => d.status === 'active').length;
   const level = AUTONOMY_LEVELS.find((l) => l.value === agent.autonomy) ?? AUTONOMY_LEVELS[1];
-  const status = paused
+  const status = !keys.length
+    ? { label: 'No active key', tone: 'text-review', dot: 'bg-review' }
+    : paused
     ? { label: 'Paused', tone: 'text-claimed', dot: 'bg-claimed' }
     : agent.online
       ? { label: 'Online', tone: 'text-done', dot: 'bg-done' }
@@ -487,6 +492,12 @@ export function AgentPanel({
         </div>
         <PauseButton agentId={agent.id} paused={paused} />
       </header>
+
+      {(agent.runtime || agent.models?.length || agent.capabilities?.length) ? (
+        <div className="flex flex-wrap gap-2 border-t border-line px-5 py-3 text-[12px] text-muted">
+          {[agent.runtime, ...(agent.models ?? []), ...(agent.capabilities ?? [])].filter(Boolean).map((label, i) => <span key={`${label}-${i}`} className="rounded-md bg-ink px-2 py-1 ring-1 ring-inset ring-line">{label}</span>)}
+        </div>
+      ) : null}
 
       {paused && (
         <div className="flex items-center gap-3 border-t border-claimed/25 bg-claimed/[0.06] px-5 py-2.5 text-[13px] text-text">

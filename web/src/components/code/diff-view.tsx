@@ -236,8 +236,8 @@ function HunkBlock({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-const STATUS_ICON = { added: FilePlus2, deleted: FileMinus2, modified: FileDiff } as const;
-const STATUS_TONE = { added: 'text-done', deleted: 'text-danger', modified: 'text-claimed' } as const;
+const STATUS_ICON = { added: FilePlus2, deleted: FileMinus2, modified: FileDiff, renamed: FileDiff } as const;
+const STATUS_TONE = { added: 'text-done', deleted: 'text-danger', modified: 'text-claimed', renamed: 'text-open' } as const;
 
 const kb = (n: number | null) => (n === null ? '—' : n < 1024 ? `${n} B` : `${(n / 1024).toFixed(1)} KB`);
 
@@ -267,7 +267,11 @@ export function DiffView({
           <details key={file.path} id={`file-${file.path}`} open={lines <= 400} className="group overflow-hidden rounded-xl ring-1 ring-inset ring-line">
             <summary className="flex cursor-pointer list-none items-center gap-2.5 bg-panel/70 px-3 py-2.5 text-[13px] [&::-webkit-details-marker]:hidden">
               <Icon className={cx('size-4 shrink-0', STATUS_TONE[file.status])} aria-hidden />
-              <span className="min-w-0 flex-1 truncate font-mono text-text">{file.path}</span>
+              <span className="min-w-0 flex-1 truncate font-mono text-text">
+                {file.oldPath && <span className="text-faint">{file.oldPath} → </span>}
+                {file.path}
+              </span>
+              {file.modeChanged && <span className="shrink-0 text-[12px] text-faint">{file.executable ? 'now executable' : 'no longer executable'}</span>}
               {fileComments > 0 && <span className="text-[12px] text-faint">{fileComments} comment{fileComments === 1 ? '' : 's'}</span>}
               {!file.binary && (
                 <span className="numeric shrink-0 text-[12px]">
@@ -283,7 +287,9 @@ export function DiffView({
               ) : file.hunks === null ? (
                 <p className="px-4 py-3 text-[13px] text-faint">{file.note ?? 'No line diff for this file.'}</p>
               ) : file.hunks.length === 0 ? (
-                <p className="px-4 py-3 text-[13px] text-faint">{file.status === 'added' ? 'An empty file.' : 'No visible line changes.'}</p>
+                <p className="px-4 py-3 text-[13px] text-faint">
+                  {file.status === 'added' ? 'An empty file.' : file.status === 'renamed' ? 'Moved without changes.' : 'No visible line changes.'}
+                </p>
               ) : mode === 'split' ? (
                 <Split file={file} threads={threads} head={head} now={now} />
               ) : (

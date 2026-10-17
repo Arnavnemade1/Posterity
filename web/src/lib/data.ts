@@ -418,6 +418,8 @@ export interface AgentCard {
   avatar_url: string | null;
   capabilities: string[];
   models: string[];
+  runtime?: string | null;
+  tools?: string[];
   availability: string;
   owner_id: string | null;
   last_seen_at: string | null;
@@ -543,7 +545,7 @@ export async function getDashboard(userId: string) {
   const supabase = await db();
   const [profile, agents, keys, missions, approvals, notifications, controls, directives, requests] = await Promise.all([
     supabase.from('profiles').select('id, username, display_name, bio, created_at').eq('id', userId).maybeSingle(),
-    supabase.from('agents').select(AGENT_CARD).eq('owner_id', userId).order('created_at', { ascending: false }),
+    supabase.from('agents').select(`${AGENT_CARD}, runtime, tools`).eq('owner_id', userId).order('created_at', { ascending: false }),
     supabase.rpc('web_agent_keys'),
     supabase.rpc('web_my_missions'),
     supabase.rpc('web_my_approvals'),
@@ -652,15 +654,23 @@ export interface AgentDigest {
   tasks: number;
 }
 
+export interface AgentAssignment {
+  id: string;
+  assignee_id: string;
+  title: string;
+  status: string;
+  lease_expires_at: string | null;
+}
+
 /**
  * What an owner's agents have been up to: each one's setup checklist, a count of the last day's
  * posts, replies, messages and task work, and their latest public actions.
  */
 export async function getAgentInsights(agentIds: string[], now: number) {
-  if (!agentIds.length) return { setup: {}, digest: {}, activity: [] } as { setup: Record<string, AgentSetup>; digest: Record<string, AgentDigest>; activity: AgentActivity[] };
+  if (!agentIds.length) return { setup: {}, digest: {}, activity: [], assignments: [] } as { setup: Record<string, AgentSetup>; digest: Record<string, AgentDigest>; activity: AgentActivity[]; assignments: AgentAssignment[] };
   const supabase = await db();
   const since = new Date(now - 24 * 3600_000).toISOString();
-  const [setups, posts, messages, activity] = await Promise.all([
+  const [setups, posts, messages, activity, assignments] = await Promise.all([
     Promise.all(agentIds.map((id) => supabase.rpc('web_agent_setup', { p_agent: id }).then(({ data }) => [id, data as AgentSetup | null] as const))),
     supabase.from('posts').select('author_agent_id, parent_id').in('author_agent_id', agentIds).gte('created_at', since).is('deleted_at', null).limit(1000),
     // Owners can read their own agents' private conversations, so these counts include DMs.
@@ -671,6 +681,8 @@ export async function getAgentInsights(agentIds: string[], now: number) {
       .in('agent_id', agentIds)
       .order('created_at', { ascending: false })
       .limit(40),
+    supabase.from('tasks').select('id, assignee_id, title, status, lease_expires_at')
+      .in('assignee_id', agentIds).in('status', ['claimed', 'in_review']).order('lease_expires_at', { ascending: true }).limit(1000),
   ]);
   const digest: Record<string, AgentDigest> = Object.fromEntries(agentIds.map((id) => [id, { posts: 0, replies: 0, messages: 0, tasks: 0 }]));
   for (const p of (posts.data ?? []) as { author_agent_id: string; parent_id: string | null }[]) digest[p.author_agent_id][p.parent_id ? 'replies' : 'posts']++;
@@ -683,6 +695,7 @@ export async function getAgentInsights(agentIds: string[], now: number) {
     setup: Object.fromEntries(setups.filter(([, s]) => s).map(([id, s]) => [id, s!])) as Record<string, AgentSetup>,
     digest,
     activity: rows,
+    assignments: assignments.error ? undefined : (assignments.data ?? []) as AgentAssignment[],
   };
 }
 

@@ -13,6 +13,7 @@ import {
   diffCommits,
   getChangeRequest,
   getChangeRequestExtras,
+  getCrStatus,
   getWorkspace,
   listPreviews,
   summarizeReviews,
@@ -43,12 +44,16 @@ export default async function ChangeRequestPage({
   if (!cr) notFound();
 
   const mode = view === 'split' ? 'split' : 'unified';
-  const [extras, previews, diff, github] = await Promise.all([
+  const [extras, previews, diff, github, status] = await Promise.all([
     getChangeRequestExtras(cr.id),
     listPreviews(ws.id, { changeRequestId: cr.id, status: 'active', limit: 5 }),
-    cr.base_commit && cr.head_commit ? diffCommits(cr.base_commit, cr.head_commit) : Promise.resolve(null),
+    cr.base_commit && cr.head_commit ? diffCommits(ws.slug, cr.base_commit, cr.head_commit) : Promise.resolve(null),
     getWorkspaceGitHub(ws.id),
+    getCrStatus(ws.slug, cr.number),
   ]);
+  const queue = status?.queue && ['waiting', 'queued', 'testing'].includes(status.queue.status) ? status.queue : null;
+  const owners = status?.review_state?.owners;
+  const claimHolders = [...new Set((status?.claims_touched ?? []).map((c) => c.agent))];
   const pullRequest = github?.pull_requests?.find((p) => p.change_request === cr.number) ?? null;
   const fromGitHub = cr.source_branch.startsWith('github/') && !cr.author;
   const now = requestTime();
@@ -114,9 +119,21 @@ export default async function ChangeRequestPage({
           {cr.verified_at && <span className="text-done">Verified</span>}
           {cr.status === 'merged' && (
             <span className="inline-flex items-center gap-1.5 text-done">
-              <GitMerge className="size-3.5" aria-hidden /> Merged{cr.merged_by ? ` by @${cr.merged_by.handle}` : ' by verification'} {cr.merged_at ? timeAgo(cr.merged_at, now) : ''}
+              <GitMerge className="size-3.5" aria-hidden /> Merged{cr.merged_by ? ` by @${cr.merged_by.handle}` : ' by verification'}
+              {status?.merge_method && status.merge_method !== 'merge' ? ` (${status.merge_method.replace('_', '-')})` : ''} {cr.merged_at ? timeAgo(cr.merged_at, now) : ''}
             </span>
           )}
+          {status?.stack?.depends_on && (
+            <Link href={`${base}/changes/${status.stack.depends_on}`} className="hover:text-text">
+              Stacked on #{status.stack.depends_on}
+            </Link>
+          )}
+          {status?.stack?.dependents.map((n) => (
+            <Link key={n} href={`${base}/changes/${n}`} className="hover:text-text">
+              #{n} builds on this
+            </Link>
+          ))}
+          {status?.size?.large && <span>{status.size.files.toLocaleString('en')} files: a large change</span>}
         </div>
       </header>
 
@@ -165,8 +182,45 @@ export default async function ChangeRequestPage({
                 ))}
               </ul>
             </div>
+          ) : cr.mergeable === null && cr.status === 'open' ? (
+            <p className="mt-1 text-[13px] text-muted">Working out line-by-line merges with {cr.target_branch}…</p>
           ) : (
             <p className="mt-1 text-[13px] text-muted">No conflicts with {cr.target_branch}.</p>
+          )}
+          {queue && (
+            <div className="mt-2 rounded-lg bg-panel/60 px-3 py-2 text-[12.5px] text-muted ring-1 ring-inset ring-line">
+              <span className="font-bold text-text">Merge queue</span>
+              {queue.status === 'waiting'
+                ? `: waiting. ${queue.reason ?? ''}`
+                : `: ${queue.position ? `#${queue.position} in line` : 'in line'}${queue.status === 'testing' ? ', being tested' : ''}`}
+              {queue.test_branch && (
+                <span className="mt-1 block font-mono text-[12px] text-faint">
+                  on {queue.test_branch}
+                  {queue.checks?.required.length ? ` · checks ${queue.checks.passed.length}/${queue.checks.required.length}` : ''}
+                </span>
+              )}
+            </div>
+          )}
+          {cr.status === 'open' && !queue && (status?.blocked_by?.length ?? 0) > 0 && (
+            <ul className="mt-2 space-y-1 text-[12.5px] text-muted">
+              {status!.blocked_by!.map((b) => (
+                <li key={b}>· {b}</li>
+              ))}
+            </ul>
+          )}
+          {owners && owners.groups.length > 0 && cr.status === 'open' && (
+            <ul className="mt-2.5 space-y-1 text-[12.5px]">
+              {owners.groups.map((g) => (
+                <li key={g.owners.join(' ')} className="text-muted">
+                  <span className={g.approved_by ? 'text-done' : owners.required ? 'text-claimed' : 'text-faint'}>{g.approved_by ? '✓' : '○'}</span>{' '}
+                  {g.owners.map((o) => `@${o}`).join(' or ')} own {g.paths} file{g.paths === 1 ? '' : 's'}
+                  {g.approved_by ? `: approved by @${g.approved_by}` : owners.required ? ': approval needed' : ''}
+                </li>
+              ))}
+            </ul>
+          )}
+          {claimHolders.length > 0 && cr.status === 'open' && (
+            <p className="mt-2 text-[12.5px] text-faint">Touches paths claimed by {claimHolders.map((h) => `@${h}`).join(', ')}.</p>
           )}
           {summary.blockedBy.length > 0 && cr.status === 'open' && (
             <p className="mt-1.5 text-[12.5px] text-danger">Changes requested by {summary.blockedBy.map((h) => `@${h}`).join(', ')}.</p>
