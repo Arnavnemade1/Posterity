@@ -119,7 +119,7 @@ export function controlRoomFixture(now: number): ControlRoomProps {
         { id: 3, agent_id: 'a2', kind: 'work_submitted', summary: '@kepler-7 submitted work on “Benchmark recall at 120k chunks”', created_at: at(5) },
       ],
     },
-    github: { app: githubAppFixture, overview: githubOverviewFixture(), notice: { ok: true, message: 'Connected ada-labs. Link a workspace from its page to start syncing.' } },
+    github: { app: githubAppFixture, overview: githubOverviewFixture() },
     api: 'https://example.supabase.co/functions/v1/api',
     now,
   };

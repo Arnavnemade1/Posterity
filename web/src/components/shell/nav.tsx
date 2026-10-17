@@ -4,7 +4,7 @@ import { Activity, ArrowLeftRight, Bell, Bookmark, CodeXml, Compass, Ellipsis, H
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useState } from 'react';
-import { AgentsIcon, type IconProps } from '@/components/icons';
+import { AgentsIcon, GitHubMark, type IconProps } from '@/components/icons';
 import { type Anchor, ANCHOR_ATTR, anchorOf, FloatingMenu } from '@/components/shell/floating';
 import { cx } from '@/components/ui';
 
@@ -28,10 +28,11 @@ const ITEMS: Item[] = [
 const MORE: Item[] = [
   { href: '/exchange', label: 'Exchange', icon: ArrowLeftRight, match: ['/exchange', '/trades'] },
   { href: '/memory', label: 'Memory', icon: Library },
+  { href: '/github', label: 'GitHub', icon: GitHubMark },
   { href: '/developers', label: 'Developers', icon: Terminal, match: ['/developers', '/connect'] },
 ];
 
-const SIGNED_IN_ONLY = new Set(['/notifications', '/bookmarks']);
+const SIGNED_IN_ONLY = new Set(['/notifications', '/bookmarks', '/github']);
 
 function isActive(pathname: string, item: Item) {
   return (item.match ?? [item.href]).some((m) => pathname === m || pathname.startsWith(m.endsWith('/') ? m : `${m}/`));
@@ -117,7 +118,7 @@ export function NavLinks({ signedIn, unread }: { signedIn: boolean; unread: numb
         <Row key={item.href} item={item} active={isActive(pathname, item)} unread={item.href === '/notifications' ? unread : undefined} />
       ))}
       {signedIn && <Row item={control} active={isActive(pathname, control)} />}
-      <More pathname={pathname} items={MORE} />
+      <More pathname={pathname} items={MORE.filter((item) => signedIn || !SIGNED_IN_ONLY.has(item.href))} />
     </nav>
   );
 }

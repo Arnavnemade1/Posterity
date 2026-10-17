@@ -11,9 +11,12 @@ import { DefaultRail } from '@/components/shell/rail';
 import { requestTime } from '@/lib/request-time';
 import { getViewer } from '@/lib/viewer';
 import { ControlRoom } from '../../../control/room';
-import { JoinedPanel, OnboardWizard, PairStep } from '../../../onboard/wizard';
-import { controlRoomFixture, githubAppFixture, joinedFixture, workspaceGitHubFixtures } from '@/lib/fixtures-control';
+import { ConnectAgent, JoinedPanel } from '../../../onboard/wizard';
+import { controlRoomFixture, githubAppFixture, githubOverviewFixture, joinedFixture, workspaceGitHubFixtures } from '@/lib/fixtures-control';
 import { marketFixture } from '@/lib/fixtures-market';
+import { noticesFixture } from '@/lib/fixtures-notices';
+import { GitHubView } from '../../../github/view';
+import { NotificationsView } from '../../../notifications/view';
 import { ExchangeView } from '../../../exchange/view';
 import { ListingView } from '../../../exchange/[id]/view';
 import { TradeView } from '../../../trades/[id]/view';
@@ -22,7 +25,7 @@ import { conversation, members, messages, MOCK_OWNER, thread, timeline } from '@
 // Screens for checking the UI in states production doesn't have yet. Development only.
 export const metadata: Metadata = { title: 'Mock', robots: { index: false } };
 
-const SCREENS = ['home', 'thread', 'messages', 'messages-private', 'control', 'onboard', 'onboard-pair', 'onboard-joined', 'github', 'exchange', 'exchange-empty', 'exchange-done', 'listing', 'trade', 'trade-done'] as const;
+const SCREENS = ['home', 'thread', 'messages', 'messages-private', 'control', 'onboard', 'onboard-pair', 'onboard-joined', 'github', 'exchange', 'exchange-empty', 'exchange-done', 'listing', 'trade', 'trade-done', 'notifications', 'notifications-empty', 'notifications-needs', 'github-page', 'github-start', 'github-none'] as const;
 
 function enabled() {
   if (process.env.VERCEL_ENV === 'production') return false;
@@ -37,6 +40,19 @@ export default async function MockScreen({ params }: { params: Promise<{ screen:
   const cardViewer = { signedIn: Boolean(viewer), own: ['kepler-7'] };
 
   if (screen === 'control') return <ControlRoom {...controlRoomFixture(now)} />;
+
+  if (screen.startsWith('notifications')) {
+    const all = screen === 'notifications-empty' ? [] : noticesFixture(now);
+    const mockViewer = viewer ?? { id: 'mock', email: 'ada@example.com', username: 'ada', name: 'Ada Lovelace', agents: [], unread: 3 };
+    return <NotificationsView notices={all} tab={screen === 'notifications-needs' ? 'decision' : 'all'} now={now} viewer={mockViewer} more={screen === 'notifications'} moreHref="/notifications?n=120" />;
+  }
+
+  if (screen.startsWith('github-')) {
+    const none = { installations: [], workspaces: [] };
+    if (screen === 'github-start') return <GitHubView app={githubAppFixture} overview={none} notice={null} userId="mock" />;
+    if (screen === 'github-none') return <GitHubView app={{ configured: false, slug: null, install_url: null, client_id: null }} overview={none} notice={null} userId="mock" />;
+    return <GitHubView app={githubAppFixture} overview={githubOverviewFixture()} notice={{ ok: true, message: 'Connected ada-labs. Open a workspace to link it to a repository.' }} userId="mock" />;
+  }
 
   if (screen.startsWith('exchange') || screen === 'listing' || screen.startsWith('trade')) {
     const m = marketFixture(now);
@@ -78,8 +94,7 @@ export default async function MockScreen({ params }: { params: Promise<{ screen:
       <Page wide>
         <ColumnHeader title="Connect an agent" subtitle="Mock · fixtures" />
         <div className="mx-auto max-w-[760px] px-4 pb-24 pt-10 sm:px-8">
-          {screen === 'onboard' && <OnboardWizard site={site} api={api} />}
-          {screen === 'onboard-pair' && <PairStep code="PST-K7QM-4XRT" expiresAt={new Date(requestTime() + 3540_000).toISOString()} site={site} api={api} />}
+          {(screen === 'onboard' || screen === 'onboard-pair') && <ConnectAgent site={site} api={api} initial={{ code: 'PST-K7QM-4XRT', expiresAt: new Date(requestTime() + 3540_000).toISOString() }} />}
           {screen === 'onboard-joined' && <JoinedPanel status={joinedFixture()} />}
         </div>
       </Page>

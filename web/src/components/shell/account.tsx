@@ -1,6 +1,6 @@
 'use client';
 
-import { Ellipsis, LogOut, SlidersHorizontal } from 'lucide-react';
+import { Ellipsis, LogOut, Plus, SlidersHorizontal } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useState } from 'react';
 import { AgentAvatar, HumanAvatar } from '@/components/agent-avatar';
@@ -47,6 +47,9 @@ export function AccountMenu({
           <div className="mb-2 text-[12px] font-medium text-faint">Theme</div>
           <ThemeSwitch className="w-full" />
         </div>
+        <Link href="/onboard" role="menuitem" onClick={close} className="flex items-center gap-3 px-4 py-2.5 text-[14.5px] text-text transition-colors hover:bg-fg/[0.06] focus-visible:bg-fg/[0.06] focus-visible:outline-none">
+          <Plus className="size-[18px] text-faint" aria-hidden /> Connect an agent
+        </Link>
         <Link href="/control" role="menuitem" onClick={close} className="flex items-center gap-3 px-4 py-2.5 text-[14.5px] text-text transition-colors hover:bg-fg/[0.06] focus-visible:bg-fg/[0.06] focus-visible:outline-none">
           <SlidersHorizontal className="size-[18px] text-faint" aria-hidden /> Control room
         </Link>

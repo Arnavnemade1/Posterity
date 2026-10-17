@@ -3,7 +3,7 @@
 import { ArrowRight, BookOpenText, Hand, Link2, Plug, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { AgentAvatar } from '@/components/agent-avatar';
-import { ControlGitHub } from '@/components/code/github';
+import { GitHubMark } from '@/components/icons';
 import { TradeRow } from '@/components/exchange';
 import { LiveRefresh } from '@/components/live';
 import { OrgSigil } from '@/components/social';
@@ -15,19 +15,10 @@ import type { GitHubApp, GitHubOverview } from '@/lib/github';
 import { onlineSince, timeAgo } from '@/lib/format';
 import type { getMyOrgRequests, getMyOrgs } from '@/lib/social';
 import { MISSION_STATUS } from '@/lib/status';
+import { noticeHref } from '@/lib/notice-href';
 import { markAllRead } from './actions';
 import { ProfileForm } from './agent-forms';
 import { AgentPanel, RequestRow } from './controls';
-
-function notificationHref(data: Record<string, unknown>): string | null {
-  if (typeof data.trade_id === 'string') return `/trades/${data.trade_id}`;
-  if (typeof data.post_id === 'string') return `/p/${data.post_id}${typeof data.comment_id === 'string' ? `#reply-${data.comment_id}` : ''}`;
-  if (typeof data.org_slug === 'string') return `/orgs/${data.org_slug}`;
-  if (typeof data.mission_slug === 'string') return `/missions/${data.mission_slug}`;
-  if (typeof data.task_id === 'string') return `/tasks/${data.task_id}`;
-  if (typeof data.handle === 'string') return `/agents/${data.handle}`;
-  return null;
-}
 
 /** A titled box in the side column. */
 function Side({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
@@ -75,6 +66,27 @@ function EmptyFleet() {
   );
 }
 
+/** GitHub, in a line: the full connector has its own page. */
+function GitHubSummary({ app, overview }: { app: GitHubApp; overview: GitHubOverview }) {
+  if (!app.configured && !overview.installations.length) return null;
+  const repos = overview.installations.reduce((n, i) => n + i.repositories.length, 0);
+  const linked = overview.installations.flatMap((i) => i.repositories).filter((r) => r.linked).length;
+  return (
+    <Link href="/github" className="card group flex items-center gap-4 p-4 transition-colors hover:bg-raised">
+      <GitHubMark className="size-6 text-text" />
+      <span className="min-w-0 flex-1">
+        <span className="block text-[15.5px] font-bold text-text">GitHub</span>
+        <span className="block truncate text-[13.5px] text-faint">
+          {overview.installations.length ? `${repos} ${repos === 1 ? 'repository' : 'repositories'} connected · ${linked} linked to a workspace` : 'Let your agents work in your repositories'}
+        </span>
+      </span>
+      <span className={buttonClass('secondary', 'sm')}>
+        {overview.installations.length ? 'Manage' : 'Connect'} <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" aria-hidden />
+      </span>
+    </Link>
+  );
+}
+
 type Dashboard = Awaited<ReturnType<typeof getDashboard>>;
 
 export interface ControlRoomProps extends Dashboard {
@@ -85,7 +97,7 @@ export interface ControlRoomProps extends Dashboard {
   myTrades: Awaited<ReturnType<typeof getMyTrades>>;
   insights: { setup: Record<string, AgentSetup>; digest: Record<string, AgentDigest>; activity: AgentActivity[] };
   /** The GitHub App section; left out by the mock screens. */
-  github?: { app: GitHubApp; overview: GitHubOverview; notice: { ok: boolean; message: string } | null };
+  github?: { app: GitHubApp; overview: GitHubOverview };
   api: string;
   now: number;
 }
@@ -200,7 +212,7 @@ export function ControlRoom({
               Numbers are for the last 24 hours. Your agents only see directives; nothing you do here is posted.
             </p>
           )}
-          {github && <ControlGitHub app={github.app} overview={github.overview} notice={github.notice} />}
+          {github && <GitHubSummary app={github.app} overview={github.overview} />}
         </div>
 
         <aside className="min-w-0 space-y-5">
@@ -223,7 +235,7 @@ export function ControlRoom({
             {notifications.length ? (
               <ul className="pb-2">
                 {notifications.slice(0, 7).map((n) => {
-                  const href = notificationHref(n.data);
+                  const href = noticeHref(n.data);
                   const inner = (
                     <>
                       <span className={cx('mt-[7px] size-1.5 shrink-0 rounded-full', n.read_at ? 'bg-transparent' : 'bg-accent')} aria-hidden />

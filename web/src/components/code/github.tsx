@@ -2,19 +2,13 @@
 // commits and change requests that came from (or went to) GitHub.
 import { ArrowUpRight, GitPullRequest, Lock } from 'lucide-react';
 import Link from 'next/link';
+import { GitHubMark } from '@/components/icons';
 import { cx, Pill } from '@/components/ui';
 import { timeAgo } from '@/lib/format';
-import { type GitHubApp, type GitHubOverview, LINK_STATUS, MODE_LABEL, type WorkspaceGitHub } from '@/lib/github';
-import { LinkActions, LinkGitHubForm, ReleaseInstallation } from './github-forms';
+import { type GitHubApp, LINK_STATUS, MODE_LABEL, type WorkspaceGitHub } from '@/lib/github';
+import { LinkActions, LinkGitHubForm } from './github-forms';
 
-/** GitHub's mark (Octicons, MIT). */
-export function GitHubMark({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 16 16" aria-hidden className={cx('size-4 shrink-0 fill-current', className)}>
-      <path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z" />
-    </svg>
-  );
-}
+export { GitHubMark };
 
 /** The small "from GitHub" mark beside a commit that came in from a repository. */
 export function FromGitHub({ className }: { className?: string }) {
@@ -164,109 +158,12 @@ export function WorkspaceGitHubPanel({
         ) : (
           <p className="text-[13px] leading-relaxed text-muted">
             Mirror this workspace to a repository, so GitHub runs its CI on your agents&apos; work.{' '}
-            <Link href="/control#github" className="font-medium text-text hover:underline">
+            <Link href="/github" className="font-medium text-text hover:underline">
               Install the GitHub app
             </Link>{' '}
             on a repository first.
           </p>
         )
-      )}
-    </section>
-  );
-}
-
-// ----------------------------------------------------------------------------- the control room
-
-export function ControlGitHub({ app, overview, notice }: { app: GitHubApp; overview: GitHubOverview; notice: { ok: boolean; message: string } | null }) {
-  if (!app.configured && !overview.installations.length) return null;
-  const linkable = overview.workspaces.filter((w) => !w.remote);
-  return (
-    <section id="github" className="scroll-mt-20 overflow-hidden rounded-2xl ring-1 ring-inset ring-line">
-      <header className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-3.5">
-        <GitHubMark className="size-[18px] text-text" />
-        <div className="min-w-0 flex-1">
-          <h2 className="text-[15px] font-bold text-text">GitHub</h2>
-          <p className="text-[12.5px] text-faint">Let your agents work in your repositories, with your CI checking them.</p>
-        </div>
-        {app.install_url && (
-          <a href={app.install_url} className="inline-flex h-8 items-center gap-1.5 rounded-full bg-text px-3.5 text-[13px] font-semibold text-ink transition-opacity hover:opacity-90">
-            {overview.installations.length ? 'Add repositories' : 'Install on GitHub'}
-            <ArrowUpRight className="size-3.5" aria-hidden />
-          </a>
-        )}
-      </header>
-
-      {notice && (
-        <p role={notice.ok ? 'status' : 'alert'} className={cx('border-b border-line px-5 py-2.5 text-[13.5px]', notice.ok ? 'text-done' : 'text-danger')}>
-          {notice.message}
-        </p>
-      )}
-
-      {overview.installations.length === 0 ? (
-        <div className="space-y-2 px-5 py-4 text-[13.5px] leading-relaxed text-muted">
-          <p>Install the Posterity GitHub App on your account or organization and pick repositories. Then a workspace your agents maintain can:</p>
-          <ul className="list-disc space-y-1 pl-5 text-[13px]">
-            <li>mirror every branch to <span className="font-mono text-[12px]">posterity/*</span>,</li>
-            <li>open pull requests so your CI checks the agents&apos; work (results come back as checks),</li>
-            <li>or keep the default branch in sync both ways.</li>
-          </ul>
-          <p className="text-[12.5px] text-faint">Linking a repository asks you first unless the agent is autonomous. You can unlink or uninstall at any time.</p>
-        </div>
-      ) : (
-        <div className="divide-y divide-line">
-          {overview.installations.map((i) => (
-            <div key={i.id} className="px-5 py-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[14px] font-semibold text-text">{i.account}</span>
-                <span className="text-[12.5px] text-faint">
-                  {i.account_type === 'Organization' ? 'organization' : 'account'} · {i.repositories.length} {i.repositories.length === 1 ? 'repository' : 'repositories'}
-                </span>
-                {i.suspended && <Pill tone="faint">Suspended</Pill>}
-                {i.removed && <Pill tone="danger">Uninstalled</Pill>}
-                <span className="ml-auto">
-                  <ReleaseInstallation installationId={i.id} account={i.account} />
-                </span>
-              </div>
-              <ul className="mt-2.5 space-y-1">
-                {i.repositories.map((r) => (
-                  <li key={r.id} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px]">
-                    <span className="inline-flex min-w-0 items-center gap-1.5 font-mono text-[12.5px] text-text">
-                      {r.private && <Lock className="size-3 text-faint" aria-label="Private" />}
-                      <span className="truncate">{r.repo}</span>
-                    </span>
-                    {r.linked ? (
-                      <span className="inline-flex items-center gap-1.5 text-faint">
-                        →
-                        <Link href={`/build/${r.linked.workspace}#github`} className="text-muted hover:text-text hover:underline">
-                          {r.linked.name}
-                        </Link>
-                        <span>· {MODE_LABEL[r.linked.mode]}</span>
-                        <Pill tone={LINK_STATUS[r.linked.status][1]}>{LINK_STATUS[r.linked.status][0]}</Pill>
-                      </span>
-                    ) : (
-                      <span className="text-faint">not linked</span>
-                    )}
-                  </li>
-                ))}
-                {i.repositories.length === 0 && <li className="text-[13px] text-faint">No repositories chosen yet.</li>}
-              </ul>
-            </div>
-          ))}
-          {linkable.length > 0 && (
-            <div className="px-5 py-3.5 text-[13px] text-muted">
-              Link from a workspace&apos;s page:{' '}
-              {linkable.slice(0, 5).map((w, n) => (
-                <span key={w.id}>
-                  {n > 0 && ', '}
-                  <Link href={`/build/${w.slug}#github`} className="text-text hover:underline">
-                    {w.name}
-                  </Link>
-                </span>
-              ))}
-              {linkable.length > 5 && ` and ${linkable.length - 5} more`}.
-            </div>
-          )}
-        </div>
       )}
     </section>
   );

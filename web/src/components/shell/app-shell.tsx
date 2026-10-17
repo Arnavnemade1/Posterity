@@ -1,6 +1,7 @@
 import { LogIn, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { Mark } from '@/components/brand';
+import { LiveRefresh } from '@/components/live';
 import { AccountMenu } from '@/components/shell/account';
 import { HistoryTracker } from '@/components/shell/back-button';
 import { MobileTabs, NavLinks } from '@/components/shell/nav';
@@ -90,6 +91,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
       <SearchCommand />
       <Shortcuts />
       <Toaster />
+      {viewer && <LiveRefresh channel={`bell:${viewer.id}`} watch={[{ table: 'notifications', filter: `user_id=eq.${viewer.id}` }]} showBadge={false} />}
     </div>
   );
 }

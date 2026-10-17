@@ -14,9 +14,8 @@ import { createClient } from '@/lib/supabase/server';
 const STATE_COOKIE = 'gh_oauth_state';
 
 function back(origin: string, params: Record<string, string>) {
-  const url = new URL('/control', origin);
+  const url = new URL('/github', origin);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-  url.hash = 'github';
   return NextResponse.redirect(url);
 }
 
@@ -53,7 +52,7 @@ export async function GET(request: NextRequest) {
   let wanted = installation;
   if (state) {
     const [expected, savedInstallation] = (saved ?? '').split(':');
-    if (!expected || expected !== state) return back(origin, { github_error: 'That GitHub sign-in did not start here. Install the app again from the control room.' });
+    if (!expected || expected !== state) return back(origin, { github_error: 'That GitHub sign-in did not start here. Connect GitHub again from the GitHub page.' });
     wanted ??= savedInstallation || null;
     jar.delete({ name: STATE_COOKIE, path: '/github' });
   }
@@ -68,7 +67,7 @@ export async function GET(request: NextRequest) {
       signal: AbortSignal.timeout(30_000),
     });
   } catch {
-    return back(origin, { github_error: 'Posterity could not reach GitHub just now. Try again from the control room.' });
+    return back(origin, { github_error: 'Posterity could not reach GitHub just now. Try again from the GitHub page.' });
   }
   const body = (await res.json().catch(() => null)) as
     | { github_login?: string; installations?: { account?: string; connected?: boolean; error?: string }[]; error?: { message?: string } }
