@@ -55,17 +55,17 @@ export function AgentFleet({ entries, selectedId }: { entries: FleetEntry[]; sel
 
   return (
     <section className="space-y-4" aria-label="Agent fleet" aria-busy={selecting}>
-      <div className="overflow-hidden rounded-2xl bg-panel ring-1 ring-inset ring-line">
-        <header className="flex items-start justify-between gap-3 px-5 pt-4">
+      <div className="fleet-directory soft-surface overflow-hidden rounded-[28px] bg-panel/70">
+        <header className="flex items-start justify-between gap-3 px-6 pt-6">
           <div>
-            <h2 className="text-[16px] font-bold text-text">Fleet directory</h2>
+            <h2 className="text-[17px] font-semibold tracking-[-0.025em] text-text">Fleet directory</h2>
             <p className="mt-1 text-[13px] text-faint">{entries.length} connected identities · {attention} need attention</p>
           </div>
           <button className={buttonClass('secondary', 'sm')} disabled={refreshing} onClick={() => refresh(() => router.refresh())} aria-label="Refresh agent status">
             <RefreshCw className={cx('size-3.5', refreshing && 'animate-spin')} aria-hidden /> Refresh
           </button>
         </header>
-        <div className="flex flex-wrap gap-2 p-4">
+        <div className="flex flex-wrap gap-2.5 px-5 pb-5 pt-5">
           <label className="relative min-w-44 flex-1">
             <Search className="pointer-events-none absolute left-3 top-3 size-4 text-faint" aria-hidden />
             <input value={query} onChange={(e) => { setQuery(e.target.value); setPage(0); }} className="field h-10 pl-9" placeholder="Find a name, model, skill or tool" aria-label="Search agents" />
@@ -84,11 +84,11 @@ export function AgentFleet({ entries, selectedId }: { entries: FleetEntry[]; sel
           </select>
         </div>
         <p className="sr-only" role="status">{visible.length} of {entries.length} agents shown</p>
-        <ul className="max-h-[420px] overflow-y-auto divide-y divide-line border-t border-line">
+        <ul className="max-h-[420px] space-y-1 overflow-y-auto px-3 pb-2 [scrollbar-width:thin]">
           {rows.map((e) => (
             <li key={e.id}>
               <button type="button" onClick={() => choose(e.id)} aria-pressed={active === e.id} aria-controls="fleet-inspector" disabled={selecting}
-                className={cx('flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-fg/[0.04]', active === e.id && 'bg-accent/[0.06] shadow-[inset_3px_0_0_var(--color-accent)]')}>
+                className={cx('flex w-full items-start gap-3 rounded-[18px] px-3 py-3.5 text-left transition-all duration-200 hover:bg-fg/[0.035]', active === e.id && 'bg-accent/[0.085] shadow-[inset_0_1px_0_rgb(255_255_255/0.055)]')}>
                 <AgentAvatar handle={e.handle} src={e.avatar} size={32} />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[14px] font-semibold text-text">{e.name} <span className="font-normal text-faint">@{e.handle}</span></span>
@@ -106,7 +106,7 @@ export function AgentFleet({ entries, selectedId }: { entries: FleetEntry[]; sel
           ))}
         </ul>
         {!visible.length && <div className="px-5 py-8 text-center text-[14px] text-faint">No agents match these filters. <button className="text-open hover:underline" onClick={() => { setQuery(''); setFilter('all'); setRuntime('all'); }}>Clear filters</button></div>}
-        <footer className="flex items-center justify-between border-t border-line px-4 py-3 text-[12px] text-faint">
+        <footer className="flex items-center justify-between px-6 py-4 text-[12px] text-faint">
           <span role="status">{visible.length ? currentPage * 25 + 1 : 0}–{Math.min((currentPage + 1) * 25, visible.length)} of {visible.length} agents</span>
           <div className="flex items-center gap-3"><button type="button" className="rounded p-1 hover:text-text disabled:opacity-30" aria-label="Previous agents" disabled={!currentPage} onClick={() => setPage(currentPage - 1)}><ChevronLeft className="size-4" /></button><span>{currentPage + 1} / {pageCount}</span><button type="button" className="rounded p-1 hover:text-text disabled:opacity-30" aria-label="Next agents" disabled={currentPage + 1 >= pageCount} onClick={() => setPage(currentPage + 1)}><ChevronRight className="size-4" /></button></div>
         </footer>

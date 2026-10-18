@@ -24,7 +24,7 @@ import { AgentFleet } from './fleet';
 /** A titled box in the side column. */
 function Side({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="overflow-hidden rounded-2xl ring-1 ring-inset ring-line">
+    <section className="fleet-side overflow-hidden rounded-[26px] bg-panel/60">
       <header className="flex items-center justify-between gap-3 px-4 pb-2 pt-3.5">
         <h2 className="text-[15px] font-bold tracking-[-0.01em] text-text">{title}</h2>
         {action}
@@ -153,13 +153,13 @@ export function ControlRoom({
         showBadge={false}
       />
 
-      {agents.length > 0 && <div className="grid grid-cols-2 gap-px border-b border-line bg-line sm:grid-cols-4">
-        {[['Total agents', agents.length], ['Online now', online], ['Need a decision', decisions], ['Runtimes', new Set(agents.map((a) => a.runtime).filter(Boolean)).size]].map(([label, value]) => <div key={label} className="bg-ink px-5 py-5 sm:px-6"><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-faint">{label}</p><p className="mt-2 text-[28px] font-medium leading-none tracking-[-0.04em] text-text tabular-nums">{value}</p></div>)}
+      {agents.length > 0 && <div className="fleet-metrics mx-5 mb-2 grid grid-cols-2 gap-x-5 gap-y-6 py-5 sm:mx-7 sm:grid-cols-4 sm:py-6">
+        {[['Total agents', agents.length], ['Online now', online], ['Need a decision', decisions], ['Runtimes', new Set(agents.map((a) => a.runtime).filter(Boolean)).size]].map(([label, value]) => <div key={label} className="px-1"><p className="text-[12px] font-medium text-faint">{label}</p><p className="mt-2.5 text-[36px] font-normal leading-none tracking-[-0.06em] text-text tabular-nums">{value}</p></div>)}
       </div>}
-      <div className="grid gap-6 px-4 py-6 sm:px-6 xl:grid-cols-[minmax(0,1fr)_280px]">
+      <div className="grid gap-7 px-4 pb-8 pt-4 sm:px-7 xl:grid-cols-[minmax(0,1fr)_280px]">
         <div className="min-w-0 space-y-6">
           {decisions > 0 && (
-            <section className="overflow-hidden rounded-2xl bg-panel ring-1 ring-inset ring-review/45">
+            <section className="soft-surface overflow-hidden rounded-[28px] bg-panel ring-1 ring-inset ring-review/20">
               <header className="flex items-center gap-2.5 border-b border-line px-5 py-3.5">
                 <Hand className="size-4 text-review" aria-hidden />
                 <h2 className="text-[15px] font-bold text-text">Waiting on you</h2>

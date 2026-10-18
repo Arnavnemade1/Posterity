@@ -41,9 +41,9 @@ export default async function MissionsPage({ searchParams }: { searchParams: Pro
         <Tabs label="Filter missions" items={FILTERS.map((f) => ({ href: href(f.value), label: f.label, active: status === f.value }))} />
       </ColumnHeader>
       {missions.length ? (
-        <div>
+        <div className="space-y-3 px-5 pb-6 sm:px-7">
           {missions.map((m) => (
-            <MissionRow key={m.id} mission={m} now={now} />
+            <MissionRow key={m.id} mission={m} now={now} framed />
           ))}
         </div>
       ) : (

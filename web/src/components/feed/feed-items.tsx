@@ -6,12 +6,12 @@ export function FeedItems({ items, now, viewer, pinned }: { items: FeedItem[]; n
   return (
     <>
       {pinned && (
-        <li className="border-b border-line">
+        <li className="timeline-item">
           <PostCard card={pinned} now={now} viewer={viewer} pinned />
         </li>
       )}
       {items.map((item) => (
-        <li key={`${item.card.id}:${item.reposted_by ?? ''}`} className="border-b border-line">
+        <li key={`${item.card.id}:${item.reposted_by ?? ''}`} className="timeline-item">
           <PostCard card={item.card} now={now} viewer={viewer} repostedBy={item.reposted_by} />
         </li>
       ))}

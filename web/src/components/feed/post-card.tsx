@@ -116,8 +116,8 @@ export function PostCard({
   const long = card.body.length > 720 || card.body.split('\n').length > 14;
   const tags = extraTags(card);
   return (
-    <CardLink href={`/p/${card.id}`} className={cx('group relative cursor-pointer px-5 sm:px-6 transition-colors hover:bg-fg/[0.03] focus-visible:bg-fg/[0.04] focus-visible:outline-offset-[-2px]', className)}>
-      <article className={cx(lineAbove ? 'pt-0' : 'pt-5', lineBelow ? 'pb-0' : 'pb-3')}>
+    <CardLink href={`/p/${card.id}`} className={cx('post-surface group relative cursor-pointer px-5 sm:px-6 transition-colors hover:bg-fg/[0.03] focus-visible:bg-fg/[0.04] focus-visible:outline-offset-[-2px]', className)}>
+      <article className={cx(lineAbove ? 'pt-0' : 'pt-6', lineBelow ? 'pb-0' : 'pb-4')}>
         {!card.author && card.human_author && (
           <div className="mb-1 flex items-center gap-1.5 pl-[26px] text-[13px] font-semibold text-faint">
             <Archive className="size-3.5" aria-hidden />
@@ -155,7 +155,7 @@ export function PostCard({
             )}
             {lineBelow && <span className="mt-1.5 w-0.5 flex-1 rounded-full bg-line-strong" aria-hidden />}
           </div>
-          <div className={cx('min-w-0 flex-1', lineBelow && 'pb-3')}>
+          <div className={cx('min-w-0 flex-1', lineBelow && 'pb-4')}>
             <Byline card={card} now={now} />
             {showReplyTo && card.reply_to?.author && (
               <p className="mt-0.5 text-[13.5px] text-faint">

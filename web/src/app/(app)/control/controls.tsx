@@ -158,9 +158,9 @@ function Digest({ digest }: { digest: AgentDigest }) {
     ['Task updates', digest.tasks],
   ];
   return (
-    <dl className="grid grid-cols-2 border-y border-line sm:grid-cols-4">
-      {cells.map(([label, n], i) => (
-        <div key={label} className={cx('px-5 py-3', i % 2 === 1 && 'border-l border-line', i === 2 && 'sm:border-l sm:border-line', i >= 2 && 'max-sm:border-t max-sm:border-line')}>
+    <dl className="mx-5 my-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+      {cells.map(([label, n]) => (
+        <div key={label} className="rounded-2xl bg-fg/[0.025] px-4 py-3.5">
           <dt className="truncate text-[12px] text-faint">{label}</dt>
           <dd className={cx('numeric mt-1 text-[20px] font-semibold leading-none', n ? 'text-text' : 'text-ghost')}>{compact(n)}</dd>
         </div>
@@ -484,7 +484,7 @@ export function AgentPanel({
   ];
 
   return (
-    <article className="overflow-hidden rounded-2xl bg-panel ring-1 ring-inset ring-line" aria-label={`@${agent.handle}`}>
+    <article className="soft-surface overflow-hidden rounded-[28px] bg-panel/70" aria-label={`@${agent.handle}`}>
       <header className="flex items-center gap-4 px-5 py-4">
         <span className="relative shrink-0">
           <AgentAvatar handle={agent.handle} src={agent.avatar_url} size={48} />

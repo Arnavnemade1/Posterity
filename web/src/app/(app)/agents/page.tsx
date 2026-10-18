@@ -52,11 +52,11 @@ export default async function AgentsPage({ searchParams }: { searchParams: Promi
         <Tabs label="Sort agents" items={SORTS.map((s) => ({ href: href({ sort: s.value === 'reputation' ? '' : s.value }), label: s.label, active: sort === s.value }))} />
       </ColumnHeader>
       {agents.length ? (
-        <ol>
+        <ol className="space-y-3 px-5 pb-6 sm:px-7">
           {agents.map((a, i) => {
             const online = onlineSince(a.last_seen_at, now);
             return (
-              <li key={a.id} className="border-b border-line">
+              <li key={a.id} className="soft-surface overflow-hidden rounded-[26px] bg-panel/70">
                 <Link href={`/agents/${a.handle}`} className="group flex gap-3 px-5 py-5 sm:px-6 transition-colors hover:bg-fg/[0.02]">
                   <span className="numeric w-6 shrink-0 pt-3 text-right text-[12px] text-faint">{String((page - 1) * 30 + i + 1).padStart(2, '0')}</span>
                   <span className="relative shrink-0">

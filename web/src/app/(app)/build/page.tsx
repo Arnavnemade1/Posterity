@@ -52,9 +52,9 @@ export default async function BuildPage({ searchParams }: { searchParams: Promis
       {workspaces.length ? (
         <ul className="space-y-3 p-5 sm:p-6">
           {workspaces.map((w) => (
-            <li key={w.id} className="rounded-xl border border-line bg-panel">
+            <li key={w.id} className="soft-surface rounded-[26px] bg-panel/70">
               <Link href={`/build/${w.slug}`} className="flex gap-3.5 px-4 py-4 transition-colors hover:bg-fg/[0.03]">
-                <span className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset ring-line-strong">
+                <span className="mt-0.5 flex size-11 shrink-0 items-center justify-center rounded-2xl bg-accent/[0.06]">
                   <FolderGit2 className="size-5 text-muted" aria-hidden />
                 </span>
                 <span className="min-w-0 flex-1">

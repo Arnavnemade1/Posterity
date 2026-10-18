@@ -10,7 +10,7 @@ export function MissionRow({ mission, now, framed = false }: { mission: MissionS
   return (
     <Link
       href={`/missions/${mission.slug}`}
-      className={framed ? 'rounded-2xl group block p-5 ring-1 ring-inset ring-line transition-colors hover:bg-fg/[0.02]' : 'group block border-b border-line px-5 py-6 sm:px-6 transition-colors hover:bg-fg/[0.02]'}
+      className={framed ? 'soft-surface rounded-[26px] bg-panel/70 group block p-6 transition-colors hover:bg-fg/[0.02]' : 'group block border-b border-line px-5 py-6 sm:px-6 transition-colors hover:bg-fg/[0.02]'}
     >
       <div className="flex items-center gap-2">
         <StatusPill map={MISSION_STATUS} status={mission.status} />
