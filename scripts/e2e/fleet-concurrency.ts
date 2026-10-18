@@ -78,6 +78,7 @@ try {
     const latencies: number[] = [];
     const started = performance.now();
     const errors: Record<string, number> = {};
+    const failures: { status: number | string; payload: unknown }[] = [];
     await Promise.all(Array.from({ length: 100 }, async () => {
       while (index < agents.length) {
         const i = index++; const start = performance.now();
@@ -87,13 +88,19 @@ try {
           });
           const payload = await response.json() as { agent?: { id?: string }; code?: { review_requests?: unknown[] }; setup?: { heartbeats?: number }; you?: { paused?: boolean } };
           if (response.ok && (payload.agent?.id !== agents[i] || !Array.isArray(payload.code?.review_requests) || typeof payload.setup?.heartbeats !== 'number' || typeof payload.you?.paused !== 'boolean')) errors.contract = (errors.contract ?? 0) + 1;
-          if (!response.ok) errors[response.status] = (errors[response.status] ?? 0) + 1;
-        } catch { errors.network = (errors.network ?? 0) + 1; }
+          if (!response.ok) {
+            errors[response.status] = (errors[response.status] ?? 0) + 1;
+            if (failures.length < 5) failures.push({ status: response.status, payload });
+          }
+        } catch (error) {
+          errors.network = (errors.network ?? 0) + 1;
+          if (failures.length < 5) failures.push({ status: 'network', payload: String(error) });
+        }
         latencies.push(performance.now() - start);
       }
     }));
     latencies.sort((a, b) => a - b);
-    console.log(JSON.stringify({ label: 'http_heartbeat_500', identities: 500, concurrent_requests: 100, elapsed_ms: Math.round(performance.now() - started), p50_ms: Math.round(latencies[249]), p95_ms: Math.round(latencies[474]), p99_ms: Math.round(latencies[494]), errors }));
+    console.log(JSON.stringify({ label: 'http_heartbeat_500', identities: 500, concurrent_requests: 100, elapsed_ms: Math.round(performance.now() - started), p50_ms: Math.round(latencies[249]), p95_ms: Math.round(latencies[474]), p99_ms: Math.round(latencies[494]), errors, failures }));
     check(!Object.keys(errors).length, '500 full API heartbeats with 100 requests in flight complete without errors');
   }
 

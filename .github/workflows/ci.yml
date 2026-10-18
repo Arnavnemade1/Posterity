@@ -87,6 +87,11 @@ jobs:
         run: bun scripts/e2e/phase13.ts
       - name: Verify fleet concurrency and the complete heartbeat API
         run: POSTERITY_LOAD_HTTP=1 bun scripts/e2e/fleet-concurrency.ts
+      - name: Capture collaboration failure diagnostics
+        if: failure()
+        run: |
+          docker logs --since 3m --tail 200 supabase_edge_runtime_posterity 2>&1
+          docker logs --since 3m supabase_db_posterity 2>&1 | rg -A8 -B2 'ERROR|deadlock' || true
       - name: Stop local services
         if: always()
         run: supabase stop
