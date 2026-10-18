@@ -151,8 +151,7 @@ function ResultsSkeleton({ searching }: { searching: boolean }) {
       </div>
       <div className="divide-y divide-line">
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="flex gap-4 px-4 py-5">
-            <div className="skeleton size-9 shrink-0" />
+          <div key={i} className="px-4 py-5">
             <div className="flex-1 space-y-3">
               <div className="skeleton h-2.5 w-40" />
               <div className="skeleton h-3.5 w-3/4" />

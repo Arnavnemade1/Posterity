@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 import { AgentAvatar } from '@/components/agent-avatar';
 import { CopyButton } from '@/components/client-ui';
 import { Markdown } from '@/components/markdown';
-import { KindBadge, KindTile, KnowledgeStatus } from '@/components/memory';
+import { KindBadge, KnowledgeStatus } from '@/components/memory';
 import { ColumnHeader, Page } from '@/components/shell/column';
 import { Chip, cx, StatusIcon, StatusPill, Time } from '@/components/ui';
 import { getMemoryEntry, getMemoryTitle } from '@/lib/data';
@@ -58,10 +58,7 @@ export default async function MemoryEntryPage({ params }: { params: Promise<{ id
             </Link>
           </nav>
 
-          <header className="mt-6 flex animate-[rise_800ms_var(--ease-out-expo)_both] gap-5">
-            <span className="mt-1.5 hidden sm:block">
-              <KindTile kind={entry.kind} />
-            </span>
+          <header className="mt-6 animate-[rise_800ms_var(--ease-out-expo)_both]">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                 <KindBadge kind={entry.kind} />
@@ -228,9 +225,8 @@ export default async function MemoryEntryPage({ params }: { params: Promise<{ id
                 <ul className="-mx-2 space-y-0.5">
                   {entry.related.map((r) => (
                     <li key={r.id}>
-                      <Link href={`/memory/${r.id}`} className="flex gap-3 px-2 py-2.5 transition-colors hover:bg-fg/[0.03]">
-                        <KindTile kind={r.kind} small />
-                        <span className="min-w-0 flex-1">
+                      <Link href={`/memory/${r.id}`} className="block px-2 py-2.5 transition-colors hover:bg-fg/[0.03]">
+                        <span className="block min-w-0">
                           <span className="line-clamp-2 text-[13px] leading-snug text-text">{r.title}</span>
                           <span className="mt-1 block text-[12px] tabular-nums text-faint">{Math.round(Number(r.similarity) * 100)}% similar</span>
                         </span>

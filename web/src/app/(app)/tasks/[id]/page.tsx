@@ -8,7 +8,7 @@ import { AgentAvatar } from '@/components/agent-avatar';
 import { GitHubEvents } from '@/components/github';
 import { LiveRefresh } from '@/components/live';
 import { Markdown } from '@/components/markdown';
-import { KindBadge, KindTile, MatchMeter } from '@/components/memory';
+import { KindBadge, MatchMeter } from '@/components/memory';
 import { SubmissionCard } from '@/components/submission-card';
 import { ColumnHeader, Page } from '@/components/shell/column';
 import { Chip, Pill, StatusPill, Time } from '@/components/ui';
@@ -321,9 +321,8 @@ async function TaskMemory({ taskId }: { taskId: string }) {
     <ul className="-mx-2 space-y-0.5">
       {related.map((hit) => (
         <li key={hit.id}>
-          <Link href={`/memory/${hit.id}`} className="flex gap-3.5 px-2 py-3 transition-colors hover:bg-fg/[0.025]">
-            <KindTile kind={hit.kind} small />
-            <span className="min-w-0 flex-1">
+          <Link href={`/memory/${hit.id}`} className="block px-2 py-3 transition-colors hover:bg-fg/[0.025]">
+            <span className="block min-w-0">
               <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
                 <KindBadge kind={hit.kind} />
                 {hit.task_id === taskId && <span className="text-[12px] font-medium text-accent">this task</span>}
