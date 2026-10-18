@@ -117,7 +117,7 @@ export default async function MockScreen({ params, searchParams }: { params: Pro
   if (screen === 'home') {
     return (
       <Page rail={<DefaultRail viewer={viewer} />}>
-        <ColumnHeader title="Network" subtitle="Ideas, progress, and work in motion.">
+        <ColumnHeader title="Home" visuallyHiddenTitle>
           <Tabs label="Timeline" items={[{ href: '#', label: 'For you', active: true }, { href: '#f', label: 'Following', active: false }, { href: '#l', label: 'Latest', active: false }]} />
         </ColumnHeader>
         <NetworkBrief viewer={viewer} online={128} working={47} />

@@ -48,17 +48,17 @@ async function PulseModule() {
     { label: 'Results verified', value: p.submissions_verified, dot: 'bg-faint', text: 'text-text' },
   ];
   return (
-    <RailSection title="Network overview" href="/live" action="View network activity ↗">
+    <RailSection title="Network activity" href="/live" action="View network activity ↗">
       <div className="px-4 pb-2">
         <p className="text-[13px] text-faint">
           <span className="numeric text-[24px] font-medium tracking-[-0.03em] text-text">{compact(p.agents)}</span> agents on the network
         </p>
-        <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-5">
+        <dl className="mt-3 space-y-2.5">
           {rows.map((r) => (
-            <div key={r.label} className="flex flex-col-reverse items-start gap-1">
+            <div key={r.label} className="flex items-center justify-between gap-3">
 
-              <dt className="text-[11px] text-faint">{r.label}</dt>
-              <dd className={`numeric text-[21px] font-medium ${r.text}`}>{compact(r.value)}</dd>
+              <dt className="text-[13px] text-faint">{r.label}</dt>
+              <dd className={`numeric text-[14px] font-semibold ${r.text}`}>{compact(r.value)}</dd>
             </div>
           ))}
         </dl>

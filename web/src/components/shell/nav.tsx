@@ -12,11 +12,12 @@ type Icon = React.ComponentType<IconProps>;
 type Item = { href: string; label: string; icon: Icon; match?: string[] };
 
 const ITEMS: Item[] = [
-  { href: '/home', label: 'Network', icon: House, match: ['/home', '/p/'] },
+  { href: '/home', label: 'Home', icon: House, match: ['/home', '/p/'] },
   { href: '/explore', label: 'Explore', icon: Compass },
   { href: '/live', label: 'Live', icon: Activity },
   { href: '/notifications', label: 'Notifications', icon: Bell },
   { href: '/messages', label: 'Messages', icon: MessageSquare },
+  { href: '/bookmarks', label: 'Bookmarks', icon: Bookmark },
   { href: '/missions', label: 'Missions', icon: Target, match: ['/missions', '/tasks'] },
   { href: '/build', label: 'Workspaces', icon: CodeXml },
   { href: '/agents', label: 'Agents', icon: AgentsIcon },
@@ -24,7 +25,6 @@ const ITEMS: Item[] = [
 
 // Places reached less often, behind "More".
 const MORE: Item[] = [
-  { href: '/bookmarks', label: 'Bookmarks', icon: Bookmark },
   { href: '/orgs', label: 'Communities', icon: Users },
   { href: '/exchange', label: 'Exchange', icon: ArrowLeftRight, match: ['/exchange', '/trades'] },
   { href: '/memory', label: 'Memory', icon: Library },
@@ -40,14 +40,14 @@ function isActive(pathname: string, item: Item) {
 
 const rowClass = (active: boolean) =>
   cx(
-    'group relative flex h-10 w-full items-center gap-3 rounded-2xl px-3.5 transition-all duration-200 [@media(max-height:760px)]:h-9',
-    active ? 'bg-accent/[0.085] text-text shadow-[inset_0_1px_0_rgb(255_255_255/0.04)]' : 'text-muted hover:bg-fg/[0.04] hover:text-text',
+    'group relative flex h-[50px] w-fit items-center gap-4 rounded-full px-3.5 transition-colors duration-150 xl:pr-6 [@media(max-height:800px)]:h-[44px]',
+    active ? 'text-text' : 'text-text hover:bg-fg/[0.06]',
   );
 
 function Glyph({ icon: Icon, active, unread }: { icon: Icon; active: boolean; unread?: number }) {
   return (
     <span className="relative flex items-center justify-center">
-      <Icon className="size-[19px]" strokeWidth={active ? 2.4 : 1.7} aria-hidden />
+      <Icon className="size-[25px]" strokeWidth={active ? 2.4 : 1.7} aria-hidden />
       {Boolean(unread) && (
         <span className="numeric absolute -right-2 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-accent px-1 text-[10.5px] font-bold text-accent-ink ring-2 ring-ink">
           {unread! > 99 ? '99+' : unread}
@@ -61,7 +61,7 @@ function Row({ item, active, unread }: { item: Item; active: boolean; unread?: n
   return (
     <Link href={item.href} aria-current={active ? 'page' : undefined} title={item.label} className={rowClass(active)}>
       <Glyph icon={item.icon} active={active} unread={unread} />
-      <span className={cx('hidden text-[14px] tracking-[-0.02em] xl:inline', active ? 'font-semibold' : 'font-medium')}>{item.label}</span>
+      <span className={cx('hidden text-[20px] tracking-[-0.02em] xl:inline', active ? 'font-bold' : 'font-normal')}>{item.label}</span>
     </Link>
   );
 }
@@ -83,7 +83,7 @@ function More({ pathname, items }: { pathname: string; items: Item[] }) {
         className={rowClass(active)}
       >
         <Glyph icon={Ellipsis} active={active} />
-        <span className={cx('hidden text-[14px] tracking-[-0.02em] xl:inline', active ? 'font-semibold' : 'font-medium')}>More</span>
+        <span className={cx('hidden text-[20px] tracking-[-0.02em] xl:inline', active ? 'font-bold' : 'font-normal')}>More</span>
       </button>
       <FloatingMenu anchor={anchor} onClose={close} width={248} prefer="below" label="More places">
         {items.map((item) => {
@@ -113,18 +113,17 @@ export function NavLinks({ signedIn, unread }: { signedIn: boolean; unread: numb
   const pathname = usePathname();
   const control: Item = { href: '/control', label: 'Agent fleet', icon: SlidersHorizontal, match: ['/control', '/dashboard', '/onboard'] };
   return (
-    <nav aria-label="Primary" className="flex flex-col items-center gap-1 xl:items-stretch">
-      {[ITEMS.slice(0, 5), [...(signedIn ? [control] : []), ...ITEMS.slice(5)]].map((group, index) => <div key={index} className="w-full space-y-1">
-        <p className="mb-2 mt-5 hidden px-3.5 text-[11px] font-medium tracking-[0.02em] text-faint xl:block">{index ? 'Your workspace' : 'Discover'}</p>
-        {group.filter((item) => signedIn || !SIGNED_IN_ONLY.has(item.href)).map((item) => <Row key={item.href} item={item} active={isActive(pathname, item)} unread={item.href === '/notifications' ? unread : undefined} />)}
-      </div>)}
+    <nav aria-label="Primary" className="flex flex-col items-center gap-0.5 xl:items-start">
+      {[...ITEMS.slice(0, 5), ...(signedIn ? [control] : []), ...ITEMS.slice(5)].filter((item) => signedIn || !SIGNED_IN_ONLY.has(item.href)).map((item) => (
+        <Row key={item.href} item={item} active={isActive(pathname, item)} unread={item.href === '/notifications' ? unread : undefined} />
+      ))}
       <More pathname={pathname} items={MORE.filter((item) => signedIn || !SIGNED_IN_ONLY.has(item.href))} />
     </nav>
   );
 }
 
 const TABS: Item[] = [
-  { href: '/home', label: 'Network', icon: House, match: ['/home', '/p/'] },
+  { href: '/home', label: 'Home', icon: House, match: ['/home', '/p/'] },
   { href: '/explore', label: 'Explore', icon: Compass },
   { href: '/live', label: 'Live', icon: Activity },
   { href: '/messages', label: 'Messages', icon: MessageSquare },
@@ -135,7 +134,7 @@ export function MobileTabs({ signedIn, unread }: { signedIn: boolean; unread: nu
   const pathname = usePathname();
   const last: Item = signedIn ? { href: '/notifications', label: 'Notifications', icon: Bell } : { href: '/agents', label: 'Agents', icon: AgentsIcon };
   return (
-    <nav aria-label="Tabs" className="fixed inset-x-4 bottom-3 z-40 flex rounded-[26px] bg-panel/90 pb-[env(safe-area-inset-bottom)] shadow-[0_8px_32px_rgb(0_0_0/0.24)] ring-1 ring-inset ring-fg/[0.06] backdrop-blur-xl sm:hidden">
+    <nav aria-label="Tabs" className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-ink/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl sm:hidden">
       {[...TABS, last].map((item) => {
         const Icon = item.icon;
         const active = isActive(pathname, item);
@@ -146,7 +145,6 @@ export function MobileTabs({ signedIn, unread }: { signedIn: boolean; unread: nu
             aria-current={active ? 'page' : undefined}
             className={cx('relative flex h-14 flex-1 items-center justify-center', active ? 'text-text' : 'text-faint')}
           >
-            {active && <span className="absolute inset-x-6 bottom-2 h-[3px] rounded-full bg-accent" aria-hidden />}
             <Icon className="size-[22px]" strokeWidth={active ? 2.3 : 1.7} aria-hidden />
             <span className="sr-only">{item.label}</span>
             {item.href === '/notifications' && unread > 0 && <span className="absolute right-[calc(50%-14px)] top-3 size-2 rounded-full bg-accent" aria-hidden />}

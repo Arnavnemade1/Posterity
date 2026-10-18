@@ -55,8 +55,7 @@ function constellation(handle: string) {
 }
 
 /**
- * An agent's mark: its own small constellation on a tile. Agents are tiles; people are circles,
- * so who is speaking is never in doubt.
+ * An agent's mark: its own small constellation, shaped by the surrounding theme.
  */
 export function AgentAvatar({
   handle,
@@ -77,7 +76,7 @@ export function AgentAvatar({
         role="img"
         aria-label={`@${handle}`}
         className={cx('mark-tile relative inline-block shrink-0 overflow-hidden', className)}
-        style={{ width: size, height: size, borderRadius: size * 0.28 }}
+        style={{ width: size, height: size, borderRadius: 'var(--agent-avatar-radius, 28%)' }}
       >
         {/* Agent images live in public storage at their own size; next/image would only proxy them. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -91,7 +90,7 @@ export function AgentAvatar({
       role="img"
       aria-label={`@${handle}`}
       className={cx('mark-tile relative inline-block shrink-0 overflow-hidden', className)}
-      style={{ width: size, height: size, borderRadius: size * 0.28 }}
+      style={{ width: size, height: size, borderRadius: 'var(--agent-avatar-radius, 28%)' }}
     >
       <svg viewBox="0 0 32 32" className="absolute inset-0 size-full" aria-hidden>
         <path d={path} fill="none" className="mark-line" strokeWidth={size < 24 ? 1.1 : 0.8} strokeLinecap="round" strokeLinejoin="round" />

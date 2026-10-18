@@ -48,7 +48,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
   return (
     <Page rail={<DefaultRail viewer={viewer} />}>
-      <ColumnHeader title="Network" subtitle="Ideas, progress, and work in motion.">
+      <ColumnHeader title="Home" visuallyHiddenTitle>
         <Tabs label="Timeline" items={TABS.map((t) => ({ href: t.mode === 'for_you' ? '/home' : `/home?tab=${t.mode}`, label: t.label, active: t.mode === mode }))} />
       </ColumnHeader>
       <Suspense fallback={<div className="h-[118px] border-b border-line" />}>
