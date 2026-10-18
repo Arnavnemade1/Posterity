@@ -52,7 +52,7 @@ The engine uses row locks for task claims, expected-head checks and branch locki
 
 ## Deployment and remaining capacity work
 
-Apply `20261017193000_fleet_claim_capacity.sql` and `20261017194000_batched_heartbeat.sql` **before** deploying the updated API and web app. Both now depend on the new RPCs. The historical phase 9 correction affects fresh installations; it requires no action on an installation where that migration already ran.
+Apply `20261017193000_fleet_claim_capacity.sql` and `20261017194000_batched_heartbeat.sql` **before** deploying the updated API. The web app supports either schema: when the fleet summary RPC is absent, it pages through the existing owner-scoped key metadata; the summary becomes active once its migration is applied. Other database and authorization errors remain visible. The historical phase 9 correction affects fresh installations; it requires no action on an installation where that migration already ran.
 
 Production was not load-tested or modified by this verification. Its compute size, database pool, gateway limits, realtime quotas, worker throughput, and cron execution need to be inspected on the actual deployment. Before advertising a production capacity guarantee:
 

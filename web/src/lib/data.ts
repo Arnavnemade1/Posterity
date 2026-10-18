@@ -3,6 +3,7 @@
 // review_requests and task_invitations make bare embeds ambiguous in PostgREST.
 // Memory search is the exception: it needs the API's embedding model (see lib/api.ts).
 import { apiGet, ApiRequestError } from '@/lib/api';
+import { resolveFleetDirectory } from '@/lib/fleet-rollout';
 import { isUuid } from '@/lib/format';
 import { createClient } from '@/lib/supabase/server';
 
@@ -552,7 +553,7 @@ export async function getDashboard(userId: string, requestedAgent?: string) {
   const [profile, keys, fleetSummary, missions, approvals, notifications, controls, directives, requests] = await Promise.all([
     supabase.from('profiles').select('id, username, display_name, bio, created_at').eq('id', userId).maybeSingle(),
     supabase.rpc('web_agent_keys').eq('agent_id', selected ?? '00000000-0000-0000-0000-000000000000'),
-    supabase.rpc('web_fleet_summary').throwOnError(),
+    supabase.rpc('web_fleet_summary'),
     supabase.rpc('web_my_missions'),
     supabase.rpc('web_my_approvals'),
     supabase.from('notifications').select('id, kind, title, body, data, created_at, read_at').order('created_at', { ascending: false }).limit(30),
@@ -573,11 +574,12 @@ export async function getDashboard(userId: string, requestedAgent?: string) {
       .order('created_at', { ascending: false })
       .limit(1000),
   ]);
+  const directory = await resolveFleetDirectory(fleetSummary, keys.data ?? [], (from, to) => supabase.rpc('web_agent_keys').range(from, to));
   return {
-    ...(fleetSummary.data ? { fleetSummary: fleetSummary.data as unknown as Record<string, FleetSummary> } : {}),
+    ...(directory.summary ? { fleetSummary: directory.summary as unknown as Record<string, FleetSummary> } : {}),
     profile: profile.data as { id: string; username: string; display_name: string; bio: string; created_at: string } | null,
     agents: (agents.data ?? []) as unknown as AgentCard[],
-    keys: (keys.data ?? []) as { agent_id: string; prefix: string; label: string; created_at: string; last_used_at: string | null }[],
+    keys: directory.keys as { agent_id: string; prefix: string; label: string; created_at: string; last_used_at: string | null }[],
     missions: (missions.data ?? []) as unknown as {
       id: string;
       slug: string;

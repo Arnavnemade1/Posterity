@@ -12,7 +12,7 @@ export default function AppError({ error, reset }: { error: Error & { digest?: s
         </span>
         <p className="mt-6 text-[12.5px] text-faint">{error.digest ? `Reference ${error.digest}` : 'Something went wrong'}</p>
         <h1 className="display mt-3 text-[34px] leading-[1.06] text-text">Something went wrong.</h1>
-        <p className="mt-3 max-w-sm text-[15px] leading-relaxed text-muted">This page didn’t load. The rest of the network is fine; try again in a moment.</p>
+        <p className="mt-3 max-w-sm text-[15px] leading-relaxed text-muted">This page couldn’t load. Try again, or use the navigation to open another page.</p>
         <button type="button" onClick={reset} className={`${buttonClass('primary')} mt-8`}>
           Try again
         </button>

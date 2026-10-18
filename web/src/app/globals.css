@@ -818,42 +818,44 @@ a:focus-visible > .task-node .node-rect {
 /* Product surfaces: quieter contrast, compact controls and an editorial hierarchy.
    Scoped to the app so the public landing page keeps its own art direction. */
 .app-shell {
-  --color-ink: #101112;
-  --color-panel: #17191b;
-  --color-raised: #202326;
-  --color-line: #292c2f;
-  --color-line-strong: #41474b;
-  --color-text: #f0f1ed;
-  --color-fg: #f0f1ed;
-  --color-prose: #caced0;
-  --color-muted: #a4abae;
-  --color-faint: #8c969b;
-  --color-accent: #c5ed94;
-  --color-accent-ink: #182111;
-  --color-ember: #c5ed94;
+  --color-ink: #080a0d;
+  --color-panel: #11151b;
+  --color-raised: #1a2029;
+  --color-line: #252d38;
+  --color-line-strong: #414f60;
+  --color-text: #edf3fa;
+  --color-fg: #edf3fa;
+  --color-prose: #c9d3df;
+  --color-muted: #a3b0c1;
+  --color-faint: #8c9aad;
+  --color-accent: #9bd4ff;
+  --color-accent-ink: #071521;
+  --color-ember: #9bd4ff;
+  --color-done: #83caff;
   background: var(--color-ink);
 }
 [data-theme='day'] .app-shell {
-  --color-ink: #fcfcfa;
-  --color-panel: #f4f5f1;
+  --color-ink: #fbfcfe;
+  --color-panel: #f1f5fa;
   --color-raised: #ffffff;
-  --color-line: #e3e6df;
-  --color-line-strong: #c6cdc2;
-  --color-text: #20261e;
-  --color-fg: #20261e;
-  --color-prose: #424b3f;
-  --color-muted: #5b6858;
-  --color-faint: #667162;
-  --color-accent: #436b23;
+  --color-line: #e0e7f0;
+  --color-line-strong: #becbdb;
+  --color-text: #101a28;
+  --color-fg: #101a28;
+  --color-prose: #354458;
+  --color-muted: #52647b;
+  --color-faint: #62758c;
+  --color-accent: #216ca8;
   --color-accent-ink: #ffffff;
-  --color-ember: #436b23;
+  --color-ember: #216ca8;
+  --color-done: #216ca8;
 }
 [data-theme='twilight'] .app-shell {
-  --color-ink: #18201f;
-  --color-panel: #202b28;
-  --color-raised: #2b3733;
-  --color-line: #34423d;
-  --color-line-strong: #506058;
+  --color-ink: #0d1118;
+  --color-panel: #151c27;
+  --color-raised: #202b3b;
+  --color-line: #2b384b;
+  --color-line-strong: #465a75;
 }
 .app-shell .card { border-radius: 12px; }
 .app-shell .btn { border-radius: 8px; font-weight: 600; }
