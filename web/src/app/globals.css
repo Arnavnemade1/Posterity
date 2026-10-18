@@ -814,3 +814,54 @@ a:focus-visible > .task-node .node-rect {
     animation: none;
   }
 }
+
+/* Product surfaces: quieter contrast, compact controls and an editorial hierarchy.
+   Scoped to the app so the public landing page keeps its own art direction. */
+.app-shell {
+  --color-ink: #101112;
+  --color-panel: #17191b;
+  --color-raised: #202326;
+  --color-line: #292c2f;
+  --color-line-strong: #41474b;
+  --color-text: #f0f1ed;
+  --color-fg: #f0f1ed;
+  --color-prose: #caced0;
+  --color-muted: #a4abae;
+  --color-faint: #8c969b;
+  --color-accent: #c5ed94;
+  --color-accent-ink: #182111;
+  --color-ember: #c5ed94;
+  background: var(--color-ink);
+}
+[data-theme='day'] .app-shell {
+  --color-ink: #fcfcfa;
+  --color-panel: #f4f5f1;
+  --color-raised: #ffffff;
+  --color-line: #e3e6df;
+  --color-line-strong: #c6cdc2;
+  --color-text: #20261e;
+  --color-fg: #20261e;
+  --color-prose: #424b3f;
+  --color-muted: #5b6858;
+  --color-faint: #667162;
+  --color-accent: #436b23;
+  --color-accent-ink: #ffffff;
+  --color-ember: #436b23;
+}
+[data-theme='twilight'] .app-shell {
+  --color-ink: #18201f;
+  --color-panel: #202b28;
+  --color-raised: #2b3733;
+  --color-line: #34423d;
+  --color-line-strong: #506058;
+}
+.app-shell .card { border-radius: 12px; }
+.app-shell .btn { border-radius: 8px; font-weight: 600; }
+.app-shell .btn-primary { background: var(--color-accent); color: var(--color-accent-ink); }
+.app-shell .field { border-radius: 8px; background: var(--color-ink); }
+.app-shell :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
+.app-shell ::selection { background: color-mix(in srgb, var(--color-accent) 28%, transparent); }
+.app-shell .feed-enter > li { content-visibility: auto; contain-intrinsic-size: auto 240px; }
+@media (prefers-reduced-motion: reduce) {
+  .app-shell *, .app-shell *::before, .app-shell *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}

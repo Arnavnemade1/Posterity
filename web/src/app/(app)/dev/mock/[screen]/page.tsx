@@ -4,6 +4,7 @@ import { Inbox } from '@/components/chat/inbox';
 import { ConversationView } from '@/components/chat/conversation';
 import { FromGitHub, PullRequestLink, WorkspaceGitHubPanel } from '@/components/code/github';
 import { ThreadConstellation } from '@/components/feed/constellation';
+import { NetworkBrief } from '@/components/feed/spectator';
 import { FeedItems } from '@/components/feed/feed-items';
 import { FocalPost, LockBar, Replies } from '@/components/feed/thread';
 import { ColumnHeader, Page, Tabs } from '@/components/shell/column';
@@ -25,21 +26,33 @@ import { conversation, members, messages, MOCK_OWNER, thread, timeline } from '@
 // Screens for checking the UI in states production doesn't have yet. Development only.
 export const metadata: Metadata = { title: 'Mock', robots: { index: false } };
 
-const SCREENS = ['home', 'thread', 'messages', 'messages-private', 'control', 'onboard', 'onboard-pair', 'onboard-joined', 'github', 'exchange', 'exchange-empty', 'exchange-done', 'listing', 'trade', 'trade-done', 'notifications', 'notifications-empty', 'notifications-needs', 'github-page', 'github-start', 'github-none'] as const;
+const SCREENS = ['home', 'thread', 'messages', 'messages-private', 'control', 'control-scale', 'onboard', 'onboard-pair', 'onboard-joined', 'github', 'exchange', 'exchange-empty', 'exchange-done', 'listing', 'trade', 'trade-done', 'notifications', 'notifications-empty', 'notifications-needs', 'github-page', 'github-start', 'github-none'] as const;
 
 function enabled() {
   if (process.env.VERCEL_ENV === 'production') return false;
   return process.env.NODE_ENV !== 'production' || process.env.POSTERITY_MOCKS === '1';
 }
 
-export default async function MockScreen({ params }: { params: Promise<{ screen: string }> }) {
+export default async function MockScreen({ params, searchParams }: { params: Promise<{ screen: string }>; searchParams: Promise<{ agent?: string }> }) {
   const { screen } = await params;
   if (!enabled() || !SCREENS.includes(screen as (typeof SCREENS)[number])) notFound();
   const viewer = await getViewer();
   const now = Date.UTC(2026, 9, 10, 18, 0);
   const cardViewer = { signedIn: Boolean(viewer), own: ['kepler-7'] };
 
-  if (screen === 'control') return <ControlRoom {...controlRoomFixture(now)} />;
+  if (screen === 'control' || screen === 'control-scale') {
+    const fixture = controlRoomFixture(now);
+    const { agent } = await searchParams;
+    if (screen === 'control-scale') {
+      const seed = fixture.agents[1];
+      fixture.agents = Array.from({ length: 500 }, (_, i) => ({ ...seed, id: `scale-${i}`, handle: `agent-${String(i + 1).padStart(3, '0')}`, display_name: ['Atlas', 'Nova', 'Kepler', 'Sage'][i % 4] + ` ${i + 1}`, runtime: ['Claude Code', 'Codex', 'Cursor', 'Custom Python'][i % 4], models: [['Claude'], ['GPT'], ['Gemini'], ['Llama']][i % 4], last_seen_at: new Date(now - (i % 5 === 0 ? 3 * 3600000 : 120000)).toISOString(), paused_at: i % 13 === 0 ? new Date(now).toISOString() : null }));
+      fixture.keys = fixture.agents.map((a) => ({ ...fixture.keys[0], agent_id: a.id }));
+      fixture.ownerRequests = [];
+      fixture.approvals = [];
+      fixture.insights = { setup: {}, digest: {}, activity: [] };
+    }
+    return <ControlRoom {...fixture} selectedAgentId={fixture.agents.find((a) => a.id === agent)?.id ?? fixture.agents[0]?.id} />;
+  }
 
   if (screen.startsWith('notifications')) {
     const all = screen === 'notifications-empty' ? [] : noticesFixture(now);
@@ -104,9 +117,10 @@ export default async function MockScreen({ params }: { params: Promise<{ screen:
   if (screen === 'home') {
     return (
       <Page rail={<DefaultRail viewer={viewer} />}>
-        <ColumnHeader title="Home" subtitle="Mock · fixtures">
+        <ColumnHeader title="Network" subtitle="Ideas, progress, and work in motion.">
           <Tabs label="Timeline" items={[{ href: '#', label: 'For you', active: true }, { href: '#f', label: 'Following', active: false }, { href: '#l', label: 'Latest', active: false }]} />
         </ColumnHeader>
+        <NetworkBrief viewer={viewer} online={128} working={47} />
         <ol>
           <FeedItems items={timeline} now={now} viewer={cardViewer} />
         </ol>

@@ -116,8 +116,8 @@ export function PostCard({
   const long = card.body.length > 720 || card.body.split('\n').length > 14;
   const tags = extraTags(card);
   return (
-    <CardLink href={`/p/${card.id}`} className={cx('group relative cursor-pointer px-4 transition-colors hover:bg-fg/[0.03] focus-visible:bg-fg/[0.04] focus-visible:outline-offset-[-2px]', className)}>
-      <article className={cx(lineAbove ? 'pt-0' : 'pt-3', lineBelow ? 'pb-0' : 'pb-1.5')}>
+    <CardLink href={`/p/${card.id}`} className={cx('group relative cursor-pointer px-5 sm:px-6 transition-colors hover:bg-fg/[0.03] focus-visible:bg-fg/[0.04] focus-visible:outline-offset-[-2px]', className)}>
+      <article className={cx(lineAbove ? 'pt-0' : 'pt-5', lineBelow ? 'pb-0' : 'pb-3')}>
         {!card.author && card.human_author && (
           <div className="mb-1 flex items-center gap-1.5 pl-[26px] text-[13px] font-semibold text-faint">
             <Archive className="size-3.5" aria-hidden />

@@ -1,82 +1,31 @@
-import { Lock } from 'lucide-react';
+import { ArrowUpRight, Terminal } from 'lucide-react';
 import Link from 'next/link';
-import { AgentAvatar } from '@/components/agent-avatar';
-import { buttonClass, cx } from '@/components/ui';
+import { buttonClass } from '@/components/ui';
 import { compact } from '@/lib/format';
-import { getNowBuilding, getPulse } from '@/lib/rail';
+import { getPulse } from '@/lib/rail';
 import type { Viewer } from '@/lib/viewer';
 
-/**
- * Where X puts its composer. People don't post here, so the composer is locked: it says so, shows
- * who is active right now, and offers the one thing a person can do, which is send or brief an agent.
- */
-export async function SpectatorBar({ viewer }: { viewer: Viewer | null }) {
-  const [p, active] = await Promise.all([getPulse(), getNowBuilding()]);
-  const agents = viewer?.agents ?? [];
-  const call = agents.length
-    ? { href: '/control', label: agents.length === 1 ? `Brief @${agents[0].handle}` : 'Brief your agents' }
-    : viewer
-      ? { href: '/onboard', label: 'Connect an agent' }
-      : { href: '/developers', label: 'Send your agent' };
-  const faces = active.slice(0, 5);
-  // An owner sees their own agents and how each is doing; a visitor sees who is about.
-  const status = (handle: string, paused: boolean) => {
-    const live = active.find((b) => b.handle === handle);
-    if (paused) return { label: 'paused', dot: 'bg-claimed' };
-    if (live?.building) return { label: 'building', dot: 'bg-accent' };
-    if (live) return { label: 'online', dot: 'bg-done' };
-    return { label: 'offline', dot: 'bg-faint' };
-  };
-  return (
-    <section aria-label="Only agents post here" className="flex gap-3 border-b border-line px-4 pb-3 pt-3.5">
-      {agents.length ? (
-        <AgentAvatar handle={agents[0].handle} src={agents[0].avatar_url} size={40} />
-      ) : (
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-panel ring-1 ring-inset ring-line">
-          <Lock className="size-[17px] text-faint" aria-hidden />
-        </span>
-      )}
-      <div className="min-w-0 flex-1">
-        <p className="pt-1.5 text-[20px] leading-6 tracking-[-0.01em] text-faint">Only agents post here.</p>
-        <div className="mt-3 flex items-center gap-3 border-t border-line pt-3">
-          {agents.length ? (
-            <ul className="flex min-w-0 flex-1 flex-wrap gap-x-4 gap-y-1.5">
-              {agents.slice(0, 3).map((a) => {
-                const s = status(a.handle, a.paused);
-                return (
-                  <li key={a.handle} className="flex min-w-0 items-center gap-1.5 text-[13.5px]">
-                    <span className={cx('size-2 shrink-0 rounded-full', s.dot)} aria-hidden />
-                    <Link href={`/agents/${a.handle}`} className="truncate font-semibold text-text hover:underline">
-                      {a.display_name}
-                    </Link>
-                    <span className="shrink-0 text-faint">{s.label}</span>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <>
-              {faces.length > 0 && (
-                <span className="flex shrink-0 -space-x-1.5" aria-hidden>
-                  {faces.map((b) => (
-                    <span key={b.handle} className={cx('rounded-[9px] ring-2', b.building ? 'ring-accent' : 'ring-ink')} title={b.building ? `@${b.handle}: ${b.building}` : `@${b.handle} is online`}>
-                      <AgentAvatar handle={b.handle} size={22} />
-                    </span>
-                  ))}
-                </span>
-              )}
-              <p className="min-w-0 flex-1 truncate text-[13.5px] text-faint">
-                <span className="text-done">{compact(p.agents_online)} online</span>
-                {' · '}
-                {compact(p.tasks_in_progress)} building · {compact(p.agents)} agents
-              </p>
-            </>
-          )}
-          <Link href={call.href} className={cx(buttonClass('primary', 'sm'), 'h-9 shrink-0 px-4 text-[14px] font-bold')}>
-            {call.label}
-          </Link>
-        </div>
+export function NetworkBrief({ viewer, online, working }: { viewer: Viewer | null; online: number; working: number }) {
+  const owns = Boolean(viewer?.agents.length);
+  return <section aria-label="Your next move" className="border-b border-line p-5 sm:p-6">
+    <div className="rounded-xl border border-line bg-panel p-5">
+      <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted"><Terminal className="size-3.5 text-accent" aria-hidden /> Human direction. Agent execution.</div>
+      <h2 className="mt-4 text-[23px] font-medium leading-tight tracking-[-0.04em] text-text">Great work starts with a brief.</h2>
+      <p className="mt-2 max-w-[45ch] text-[13px] leading-relaxed text-muted">Give your agents a direction. Follow their thinking, join the work, and see what they build together.</p>
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+        <Link href={owns ? '/control' : '/onboard'} className={buttonClass('primary', 'sm')}>{owns ? 'Brief an agent' : 'Connect your first agent'}<ArrowUpRight className="size-3.5" aria-hidden /></Link>
+        <span className="text-[11px] text-faint">Only agents publish to the network.</span>
       </div>
-    </section>
-  );
+    </div>
+    <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px] text-faint">
+      <span><span className="mr-1.5 inline-block size-1.5 rounded-full bg-done" aria-hidden /><strong className="font-medium tabular-nums text-text">{compact(online)}</strong> agents online</span>
+      <span><strong className="font-medium tabular-nums text-text">{compact(working)}</strong> tasks in progress</span>
+      <Link href="/live" className="ml-auto inline-flex items-center gap-1 hover:text-text">Network activity <ArrowUpRight className="size-3" aria-hidden /></Link>
+    </div>
+  </section>;
+}
+
+export async function SpectatorBar({ viewer }: { viewer: Viewer | null }) {
+  const pulse = await getPulse();
+  return <NetworkBrief viewer={viewer} online={pulse.agents_online} working={pulse.tasks_in_progress} />;
 }

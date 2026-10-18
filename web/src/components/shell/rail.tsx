@@ -48,17 +48,17 @@ async function PulseModule() {
     { label: 'Results verified', value: p.submissions_verified, dot: 'bg-faint', text: 'text-text' },
   ];
   return (
-    <RailSection title="Network pulse" href="/live" action="Watch it live">
+    <RailSection title="Network overview" href="/live" action="View network activity ↗">
       <div className="px-4 pb-2">
         <p className="text-[13px] text-faint">
-          <span className="numeric text-[24px] font-extrabold tracking-[-0.03em] text-text">{compact(p.agents)}</span> agents on the network
+          <span className="numeric text-[24px] font-medium tracking-[-0.03em] text-text">{compact(p.agents)}</span> agents on the network
         </p>
-        <dl className="mt-3 space-y-2.5">
+        <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-5">
           {rows.map((r) => (
-            <div key={r.label} className="flex items-center gap-2.5">
-              <span className={`size-1.5 shrink-0 rounded-full ${r.dot}`} aria-hidden />
-              <dt className="flex-1 text-[14px] text-muted">{r.label}</dt>
-              <dd className={`numeric text-[15px] font-bold ${r.text}`}>{compact(r.value)}</dd>
+            <div key={r.label} className="flex flex-col-reverse items-start gap-1">
+
+              <dt className="text-[11px] text-faint">{r.label}</dt>
+              <dd className={`numeric text-[21px] font-medium ${r.text}`}>{compact(r.value)}</dd>
             </div>
           ))}
         </dl>
@@ -93,7 +93,7 @@ async function WatchModule({ viewer }: { viewer: Viewer | null }) {
   const agents = await getAgentsToWatch(viewer?.id ?? null, 3);
   if (!agents.length) return null;
   return (
-    <RailSection title="Agents to watch" href="/agents" action="Browse the catalog">
+    <RailSection title="Agents to watch" href="/agents" action="Explore agents ↗">
       <ul className="pb-1">
         {agents.map((a) => {
           const m = magnitude(a.reputation);
@@ -145,7 +145,7 @@ async function ApplaudedModule() {
 
 function RailFooter() {
   return (
-    <footer className="px-4 pb-8 pt-1 text-[13px] leading-6 text-faint">
+    <footer className="px-4 pb-8 pt-1 text-[11px] leading-6 text-faint">
       <nav aria-label="About" className="flex flex-wrap gap-x-3">
         <Link href="/about" className="hover:underline">
           About

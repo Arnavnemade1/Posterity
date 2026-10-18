@@ -8,21 +8,21 @@ import { cx } from '@/components/ui';
  */
 export function Page({ children, rail, wide = false, fixed = false }: { children: React.ReactNode; rail?: React.ReactNode; wide?: boolean; fixed?: boolean }) {
   return (
-    <div className="flex w-full min-w-0 justify-center lg:gap-7 xl:justify-start">
+    <div className="flex w-full min-w-0 justify-center lg:gap-6 xl:justify-start">
       <main
         id="main"
         className={cx(
           'w-full min-w-0 border-line sm:border-x',
           // A fixed page is exactly one screen tall (less the phone's top bar and tabs) and its panes scroll on their own.
           fixed ? 'h-[calc(100dvh-7.5rem)] overflow-hidden sm:h-dvh' : 'min-h-dvh',
-          wide ? (fixed ? 'max-w-[1010px]' : 'max-w-[960px]') : 'max-w-[600px]',
+          wide ? (fixed ? 'max-w-[1010px]' : 'max-w-[1180px]') : 'max-w-[680px]',
         )}
       >
         {children}
       </main>
       {rail && !wide && (
-        <aside aria-label="Around the network" className="hidden w-[340px] shrink-0 lg:block xl:w-[350px]">
-          <div className="sticky top-0 flex max-h-dvh flex-col gap-4 overflow-y-auto py-3 [scrollbar-width:none] [&>*]:shrink-0">{rail}</div>
+        <aside aria-label="Around the network" className="hidden w-[290px] shrink-0 lg:block xl:w-[304px]">
+          <div className="sticky top-0 flex max-h-dvh flex-col gap-5 overflow-y-auto px-1 py-6 [scrollbar-width:none] [&>*]:shrink-0">{rail}</div>
         </aside>
       )}
     </div>
@@ -48,10 +48,10 @@ export function ColumnHeader({
 }) {
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-ink/75 backdrop-blur-xl backdrop-saturate-150">
-      <div className={cx('flex min-h-[53px] items-center gap-3 px-4', visuallyHiddenTitle && 'sr-only')}>
+      <div className={cx('flex min-h-[84px] items-center gap-3 px-5 sm:px-6', visuallyHiddenTitle && 'sr-only')}>
         {back && <BackButton fallback={back} />}
         <div className="min-w-0 flex-1 py-1.5">
-          <h1 className="truncate text-[20px] font-bold leading-tight tracking-[-0.02em] text-text">{title}</h1>
+          <h1 className="truncate text-[23px] font-semibold leading-tight tracking-[-0.02em] text-text">{title}</h1>
           {subtitle && <div className="mt-0.5 truncate text-[13px] text-faint">{subtitle}</div>}
         </div>
         {right}
@@ -70,11 +70,11 @@ export function Tabs({ items, label }: { items: { href: string; label: React.Rea
           key={item.href}
           href={item.href}
           aria-current={item.active ? 'page' : undefined}
-          className="group relative flex h-[52px] min-w-fit flex-1 items-center justify-center px-4 text-[15px] transition-colors hover:bg-fg/[0.04]"
+          className="group relative flex h-[46px] min-w-fit flex-1 items-center justify-center px-4 text-[13px] transition-colors hover:bg-fg/[0.04]"
         >
           <span className={cx('relative flex h-full items-center whitespace-nowrap', item.active ? 'font-bold text-text' : 'font-medium text-faint group-hover:text-muted')}>
             {item.label}
-            {item.active && <span className="absolute inset-x-0 bottom-0 h-[4px] rounded-full bg-accent" aria-hidden />}
+            {item.active && <span className="absolute inset-x-0 bottom-0 h-[2px] rounded-full bg-accent" aria-hidden />}
           </span>
         </Link>
       ))}
@@ -87,11 +87,11 @@ export function RailSection({ title, href, action, children, className }: { titl
   return (
     <section className={cx('card overflow-hidden', className)}>
       <h2 className="flex items-baseline justify-between gap-3 px-4 pb-1.5 pt-3.5">
-        <span className="text-[20px] font-extrabold tracking-[-0.02em] text-text">{title}</span>
+        <span className="text-[14px] font-semibold tracking-[-0.01em] text-text">{title}</span>
       </h2>
       {children}
       {href && (
-        <Link href={href} className="block px-4 py-3.5 text-[15px] text-open transition-colors hover:bg-fg/[0.04]">
+        <Link href={href} className="block px-4 py-3.5 text-[12px] text-open transition-colors hover:bg-fg/[0.04]">
           {action ?? 'Show more'}
         </Link>
       )}

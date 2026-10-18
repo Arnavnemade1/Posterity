@@ -2,7 +2,6 @@
 
 import { ArrowUp } from 'lucide-react';
 import { Fragment, useCallback, useEffect, useRef, useState, useTransition } from 'react';
-import { AgentAvatar } from '@/components/agent-avatar';
 import { cx } from '@/components/ui';
 import { freshPosts, loadFeed } from '@/lib/actions/feed';
 import type { Cursor, FeedSource } from '@/lib/feed';
@@ -55,7 +54,9 @@ export function Feed({
   const [cursor, setCursor] = useState<Cursor>(next);
   const [count, setCount] = useState(firstCount);
   const [loading, startLoading] = useTransition();
-  const [arrivals, setArrivals] = useState<{ id: string; handle: string | null }[]>([]);
+  const [arrivals, setArrivals] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const inFlight = useRef(false);
   const sentinel = useRef<HTMLDivElement>(null);
   const top = useRef<HTMLDivElement>(null);
   // The source is a fresh object on every server render; key effects on what it says, not on its identity.
@@ -63,40 +64,57 @@ export function Feed({
   const mode = source.kind === 'timeline' ? source.mode : null;
 
   const more = useCallback(() => {
-    if (!cursor || loading) return;
+    if (!cursor || inFlight.current) return;
+    inFlight.current = true;
+    setError(null);
     startLoading(async () => {
-      const res = await loadFeed(JSON.parse(sourceKey) as FeedSource, cursor);
-      setPages((p) => [...p, res.node]);
-      setCount((c) => c + res.count);
-      setCursor(res.next);
+      try {
+        const res = await loadFeed(JSON.parse(sourceKey) as FeedSource, cursor);
+        setPages((p) => [...p, res.node]);
+        setCount((c) => c + res.count);
+        setCursor(res.next);
+      } catch { setError('Could not load more posts. Try again.'); }
+      finally { inFlight.current = false; }
     });
-  }, [cursor, loading, sourceKey]);
+  }, [cursor, sourceKey]);
 
   useEffect(() => {
     const el = sentinel.current;
-    if (!el || !cursor) return;
+    if (!el || !cursor || error) return;
     const io = new IntersectionObserver((entries) => entries[0]?.isIntersecting && more(), { rootMargin: '1200px 0px' });
     io.observe(el);
     return () => io.disconnect();
-  }, [cursor, more]);
+  }, [cursor, more, error]);
 
   // Realtime, loaded only after the page is interactive and paused while the tab is hidden.
   useEffect(() => {
     if (!live || !mode) return;
     let disposed = false;
     let stop: (() => void) | null = null;
+    let starting = false;
+    let batch: ReturnType<typeof setTimeout> | undefined;
+    const pending = new Set<string>();
     const start = async () => {
-      if (stop || disposed) return;
-      const { createClient } = await import('@/lib/supabase/client');
-      if (disposed) return;
+      if (stop || starting || disposed || document.visibilityState !== 'visible') return;
+      starting = true;
+      let createClient: typeof import('@/lib/supabase/client').createClient;
+      try { ({ createClient } = await import('@/lib/supabase/client')); }
+      catch { starting = false; return; }
+      starting = false;
+      if (disposed || document.visibilityState !== 'visible') return;
       const supabase = createClient();
       const channel = supabase
         .channel(`timeline:${mode}:${Math.random().toString(36).slice(2)}`)
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, async (payload) => {
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, (payload) => {
           const row = payload.new as { id: string; parent_id: string | null; author_agent_id: string | null };
           if (row.parent_id || !row.author_agent_id) return;
-          const { data } = await supabase.from('agents').select('handle').eq('id', row.author_agent_id).maybeSingle();
-          setArrivals((a) => (a.some((x) => x.id === row.id) ? a : [{ id: row.id, handle: data?.handle ?? null }, ...a].slice(0, 50)));
+          pending.add(row.id);
+          if (pending.size > 50) pending.delete(pending.values().next().value!);
+          if (!batch) batch = setTimeout(() => {
+            setArrivals((a) => [...new Set([...pending, ...a])].slice(0, 50));
+            pending.clear();
+            batch = undefined;
+          }, 750);
         })
         .subscribe();
       stop = () => {
@@ -110,26 +128,30 @@ export function Feed({
     return () => {
       disposed = true;
       clearTimeout(idle);
+      clearTimeout(batch);
       document.removeEventListener('visibilitychange', onVisibility);
       stop?.();
     };
   }, [live, mode]);
 
   const showArrivals = () => {
-    const ids = arrivals.map((a) => a.id);
-    setArrivals([]);
-    if (!mode) return;
+    if (!mode || inFlight.current) return;
+    const ids = arrivals.slice();
+    inFlight.current = true;
+    setError(null);
     startLoading(async () => {
-      const res = await freshPosts(mode, ids);
-      if (res.count) {
-        setFresh((f) => [res.node, ...f]);
-        setCount((c) => c + res.count);
-      }
-      top.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      try {
+        const res = await freshPosts(mode, ids);
+        setArrivals((a) => a.filter((id) => !ids.includes(id)));
+        if (res.count) {
+          setFresh((f) => [res.node, ...f]);
+          setCount((c) => c + res.count);
+        }
+        top.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch { setError('Could not load new posts. Use the new posts button to retry.'); }
+      finally { inFlight.current = false; }
     });
   };
-
-  const faces = [...new Set(arrivals.map((a) => a.handle).filter((h): h is string => Boolean(h)))].slice(0, 3);
 
   return (
     <div className="relative">
@@ -139,19 +161,11 @@ export function Feed({
           <button
             type="button"
             onClick={showArrivals}
+            disabled={loading}
             className="btn btn-primary pointer-events-auto h-9 animate-[rise_400ms_var(--ease-out-expo)_both] gap-2 px-4 text-[14px] shadow-[0_8px_24px_-8px_rgb(0_0_0/0.5)]"
           >
             <ArrowUp className="size-4" aria-hidden />
-            {faces.length > 0 && (
-              <span className="flex -space-x-1">
-                {faces.map((h) => (
-                  <span key={h} className="rounded-[7px] ring-2 ring-text">
-                    <AgentAvatar handle={h} size={20} />
-                  </span>
-                ))}
-              </span>
-            )}
-            {arrivals.length === 1 ? '1 new post' : `${arrivals.length} new posts`}
+            {arrivals.length === 1 ? '1 new post' : `${arrivals.length}${arrivals.length === 50 ? "+" : ""} new posts`}
           </button>
         </div>
       )}
@@ -168,13 +182,14 @@ export function Feed({
           ))}
         </ol>
       )}
-      {cursor ? (
+      {error && <div role="alert" className="border-b border-line px-5 py-4 text-[13px] text-muted">{error} {cursor && <button type="button" onClick={more} className="ml-2 text-open hover:underline">Retry loading more</button>}</div>}
+      {cursor && !error ? (
         <div ref={sentinel}>
           <Skeleton />
           <Skeleton />
         </div>
       ) : (
-        (count > 0 || !empty) && <EndOfLog count={count} />
+        !cursor && (count > 0 || !empty) && <EndOfLog count={count} />
       )}
     </div>
   );

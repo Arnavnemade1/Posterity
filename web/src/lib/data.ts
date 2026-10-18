@@ -439,17 +439,18 @@ export interface AgentCard {
 const AGENT_CARD =
   'id, handle, display_name, bio, avatar_url, capabilities, models, availability, owner_id, last_seen_at, created_at, autonomy, paused_at, stats:agent_stats!agent_stats_agent_id_fkey(reputation, trust, tasks_completed, submissions_accepted, reviews_given, missions_completed)';
 
-export async function listAgents(opts: { q?: string; capability?: string; sort?: string } = {}): Promise<AgentCard[]> {
+export async function listAgents(opts: { q?: string; capability?: string; sort?: string; offset?: number; limit?: number } = {}): Promise<AgentCard[]> {
   const supabase = await db();
   let query = supabase.from('agents').select(AGENT_CARD).eq('status', 'active');
   if (opts.capability) query = query.contains('capabilities', [opts.capability.toLowerCase()]);
   if (opts.q) query = query.textSearch('search', opts.q, { type: 'websearch', config: 'english' });
-  query = opts.sort === 'new' ? query.order('created_at', { ascending: false }) : query.order('last_seen_at', { ascending: false, nullsFirst: false });
-  const { data } = await query.limit(120);
+  query = opts.sort === 'reputation' || !opts.sort
+    ? query.order('stats(reputation)', { ascending: false, nullsFirst: false })
+    : opts.sort === 'new' ? query.order('created_at', { ascending: false }) : query.order('last_seen_at', { ascending: false, nullsFirst: false });
+  const offset = opts.offset ?? 0;
+  const { data, error } = await query.order('id').range(offset, offset + (opts.limit ?? 120) - 1);
+  if (error) throw error;
   const agents = (data ?? []) as unknown as AgentCard[];
-  if (!opts.sort || opts.sort === 'reputation') {
-    agents.sort((a, b) => Number(b.stats?.reputation ?? 0) - Number(a.stats?.reputation ?? 0));
-  }
   return agents;
 }
 
@@ -541,30 +542,39 @@ export async function getAgent(handle: string) {
   };
 }
 
-export async function getDashboard(userId: string) {
+export interface FleetSummary { connected: boolean; tasks: number; expiring: number; requests: number }
+
+export async function getDashboard(userId: string, requestedAgent?: string) {
   const supabase = await db();
-  const [profile, agents, keys, missions, approvals, notifications, controls, directives, requests] = await Promise.all([
+  const agents = await supabase.from('agents').select(`${AGENT_CARD}, runtime, tools`).eq('owner_id', userId).order('created_at', { ascending: false });
+  if (agents.error) throw agents.error;
+  const selected = agents.data?.find((a) => a.id === requestedAgent)?.id ?? agents.data?.[0]?.id;
+  const [profile, keys, fleetSummary, missions, approvals, notifications, controls, directives, requests] = await Promise.all([
     supabase.from('profiles').select('id, username, display_name, bio, created_at').eq('id', userId).maybeSingle(),
-    supabase.from('agents').select(`${AGENT_CARD}, runtime, tools`).eq('owner_id', userId).order('created_at', { ascending: false }),
-    supabase.rpc('web_agent_keys'),
+    supabase.rpc('web_agent_keys').eq('agent_id', selected ?? '00000000-0000-0000-0000-000000000000'),
+    supabase.rpc('web_fleet_summary').throwOnError(),
     supabase.rpc('web_my_missions'),
     supabase.rpc('web_my_approvals'),
     supabase.from('notifications').select('id, kind, title, body, data, created_at, read_at').order('created_at', { ascending: false }).limit(30),
     // RLS returns only the caller's own agents' controls, directives and requests.
-    supabase.from('agent_controls').select('agent_id, dm_policy, daily_post_cap, allow_trades, allow_public_groups, locked_by_owner, pause_reason'),
+    supabase.from('agent_controls').select('agent_id, dm_policy, daily_post_cap, allow_trades, allow_public_groups, locked_by_owner, pause_reason').eq('agent_id', selected ?? '00000000-0000-0000-0000-000000000000'),
     supabase
       .from('directives')
       .select('id, agent_id, kind, title, body, priority, status, acknowledged_at, agent_note, created_at')
+      .eq('agent_id', selected ?? '00000000-0000-0000-0000-000000000000')
       .neq('status', 'archived')
       .order('created_at', { ascending: false })
       .limit(100),
     supabase
       .from('owner_requests')
       .select('id, agent_id, action, summary, status, decision_note, result, created_at, decided_at, expires_at')
+      .eq('status', 'pending')
+      .gt('expires_at', new Date().toISOString())
       .order('created_at', { ascending: false })
-      .limit(50),
+      .limit(1000),
   ]);
   return {
+    ...(fleetSummary.data ? { fleetSummary: fleetSummary.data as unknown as Record<string, FleetSummary> } : {}),
     profile: profile.data as { id: string; username: string; display_name: string; bio: string; created_at: string } | null,
     agents: (agents.data ?? []) as unknown as AgentCard[],
     keys: (keys.data ?? []) as { agent_id: string; prefix: string; label: string; created_at: string; last_used_at: string | null }[],
@@ -666,36 +676,25 @@ export interface AgentAssignment {
  * What an owner's agents have been up to: each one's setup checklist, a count of the last day's
  * posts, replies, messages and task work, and their latest public actions.
  */
-export async function getAgentInsights(agentIds: string[], now: number) {
-  if (!agentIds.length) return { setup: {}, digest: {}, activity: [], assignments: [] } as { setup: Record<string, AgentSetup>; digest: Record<string, AgentDigest>; activity: AgentActivity[]; assignments: AgentAssignment[] };
+export async function getAgentInsights(agentId: string | undefined, now: number) {
+  if (!agentId) return { setup: {}, digest: {}, activity: [], assignments: [] } as { setup: Record<string, AgentSetup>; digest: Record<string, AgentDigest>; activity: AgentActivity[]; assignments: AgentAssignment[] };
   const supabase = await db();
   const since = new Date(now - 24 * 3600_000).toISOString();
-  const [setups, posts, messages, activity, assignments] = await Promise.all([
-    Promise.all(agentIds.map((id) => supabase.rpc('web_agent_setup', { p_agent: id }).then(({ data }) => [id, data as AgentSetup | null] as const))),
-    supabase.from('posts').select('author_agent_id, parent_id').in('author_agent_id', agentIds).gte('created_at', since).is('deleted_at', null).limit(1000),
-    // Owners can read their own agents' private conversations, so these counts include DMs.
-    supabase.from('chat_messages').select('author_agent_id').in('author_agent_id', agentIds).gte('created_at', since).limit(1000),
-    supabase
-      .from('activity')
-      .select('id, agent_id, kind, summary, created_at')
-      .in('agent_id', agentIds)
-      .order('created_at', { ascending: false })
-      .limit(40),
-    supabase.from('tasks').select('id, assignee_id, title, status, lease_expires_at')
-      .in('assignee_id', agentIds).in('status', ['claimed', 'in_review']).order('lease_expires_at', { ascending: true }).limit(1000),
+  // The inspector loads one agent. Exact count queries avoid transferring or truncating busy agents' histories.
+  const [setup, posts, replies, messages, tasks, activity, assignments] = await Promise.all([
+    supabase.rpc('web_agent_setup', { p_agent: agentId }).throwOnError(),
+    supabase.from('posts').select('id', { count: 'exact', head: true }).eq('author_agent_id', agentId).gte('created_at', since).is('deleted_at', null).is('parent_id', null).throwOnError(),
+    supabase.from('posts').select('id', { count: 'exact', head: true }).eq('author_agent_id', agentId).gte('created_at', since).is('deleted_at', null).not('parent_id', 'is', null).throwOnError(),
+    supabase.from('chat_messages').select('id', { count: 'exact', head: true }).eq('author_agent_id', agentId).gte('created_at', since).throwOnError(),
+    supabase.from('activity').select('id', { count: 'exact', head: true }).eq('agent_id', agentId).gte('created_at', since).or('kind.like.task_%,kind.like.work_%').throwOnError(),
+    supabase.from('activity').select('id, agent_id, kind, summary, created_at').eq('agent_id', agentId).order('created_at', { ascending: false }).limit(40).throwOnError(),
+    supabase.from('tasks').select('id, assignee_id, title, status, lease_expires_at').eq('assignee_id', agentId).in('status', ['claimed', 'in_review']).order('lease_expires_at', { ascending: true }).limit(1000).throwOnError(),
   ]);
-  const digest: Record<string, AgentDigest> = Object.fromEntries(agentIds.map((id) => [id, { posts: 0, replies: 0, messages: 0, tasks: 0 }]));
-  for (const p of (posts.data ?? []) as { author_agent_id: string; parent_id: string | null }[]) digest[p.author_agent_id][p.parent_id ? 'replies' : 'posts']++;
-  for (const m of (messages.data ?? []) as { author_agent_id: string }[]) digest[m.author_agent_id].messages++;
-  const rows = (activity.data ?? []) as AgentActivity[];
-  for (const a of rows) {
-    if (a.created_at >= since && /^(task_|work_)/.test(a.kind)) digest[a.agent_id].tasks++;
-  }
   return {
-    setup: Object.fromEntries(setups.filter(([, s]) => s).map(([id, s]) => [id, s!])) as Record<string, AgentSetup>,
-    digest,
-    activity: rows,
-    assignments: assignments.error ? undefined : (assignments.data ?? []) as AgentAssignment[],
+    setup: setup.data ? { [agentId]: setup.data as unknown as AgentSetup } : {},
+    digest: { [agentId]: { posts: posts.count ?? 0, replies: replies.count ?? 0, messages: messages.count ?? 0, tasks: tasks.count ?? 0 } },
+    activity: (activity.data ?? []) as AgentActivity[],
+    assignments: (assignments.data ?? []) as AgentAssignment[],
   };
 }
 

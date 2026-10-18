@@ -91,6 +91,7 @@ function GitHubSummary({ app, overview }: { app: GitHubApp; overview: GitHubOver
 type Dashboard = Awaited<ReturnType<typeof getDashboard>>;
 
 export interface ControlRoomProps extends Dashboard {
+  selectedAgentId?: string;
   userId: string;
   email: string | null;
   orgs: Awaited<ReturnType<typeof getMyOrgs>>;
@@ -105,8 +106,10 @@ export interface ControlRoomProps extends Dashboard {
 
 export function ControlRoom({
   userId,
+  selectedAgentId,
   email,
   profile,
+  fleetSummary,
   agents,
   keys,
   missions,
@@ -123,9 +126,10 @@ export function ControlRoom({
   api,
   now,
 }: ControlRoomProps) {
+  const selected = selectedAgentId ?? agents[0]?.id;
   const unread = notifications.filter((n) => !n.read_at).length;
   const pending = ownerRequests.filter((r) => r.status === 'pending' && Date.parse(r.expires_at) > now);
-  const online = agents.filter((a) => !a.paused_at && keys.some((k) => k.agent_id === a.id) && onlineSince(a.last_seen_at, now)).length;
+  const online = agents.filter((a) => !a.paused_at && (fleetSummary?.[a.id]?.connected ?? keys.some((k) => k.agent_id === a.id)) && onlineSince(a.last_seen_at, now)).length;
   const byId = new Map(agents.map((a) => [a.id, a]));
   const decisions = pending.length + approvals.length;
   const tradesWaiting = myTrades.trades.filter((t) => t.pending);
@@ -133,7 +137,7 @@ export function ControlRoom({
   return (
     <Page wide>
       <ColumnHeader
-        title="Control room"
+        title="Agent fleet"
         subtitle={agents.length ? `${agents.length} ${agents.length === 1 ? 'agent' : 'agents'} · ${online} online${decisions ? ` · ${decisions} waiting on you` : ''}` : 'Your agents, your limits'}
         right={
           agents.length ? (
@@ -149,7 +153,10 @@ export function ControlRoom({
         showBadge={false}
       />
 
-      <div className="grid gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+      {agents.length > 0 && <div className="grid grid-cols-2 gap-px border-b border-line bg-line sm:grid-cols-4">
+        {[['Total agents', agents.length], ['Online now', online], ['Need a decision', decisions], ['Runtimes', new Set(agents.map((a) => a.runtime).filter(Boolean)).size]].map(([label, value]) => <div key={label} className="bg-ink px-5 py-5 sm:px-6"><p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-faint">{label}</p><p className="mt-2 text-[28px] font-medium leading-none tracking-[-0.04em] text-text tabular-nums">{value}</p></div>)}
+      </div>}
+      <div className="grid gap-6 px-4 py-6 sm:px-6 xl:grid-cols-[minmax(0,1fr)_280px]">
         <div className="min-w-0 space-y-6">
           {decisions > 0 && (
             <section className="overflow-hidden rounded-2xl bg-panel ring-1 ring-inset ring-review/45">
@@ -183,13 +190,15 @@ export function ControlRoom({
           )}
 
           {agents.length === 0 && <EmptyFleet />}
-          {agents.length > 0 && <AgentFleet entries={agents.map((a) => {
+          {agents.length > 0 && <AgentFleet selectedId={selected} entries={agents.map((a) => {
             const agentKeys = keys.filter((k) => k.agent_id === a.id);
             const work = insights.assignments?.filter((t) => t.assignee_id === a.id) ?? [];
-            const requests = pending.filter((r) => r.agent_id === a.id).length;
-            const urgent = work.filter((t) => t.status === 'claimed' && t.lease_expires_at && Date.parse(t.lease_expires_at) <= now + 5 * 60_000).length;
+            const summary = fleetSummary?.[a.id];
+            const connected = summary?.connected ?? Boolean(agentKeys.length);
+            const requests = summary?.requests ?? pending.filter((r) => r.agent_id === a.id).length;
+            const urgent = summary?.expiring ?? work.filter((t) => t.status === 'claimed' && t.lease_expires_at && Date.parse(t.lease_expires_at) <= now + 5 * 60_000).length;
             const attention = [
-              ...(!agentKeys.length ? ['Issue a key to reconnect'] : []),
+              ...(!connected ? ['Issue a key to reconnect'] : []),
               ...(requests ? [`${requests} awaiting approval`] : []),
               ...(urgent ? [`${urgent} task lease${urgent === 1 ? '' : 's'} expiring or expired`] : []),
               ...(insights.setup[a.id] && !insights.setup[a.id].complete ? ['Finish setup'] : []),
@@ -197,9 +206,9 @@ export function ControlRoom({
             return {
               id: a.id, handle: a.handle, name: a.display_name || a.handle, avatar: a.avatar_url,
               runtime: a.runtime ?? null, models: a.models, capabilities: a.capabilities, tools: a.tools ?? [],
-              state: !agentKeys.length ? 'disconnected' as const : a.paused_at ? 'paused' as const : onlineSince(a.last_seen_at, now) ? 'online' as const : 'offline' as const,
-              availability: a.availability, attention, work: insights.assignments ? work.length : null,
-              panel: <>
+              state: !connected ? 'disconnected' as const : a.paused_at ? 'paused' as const : onlineSince(a.last_seen_at, now) ? 'online' as const : 'offline' as const,
+              availability: a.availability, attention, work: summary?.tasks ?? (a.id === selected && insights.assignments ? work.length : null),
+              panel: a.id === selected ? <>
               {work.length > 0 && <div className="mb-3 rounded-xl bg-panel p-4 ring-1 ring-inset ring-line">
                 <h3 className="text-[13px] font-semibold text-text">Current work</h3>
                 <ul className="mt-2 space-y-2">{work.map((t) => <li key={t.id} className="flex flex-wrap justify-between gap-2 text-[13px]">
@@ -232,12 +241,12 @@ export function ControlRoom({
               activity={insights.activity.filter((x) => x.agent_id === a.id)}
               api={api}
               now={now}
-            /></>,
+            /></> : undefined,
             };
           })} />}
           {agents.length > 0 && (
             <p className="px-1 text-[13px] text-faint">
-              Activity counts cover the last 24 hours. Current work shows active assignments. Directives stay private.
+              Activity counts cover the last 24 hours for the selected agent. Status updates every minute. Directives stay private.
             </p>
           )}
           {github && <GitHubSummary app={github.app} overview={github.overview} />}

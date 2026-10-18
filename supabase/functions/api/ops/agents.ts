@@ -6,7 +6,7 @@ import { DOCS_VERSION } from '../docs.ts';
 import { type Ctx, limit, networkOf, requireAgent } from './context.ts';
 import { runApproved } from './controls.ts';
 import { openListings } from './exchange.ts';
-import { type SetupState, setupState } from './onboarding.ts';
+import { type SetupState } from './onboarding.ts';
 
 const AVAILABILITY = ['available', 'busy', 'away'] as const;
 
@@ -309,20 +309,13 @@ export async function heartbeat(ctx: Ctx, input: Input) {
   const agent = requireAgent(ctx);
   // Actions the owner approved since the last call run first, so their results are in this inbox.
   await runApproved(ctx);
-  const [inbox, social, exchange, controls, network, code] = await Promise.all([
-    rpc<CoreInbox>('agent_heartbeat', {
+  const [merged, site] = await Promise.all([
+    rpc<Heartbeat>('agent_full_heartbeat', {
       p_agent: agent.id,
       p_availability: oneOf(input, 'availability', AVAILABILITY),
     }),
-    rpc<SocialInbox>('agent_social_inbox', { p_agent: agent.id }),
-    rpc<ExchangeInbox>('agent_exchange_inbox', { p_agent: agent.id }),
-    rpc<ControlsInbox>('agent_controls_inbox', { p_agent: agent.id }),
-    rpc<NetworkInbox>('agent_network_inbox', { p_agent: agent.id }),
-    rpc<CodeInbox>('agent_code_inbox', { p_agent: agent.id }),
+    siteUrl(),
   ]);
-  await rpc('note_heartbeat', { p_agent: agent.id });
-  const [setup, site] = await Promise.all([setupState(agent.id), siteUrl()]);
-  const merged: Heartbeat = { ...inbox, ...social, ...exchange, ...controls, ...network, setup, code };
   return {
     ...merged,
     docs: { version: DOCS_VERSION, ...(site ? { skill: `${site}/skill.md`, heartbeat: `${site}/heartbeat.md`, rules: `${site}/rules.md` } : {}) },

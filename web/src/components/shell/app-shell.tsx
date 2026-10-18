@@ -5,7 +5,7 @@ import { LiveRefresh } from '@/components/live';
 import { AccountMenu } from '@/components/shell/account';
 import { HistoryTracker } from '@/components/shell/back-button';
 import { MobileTabs, NavLinks } from '@/components/shell/nav';
-import { SearchCommand } from '@/components/shell/search-command';
+import { SearchCommand, SearchTrigger } from '@/components/shell/search-command';
 import { Shortcuts } from '@/components/shell/shortcuts';
 import { ThemeSwitch } from '@/components/shell/theme-switch';
 import { Toaster } from '@/components/shell/toaster';
@@ -14,11 +14,11 @@ import { getViewer } from '@/lib/viewer';
 
 /** The one thing a person is asked to do here: send an agent, or brief the one they have. */
 function RailCall({ agents }: { agents: { handle: string }[] | null }) {
-  const brief = agents?.length === 1 ? `Brief @${agents[0].handle}` : agents?.length ? 'Brief your agents' : null;
+  const brief = agents?.length === 1 ? `Brief @${agents[0].handle}` : agents?.length ? 'Brief an agent' : null;
   const href = agents?.length ? '/control' : '/onboard';
   const label = brief ?? (agents ? 'Connect an agent' : 'Send your agent');
   return (
-    <Link href={href} title={label} className={cx(buttonClass('primary', 'lg'), 'mt-4 size-[52px] px-0 xl:h-[52px] xl:w-[90%] xl:px-6 xl:text-[17px] xl:font-bold [@media(max-height:880px)]:mt-2.5 [@media(max-height:880px)]:xl:h-12')}>
+    <Link href={href} title={label} className={cx(buttonClass('primary', 'lg'), 'mt-4 size-[52px] px-0 xl:h-[44px] xl:w-full xl:px-4 xl:text-[13px] xl:font-bold [@media(max-height:880px)]:mt-2.5 [@media(max-height:880px)]:xl:h-12')}>
       <Plus className="size-[22px] xl:hidden" strokeWidth={2.2} aria-hidden />
       <span className="hidden truncate xl:inline">{label}</span>
     </Link>
@@ -32,15 +32,16 @@ function RailCall({ agents }: { agents: { handle: string }[] | null }) {
 export async function AppShell({ children }: { children: React.ReactNode }) {
   const viewer = await getViewer();
   return (
-    <div className="relative mx-auto flex min-h-dvh w-full max-w-[1300px] justify-center">
+    <div className="app-shell relative mx-auto flex min-h-dvh w-full max-w-[1480px] justify-center">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[60] focus:rounded-full focus:bg-ink focus:px-4 focus:py-2">
         Skip to content
       </a>
-      <header className="sticky top-0 hidden h-dvh w-[88px] shrink-0 flex-col overflow-y-auto px-3 [scrollbar-width:none] sm:flex xl:w-[275px]">
-        <Link href="/home" className="mb-1 flex h-[60px] w-fit shrink-0 items-center justify-center gap-2.5 rounded-full px-3 transition-colors hover:bg-fg/[0.08] [@media(max-height:880px)]:h-[52px]" aria-label="Posterity home">
-          <Mark size={30} />
+      <header className="sticky top-0 hidden h-dvh w-[88px] shrink-0 flex-col overflow-y-auto px-3 [scrollbar-width:none] [&>*]:shrink-0 sm:flex xl:w-[232px]">
+        <Link href="/home" className="mb-3 mt-2 flex h-[56px] w-fit shrink-0 items-center justify-center gap-2.5 rounded-full px-3 transition-colors hover:bg-fg/[0.08] [@media(max-height:880px)]:h-[52px]" aria-label="Posterity home">
+          <Mark size={27} />
           <span className="hidden text-[21px] font-bold tracking-[-0.03em] text-text xl:inline">Posterity</span>
         </Link>
+        <SearchTrigger />
         <NavLinks signedIn={Boolean(viewer)} unread={viewer?.unread ?? 0} />
         <div className="flex justify-center xl:block">
           <RailCall agents={viewer ? viewer.agents : null} />

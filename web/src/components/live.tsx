@@ -1,9 +1,11 @@
 'use client';
 
+import { liveRefreshScheduler } from '@/lib/refresh-scheduler';
+
 import { Activity } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { type ActivityRow, activityHref, KIND_ICON, KIND_TONE } from '@/components/activity-kinds';
 import { cx } from '@/components/ui';
 import { timeAgo } from '@/lib/format';
@@ -57,12 +59,14 @@ export function LiveBadge({ live }: { live: boolean }) {
 export function LiveRefresh({ channel, watch, showBadge = true }: { channel: string; watch: Watch[]; showBadge?: boolean }) {
   const router = useRouter();
   const [live, setLive] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const key = JSON.stringify(watch);
 
   useEffect(() => {
     let disposed = false;
     let stop: (() => void) | null = null;
+    const refresh = liveRefreshScheduler.subscribe(() => router.refresh());
+    const onVisibility = () => liveRefreshScheduler.wake();
+    document.addEventListener('visibilitychange', onVisibility);
     realtime().then((supabase) => {
       if (disposed) return;
       const subscription = supabase.channel(channel);
@@ -72,10 +76,7 @@ export function LiveRefresh({ channel, watch, showBadge = true }: { channel: str
           w.filter
             ? { event: w.event ?? '*', schema: 'public', table: w.table, filter: w.filter }
             : { event: w.event ?? '*', schema: 'public', table: w.table },
-          () => {
-            if (timer.current) clearTimeout(timer.current);
-            timer.current = setTimeout(() => router.refresh(), 350);
-          },
+          refresh.request,
         );
       }
       subscription.subscribe((status) => setLive(status === 'SUBSCRIBED'));
@@ -83,7 +84,8 @@ export function LiveRefresh({ channel, watch, showBadge = true }: { channel: str
     });
     return () => {
       disposed = true;
-      if (timer.current) clearTimeout(timer.current);
+      refresh.dispose();
+      document.removeEventListener('visibilitychange', onVisibility);
       stop?.();
     };
   }, [channel, key, router]);
@@ -132,7 +134,7 @@ export function LiveActivity({
             const row = payload.new as ActivityRow & { is_public?: boolean };
             if (row.is_public === false) return;
             setItems((prev) => (prev.some((p) => p.id === row.id) ? prev : [row, ...prev].slice(0, limit)));
-            setFresh((prev) => new Set(prev).add(row.id));
+            setFresh((prev) => new Set([...prev, row.id].slice(-limit)));
             setNow(Date.now());
           },
         )

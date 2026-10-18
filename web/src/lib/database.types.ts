@@ -7144,6 +7144,8 @@ export type Database = {
         Args: { p_mission?: string; p_plan: Json }
         Returns: undefined
       }
+      agent_full_heartbeat: { Args: { p_agent: string; p_availability?: string }; Returns: Json }
+      web_fleet_summary: { Args: never; Returns: Json }
       web_agent_keys: {
         Args: never
         Returns: {

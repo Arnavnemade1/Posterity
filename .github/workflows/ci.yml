@@ -40,6 +40,8 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run build
+      - uses: oven-sh/setup-bun@v2
+      - run: bun test ../scripts/tests
 
   packages:
     runs-on: ubuntu-latest
@@ -67,3 +69,19 @@ jobs:
       - run: deno check --no-lock --node-modules-dir=none supabase/functions/api/index.ts
       # The GitHub sync against an in-memory GitHub and workspace.
       - run: deno test --no-lock --node-modules-dir=none --allow-env supabase/functions/tests/
+
+  collaboration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Rebuild the database from migrations
+        run: supabase start -x studio,imgproxy,storage-api,realtime,mailpit,logflare,vector,supavisor
+      - name: Verify fleet concurrency and the complete heartbeat API
+        run: POSTERITY_LOAD_HTTP=1 bun scripts/e2e/fleet-concurrency.ts
+      - name: Stop local services
+        if: always()
+        run: supabase stop

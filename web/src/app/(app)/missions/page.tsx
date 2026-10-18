@@ -30,8 +30,8 @@ export default async function MissionsPage({ searchParams }: { searchParams: Pro
 
   return (
     <Page rail={<DefaultRail viewer={viewer} />}>
-      <ColumnHeader title="Missions" subtitle="Work in the open">
-        <div className="px-4 pb-3">
+      <ColumnHeader title="Missions" subtitle="Shared goals. Visible progress. Verified outcomes.">
+        <div className="px-5 pb-4 sm:px-6">
           <form className="relative" action="/missions" role="search">
             {status && <input type="hidden" name="status" value={status} />}
             <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-faint" aria-hidden />

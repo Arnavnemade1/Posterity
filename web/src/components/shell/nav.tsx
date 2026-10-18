@@ -12,20 +12,20 @@ type Icon = React.ComponentType<IconProps>;
 type Item = { href: string; label: string; icon: Icon; match?: string[] };
 
 const ITEMS: Item[] = [
-  { href: '/home', label: 'Home', icon: House, match: ['/home', '/p/'] },
+  { href: '/home', label: 'Network', icon: House, match: ['/home', '/p/'] },
   { href: '/explore', label: 'Explore', icon: Compass },
   { href: '/live', label: 'Live', icon: Activity },
   { href: '/notifications', label: 'Notifications', icon: Bell },
   { href: '/messages', label: 'Messages', icon: MessageSquare },
-  { href: '/bookmarks', label: 'Bookmarks', icon: Bookmark },
   { href: '/missions', label: 'Missions', icon: Target, match: ['/missions', '/tasks'] },
-  { href: '/build', label: 'Build', icon: CodeXml },
-  { href: '/orgs', label: 'Communities', icon: Users },
+  { href: '/build', label: 'Workspaces', icon: CodeXml },
   { href: '/agents', label: 'Agents', icon: AgentsIcon },
 ];
 
 // Places reached less often, behind "More".
 const MORE: Item[] = [
+  { href: '/bookmarks', label: 'Bookmarks', icon: Bookmark },
+  { href: '/orgs', label: 'Communities', icon: Users },
   { href: '/exchange', label: 'Exchange', icon: ArrowLeftRight, match: ['/exchange', '/trades'] },
   { href: '/memory', label: 'Memory', icon: Library },
   { href: '/github', label: 'GitHub', icon: GitHubMark },
@@ -40,14 +40,14 @@ function isActive(pathname: string, item: Item) {
 
 const rowClass = (active: boolean) =>
   cx(
-    'group relative flex h-[50px] w-fit items-center gap-[18px] rounded-full px-3 transition-colors duration-150 xl:pr-6 [@media(max-height:880px)]:h-[44px]',
-    active ? 'text-text' : 'text-text hover:bg-fg/[0.08]',
+    'group relative flex h-[36px] w-full items-center gap-3 rounded-lg px-3 transition-colors duration-150',
+    active ? 'bg-fg/[0.07] text-text' : 'text-muted hover:bg-fg/[0.04] hover:text-text',
   );
 
 function Glyph({ icon: Icon, active, unread }: { icon: Icon; active: boolean; unread?: number }) {
   return (
     <span className="relative flex items-center justify-center">
-      <Icon className="size-[26px]" strokeWidth={active ? 2.4 : 1.7} aria-hidden />
+      <Icon className="size-[19px]" strokeWidth={active ? 2.4 : 1.7} aria-hidden />
       {Boolean(unread) && (
         <span className="numeric absolute -right-2 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-accent px-1 text-[10.5px] font-bold text-accent-ink ring-2 ring-ink">
           {unread! > 99 ? '99+' : unread}
@@ -61,7 +61,7 @@ function Row({ item, active, unread }: { item: Item; active: boolean; unread?: n
   return (
     <Link href={item.href} aria-current={active ? 'page' : undefined} title={item.label} className={rowClass(active)}>
       <Glyph icon={item.icon} active={active} unread={unread} />
-      <span className={cx('hidden text-[20px] tracking-[-0.01em] xl:inline', active ? 'font-bold' : 'font-normal')}>{item.label}</span>
+      <span className={cx('hidden text-[13px] tracking-[-0.01em] xl:inline', active ? 'font-semibold' : 'font-medium')}>{item.label}</span>
     </Link>
   );
 }
@@ -83,7 +83,7 @@ function More({ pathname, items }: { pathname: string; items: Item[] }) {
         className={rowClass(active)}
       >
         <Glyph icon={Ellipsis} active={active} />
-        <span className={cx('hidden text-[20px] tracking-[-0.01em] xl:inline', active ? 'font-bold' : 'font-normal')}>More</span>
+        <span className={cx('hidden text-[13px] tracking-[-0.01em] xl:inline', active ? 'font-semibold' : 'font-medium')}>More</span>
       </button>
       <FloatingMenu anchor={anchor} onClose={close} width={248} prefer="below" label="More places">
         {items.map((item) => {
@@ -111,20 +111,20 @@ function More({ pathname, items }: { pathname: string; items: Item[] }) {
 /** The left rail's links: one list, as on X. Icons alone until the window is wide enough for words. */
 export function NavLinks({ signedIn, unread }: { signedIn: boolean; unread: number }) {
   const pathname = usePathname();
-  const control: Item = { href: '/control', label: 'Control room', icon: SlidersHorizontal, match: ['/control', '/dashboard', '/onboard'] };
+  const control: Item = { href: '/control', label: 'Agent fleet', icon: SlidersHorizontal, match: ['/control', '/dashboard', '/onboard'] };
   return (
-    <nav aria-label="Primary" className="flex flex-col items-center gap-0.5 xl:items-start">
-      {ITEMS.filter((item) => signedIn || !SIGNED_IN_ONLY.has(item.href)).map((item) => (
-        <Row key={item.href} item={item} active={isActive(pathname, item)} unread={item.href === '/notifications' ? unread : undefined} />
-      ))}
-      {signedIn && <Row item={control} active={isActive(pathname, control)} />}
+    <nav aria-label="Primary" className="flex flex-col items-center gap-1 xl:items-stretch">
+      {[ITEMS.slice(0, 5), [...(signedIn ? [control] : []), ...ITEMS.slice(5)]].map((group, index) => <div key={index} className="w-full space-y-1">
+        <p className="mb-2 mt-4 hidden px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-faint xl:block">{index ? 'Workspace' : 'Discover'}</p>
+        {group.filter((item) => signedIn || !SIGNED_IN_ONLY.has(item.href)).map((item) => <Row key={item.href} item={item} active={isActive(pathname, item)} unread={item.href === '/notifications' ? unread : undefined} />)}
+      </div>)}
       <More pathname={pathname} items={MORE.filter((item) => signedIn || !SIGNED_IN_ONLY.has(item.href))} />
     </nav>
   );
 }
 
 const TABS: Item[] = [
-  { href: '/home', label: 'Home', icon: House, match: ['/home', '/p/'] },
+  { href: '/home', label: 'Network', icon: House, match: ['/home', '/p/'] },
   { href: '/explore', label: 'Explore', icon: Compass },
   { href: '/live', label: 'Live', icon: Activity },
   { href: '/messages', label: 'Messages', icon: MessageSquare },

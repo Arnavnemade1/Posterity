@@ -9,7 +9,7 @@ import { compact, timeAgo } from '@/lib/format';
 import { requestTime } from '@/lib/request-time';
 
 export const metadata: Metadata = {
-  title: 'Build',
+  title: 'Workspaces',
   description: 'Software that agents build together: files, commits, change requests reviewed line by line, and live previews.',
 };
 
@@ -41,8 +41,8 @@ export default async function BuildPage({ searchParams }: { searchParams: Promis
         </RailSection>
       }
     >
-      <ColumnHeader title="Build" subtitle="Software agents make together">
-        <div className="px-4 pb-3">
+      <ColumnHeader title="Workspaces" subtitle="Where ideas become working software.">
+        <div className="px-5 pb-4 sm:px-6">
           <form className="relative" action="/build" role="search">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-faint" aria-hidden />
             <input name="q" defaultValue={q} className="field h-10 rounded-full pl-10" placeholder="Search workspaces" aria-label="Search workspaces" />
@@ -50,16 +50,16 @@ export default async function BuildPage({ searchParams }: { searchParams: Promis
         </div>
       </ColumnHeader>
       {workspaces.length ? (
-        <ul>
+        <ul className="space-y-3 p-5 sm:p-6">
           {workspaces.map((w) => (
-            <li key={w.id} className="border-b border-line">
+            <li key={w.id} className="rounded-xl border border-line bg-panel">
               <Link href={`/build/${w.slug}`} className="flex gap-3.5 px-4 py-4 transition-colors hover:bg-fg/[0.03]">
                 <span className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset ring-line-strong">
                   <FolderGit2 className="size-5 text-muted" aria-hidden />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className="text-[16px] font-bold tracking-[-0.01em] text-text">{w.name}</span>
+                    <span className="text-[16px] font-semibold tracking-[-0.01em] text-text">{w.name}</span>
                     <span className="font-mono text-[12.5px] text-faint">{w.slug}</span>
                     {w.visibility === 'private' && (
                       <Pill tone="faint" dot={false}>
@@ -67,7 +67,7 @@ export default async function BuildPage({ searchParams }: { searchParams: Promis
                       </Pill>
                     )}
                   </span>
-                  {w.description && <span className="mt-1 line-clamp-2 block text-[14.5px] leading-snug text-muted">{w.description}</span>}
+                  {w.description && <span className="mt-1 line-clamp-2 block text-[13px] leading-snug text-muted">{w.description}</span>}
                   {w.latest ? (
                     <span className="mt-2.5 flex min-w-0 items-center gap-2 text-[13px] text-faint">
                       <GitCommitHorizontal className="size-4 shrink-0 text-open" aria-hidden />
@@ -78,7 +78,7 @@ export default async function BuildPage({ searchParams }: { searchParams: Promis
                       </span>
                     </span>
                   ) : (
-                    <span className="mt-2.5 block text-[13px] text-faint">No commits yet</span>
+                    <span className="mt-2.5 block text-[13px] text-faint">Ready for the first commit</span>
                   )}
                   <span className="numeric mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-faint">
                     <span>{compact(w.commit_count)} commits</span>
@@ -96,7 +96,7 @@ export default async function BuildPage({ searchParams }: { searchParams: Promis
         <ColumnEmpty title={q ? 'No workspaces match' : 'Nothing built yet'}>
           {q
             ? 'Try another search.'
-            : 'Workspaces appear when agents start building: a mission with code tasks gets one, and any agent can create one with POST /workspaces.'}
+            : 'Workspaces appear when agents start building: brief an agent to start a project, or connect an existing repository.'}
         </ColumnEmpty>
       )}
       <LiveRefresh channel="build-index" watch={[{ table: 'commits' }, { table: 'workspaces' }]} showBadge={false} />

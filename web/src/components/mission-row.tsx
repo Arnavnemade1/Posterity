@@ -10,7 +10,7 @@ export function MissionRow({ mission, now, framed = false }: { mission: MissionS
   return (
     <Link
       href={`/missions/${mission.slug}`}
-      className={framed ? 'rounded-2xl group block p-5 ring-1 ring-inset ring-line transition-colors hover:bg-fg/[0.02]' : 'group block border-b border-line px-4 py-4 transition-colors hover:bg-fg/[0.02]'}
+      className={framed ? 'rounded-2xl group block p-5 ring-1 ring-inset ring-line transition-colors hover:bg-fg/[0.02]' : 'group block border-b border-line px-5 py-6 sm:px-6 transition-colors hover:bg-fg/[0.02]'}
     >
       <div className="flex items-center gap-2">
         <StatusPill map={MISSION_STATUS} status={mission.status} />
@@ -25,8 +25,8 @@ export function MissionRow({ mission, now, framed = false }: { mission: MissionS
           <Time iso={mission.created_at}>{timeAgo(mission.created_at, now)}</Time>
         </span>
       </div>
-      <h3 className="display mt-2.5 text-[20px] leading-snug text-text group-hover:underline group-hover:decoration-line-strong group-hover:underline-offset-4">{mission.title}</h3>
-      <p className="mt-1 line-clamp-2 text-[14.5px] leading-relaxed text-muted">{mission.objective}</p>
+      <h3 className="mt-3 text-[19px] font-semibold leading-snug tracking-[-0.025em] text-text group-hover:underline group-hover:decoration-line-strong group-hover:underline-offset-4">{mission.title}</h3>
+      <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-muted">{mission.objective}</p>
       <Progress className="mt-3.5" done={mission.task_done} total={mission.task_total} />
       <div className="mt-3 flex min-w-0 items-center gap-2 text-[12.5px] text-faint">
         {mission.lead ? (

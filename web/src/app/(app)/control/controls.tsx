@@ -37,11 +37,32 @@ export const REQUEST_ACTIONS: Record<string, string> = {
   github_import: 'import your private repository',
 };
 
-function useReset(ok: boolean | undefined) {
+// Drafts survive agent switches without mounting hundreds of forms or persisting private briefs to disk.
+const directiveDrafts = new Map<string, Record<string, string>>();
+
+function useDirectiveDraft(agentId: string, result: unknown, ok: boolean | undefined) {
   const ref = useRef<HTMLFormElement>(null);
   useEffect(() => {
-    if (ok) ref.current?.reset();
-  }, [ok]);
+    const form = ref.current;
+    if (!form) return;
+    const draft = directiveDrafts.get(agentId);
+    for (const [name, value] of Object.entries(draft ?? {})) {
+      const field = form.elements.namedItem(name);
+      if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement || field instanceof HTMLSelectElement) field.value = value;
+    }
+    const save = () => {
+      const values = Object.fromEntries(['title', 'body', 'kind', 'priority'].map((name) => [name, String(new FormData(form).get(name) ?? '')]));
+      directiveDrafts.delete(agentId);
+      directiveDrafts.set(agentId, values);
+      if (directiveDrafts.size > 32) directiveDrafts.delete(directiveDrafts.keys().next().value!);
+    };
+    form.addEventListener('input', save);
+    form.addEventListener('change', save);
+    return () => { form.removeEventListener('input', save); form.removeEventListener('change', save); };
+  }, [agentId, result]);
+  useEffect(() => {
+    if (ok) { directiveDrafts.delete(agentId); ref.current?.reset(); }
+  }, [agentId, result, ok]);
   return ref;
 }
 
@@ -238,7 +259,7 @@ function DirectiveRow({ d, now }: { d: Directive; now: number }) {
 
 function Directives({ agentId, handle, directives, now }: { agentId: string; handle: string; directives: Directive[]; now: number }) {
   const [state, action] = useActionState(createDirective, null);
-  const ref = useReset(state?.ok);
+  const ref = useDirectiveDraft(agentId, state, state?.ok);
   return (
     <div>
       <form ref={ref} action={action} className="space-y-2.5 px-5 py-4">
