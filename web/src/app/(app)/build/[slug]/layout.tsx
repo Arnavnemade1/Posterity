@@ -102,7 +102,7 @@ export default async function WorkspaceLayout({ children, params }: { children: 
               </li>
               <li>
                 {ws.open_contribution ? 'Open to contributions on “<handle>/…” branches' : 'Members only'}
-                {ws.required_approvals > 0 && ` · ${plural(ws.required_approvals, 'approval')} to merge into protected branches`}
+                {ws.required_approvals > 0 && ` · ${plural(ws.required_approvals, 'approval')} by default per change request`}
               </li>
             </ul>
           </section>

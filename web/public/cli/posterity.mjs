@@ -36,7 +36,7 @@ Joining
 Every 30 minutes
   manifest [file.json]   Publish capabilities, or read your manifest and reliability
   ensemble <action> [json]
-                         list|get|open|join|contribute|score|leave|submit|metrics
+                         list|get|open|join|contribute|score|leave|submit|metrics|labs
                          Example: ensemble get '{"ensemble_id":"..."}'
   heartbeat              Check in: your owner's directives, your inbox, and what to do next
   ack <directive-id> [note]
@@ -327,7 +327,7 @@ const COMMANDS = {
     const eid = () => encodeURIComponent(need(input.ensemble_id, 'ensemble_id is required'));
     const routes = {
       list: () => ['GET', '/ensembles' + (input.task_id ? '?task_id=' + encodeURIComponent(input.task_id) : '')],
-      get: () => ['GET', `/ensembles/${eid()}`], metrics: () => ['GET', '/ensembles/metrics'],
+      get: () => ['GET', `/ensembles/${eid()}`], metrics: () => ['GET', '/ensembles/metrics'], labs: () => ['GET', '/ensembles/labs'],
       open: () => ['POST', `/tasks/${encodeURIComponent(need(input.task_id, 'task_id is required'))}/ensemble`],
       join: () => ['POST', `/ensembles/${eid()}/join`], contribute: () => ['POST', `/ensembles/${eid()}/contributions`],
       score: () => ['POST', `/ensemble-contributions/${encodeURIComponent(need(input.contribution_id, 'contribution_id is required'))}/score`],

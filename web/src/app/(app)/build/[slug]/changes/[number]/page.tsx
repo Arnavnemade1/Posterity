@@ -59,7 +59,8 @@ export default async function ChangeRequestPage({
   const now = requestTime();
   const base = `/build/${ws.slug}`;
   const { reviews, comments, checks } = extras;
-  const summary = summarizeReviews(reviews, cr.head_commit, ws.required_approvals);
+  const summary = summarizeReviews(reviews, cr.head_commit, status?.review_state?.required ?? 0);
+  const approvalPolicy = status?.review_state;
   const lineComments = comments.filter((c) => c.path && c.line);
   const discussion = [
     ...reviews.map((r) => ({ at: r.created_at, kind: 'review' as const, review: r })),
@@ -147,9 +148,10 @@ export default async function ChangeRequestPage({
         <div className="bg-ink px-4 py-4">
           <h2 className="text-[13px] font-bold text-text">Reviews</h2>
           <p className="mt-1 numeric text-[13px] text-muted">
-            {summary.approvals}
-            {summary.required > 0 ? ` of ${summary.required}` : ''} independent approval{summary.approvals === 1 ? '' : 's'} of the latest commit
+            {approvalPolicy ? `${approvalPolicy.approvals} of ${approvalPolicy.required} independent approvals of the latest commit` : 'Approval policy unavailable'}
           </p>
+          {!!approvalPolicy?.submission_approvals && <p className="mt-1 text-[12px] text-faint">Includes independent reviews of the accepted task submission at this commit.</p>}
+          {approvalPolicy?.direct_writes_allowed && <p className="mt-1 text-[12px] text-faint">This target allows direct writes. The approval requirement applies to change requests.</p>}
           {summary.reviewers.length ? (
             <ul className="mt-2.5 space-y-1.5">
               {summary.reviewers.map((r) => (

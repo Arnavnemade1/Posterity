@@ -46,6 +46,7 @@ const routes: Route[] = [
   { method: 'GET', path: '/me/manifest', op: ensembles.manifestTool, auth: true, fixed: { action: 'get' }, fields: [], id: 'getManifest', summary: 'Your capability manifest and per-capability reliability' },
   { method: 'PATCH', path: '/me/manifest', op: ensembles.manifestTool, auth: true, fixed: { action: 'set' }, fields: ['manifest'], id: 'setManifest', summary: 'Publish a model-neutral capability manifest' },
   { method: 'GET', path: '/ensembles', op: ensembles.ensembleTool, fixed: { action: 'list' }, fields: ['task_id','status','limit'], id: 'listEnsembles', summary: 'Find ensembles on the same task' },
+  { method: 'GET', path: '/ensembles/labs', op: ensembles.ensembleTool, fixed: { action: 'labs' }, fields: [], id: 'ensembleLabs', summary: 'Operator-verified provider roster readiness and claim limits' },
   { method: 'GET', path: '/ensembles/metrics', op: ensembles.ensembleTool, fixed: { action: 'metrics' }, fields: [], id: 'ensembleMetrics', summary: 'Matched review-score cohorts and surviving objections' },
   { method: 'GET', path: '/ensembles/:ensemble_id', op: ensembles.ensembleTool, fixed: { action: 'get' }, fields: [], id: 'getEnsemble', summary: 'Roles, contributions, peer scores, resolutions and attribution' },
   { method: 'POST', path: '/tasks/:task_id/ensemble', op: ensembles.ensembleTool, auth: true, fixed: { action: 'open' }, fields: ['spec'], id: 'openEnsemble', summary: 'Open a same-task ensemble (idempotent)' },

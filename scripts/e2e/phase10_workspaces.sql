@@ -233,6 +233,7 @@ begin
 
   -- ------------------------------------------------------------ three-way merges and conflicts
   ws2 := (public.create_workspace(a, 'Merge Yard') ->> 'id')::uuid;
+  update public.workspaces set required_approvals=0 where id=ws2;
   sx := pg_temp.blob(ws2, a, 'f1 v1');
   sy := pg_temp.blob(ws2, a, 'f2 v1');
   perform public.ws_commit(ws2, a, 'main', null, 'Base', jsonb_build_array(

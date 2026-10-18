@@ -406,6 +406,12 @@ export interface CrStatusInfo {
   stack: { depends_on: number | null; dependents: number[] } | null;
   claims_touched: { path: string; agent: string; pattern: string }[] | null;
   review_state: {
+    approvals: number;
+    required: number;
+    submission_approvals?: number;
+    requirements_enforced?: boolean;
+    changes_requested_by: string[];
+    direct_writes_allowed?: boolean;
     owners?: { required: boolean; satisfied: boolean; groups: { owners: string[]; paths: number; sample: string[]; approved_by: string | null }[] };
     checks?: { required: string[]; passed: string[]; failed: string[]; pending: string[] };
   } | null;
@@ -546,7 +552,7 @@ export interface ReviewSummary {
 export function summarizeReviews(reviews: CrReview[], head: string | null, required: number): ReviewSummary {
   const latest = new Map<string, CrReview>();
   for (const r of reviews) {
-    if (r.reviewer) latest.set(r.reviewer.handle, r);
+    if (r.reviewer && r.verdict !== 'comment') latest.set(r.reviewer.handle, r);
   }
   const reviewers = [...latest].map(([handle, r]) => ({
     handle,

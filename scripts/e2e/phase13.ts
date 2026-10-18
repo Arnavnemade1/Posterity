@@ -13,6 +13,7 @@ const manifest = (lab: string,roles: EnsembleRole[]): CapabilityManifest => ({ s
 async function agent(n: number,role: EnsembleRole) {
   const [r] = await sql`select public.register_manifest_agent(${`198.51.${Math.floor(n/200)}.${n%200+1}`},${run+'-'+n},p_manifest=>${JSON.stringify(manifest('lab-'+n,[role]))}::text::jsonb) as result`;
   const id=r.result.agent.id as string; ids.push(id);
+  await sql`select public.record_lab_verification(${id}::uuid,${'lab-'+n},${JSON.stringify(['unknown-future-model'])}::text::jsonb,'https://fixtures.invalid/evidence',${'a'.repeat(64)},'local-test-operator',now()+interval '1 day')`;
   return { id, key:r.result.api_key as string, client: new Posterity({ apiKey:r.result.api_key, baseUrl,retries:0 }) };
 }
 const spec = { roles:[{role:'proposer'},{role:'critic'},{role:'synthesizer'}],distinct_labs:true };
@@ -23,17 +24,21 @@ async function task(key: string, specification = spec) {
 }
 try {
   await sql`update public.app_config set value='http://supabase_kong_posterity:8000/functions/v1/api' where key='api_url'`;
+  await sql.unsafe(await Bun.file(new URL('phase13_release.sql',import.meta.url)).text());
   await sql.unsafe(await Bun.file(new URL('phase13.sql',import.meta.url)).text());
   check(true,'transactional engine assertions');
   const nativeRegistration = await Posterity.register({ handle: run+'-native', manifest: manifest('new-lab',['specialist']) }, { baseUrl });
   ids.push(nativeRegistration.result.agent.id);
-  check((await nativeRegistration.client.agents.manifest()).manifest?.lab === 'new-lab','new agent registers using only a manifest');
+  const published=await nativeRegistration.client.agents.manifest();
+  check(published.manifest?.lab === 'new-lab','new agent registers using only a manifest');
+  check(published.lab_identity?.status === 'self_declared','REST reports unverified provider claims honestly');
+  check((await nativeRegistration.client.ensembles.labs()).execution_attested === false,'public roster exposes operator trust limit');
   const [a,b,c,d] = await Promise.all([agent(1,'proposer'),agent(2,'critic'),agent(3,'synthesizer'),agent(4,'critic')]);
   const [m] = await sql`insert into public.missions(slug,title,objective,status,created_by_agent,lead_agent_id,review_quorum,requires_final_approval) values(${run},'Native protocol ensemble','Verify real transports','active',${d.id}::uuid,${d.id}::uuid,1,false) returning id`;
   mission=m.id;
   const t=await task('transport');
   const contested=await task('contested'); // Keep the mission active for contention probes.
-  const nativeRole=await task('native-manifest',{roles:[...spec.roles,{role:'specialist'}],distinct_labs:true});
+  const nativeRole=await task('native-manifest',{roles:[...spec.roles,{role:'specialist'}],distinct_labs:false});
   const nativeInbox=await nativeRegistration.client.heartbeat();
   check(nativeInbox.ensembles?.assignments.some((r)=>r.ensemble_id===nativeRole.eid&&r.role==='specialist'),'manifest-only REST registration receives a role in one heartbeat');
   for (const [actor,role] of [[a,'proposer'],[b,'critic'],[c,'synthesizer']] as const) {
@@ -63,7 +68,7 @@ try {
   check(cliCode===0&&JSON.parse(cliOutput[0]).id===t.eid,'single-file CLI reads the same live ensemble');
   const submitted=await c.client.ensembles.submit(t.eid,{synthesis_id:synthesis,contributions:[draft,objection,synthesis],resolutions:[{contribution_id:objection,upheld:true,rationale:'The final analysis explicitly handles empty input'}]});
   const submission=await d.client.reviews.submission(submitted.submission_id);
-  check(submission.ensemble?.submissions.some((s)=>s.submission_id===submitted.submission_id),'final reviewer sees frozen attribution and resolutions');
+  check(submission.ensemble?.submissions.some((s)=>s.submission_id===submitted.submission_id && s.lab_evidence?.length===3 && s.lab_evidence.every((v)=> (v.identity as any)?.status==='operator_verified')),'final reviewer sees frozen attribution and provider evidence');
   await d.client.reviews.review(submitted.submission_id,{verdict:'approve',score:5,rationale:'Boundary cases and acceptance criteria independently checked',checks:[{name:'Empty boundary verified',passed:true,objection_id:objection,upheld:true}]});
   const finished=await a.client.ensembles.get(t.eid);
   check(finished.status==='completed'&&Boolean(finished.submissions[0].settlement),'three adapters complete one independently reviewed ensemble');

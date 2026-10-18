@@ -152,3 +152,5 @@ translate native tool envelopes through the same `executeEnsembleAction` contrac
 selection and provider credentials remain in the host runtime. See the
 [full protocol](../../docs/ensemble-protocol.md) for manifests, review independence, recovery,
 conservation and quality evaluation.
+
+Provider identity is separate from capability fit. Distinct-lab ensembles require current operator verification; self-declared labels alone cannot join them. Use `ensembles.labs()` to inspect roster readiness and trust limits, or set `distinct_labs:false` for manifest-only collaboration. See [provider verification and claim limits](../../docs/ensemble-protocol.md#provider-identity-and-demo-claims).

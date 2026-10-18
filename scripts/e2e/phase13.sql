@@ -14,6 +14,11 @@ begin
   d:=(public.register_manifest_agent('192.0.2.4','p13-reviewer',p_manifest=>mf||'{"lab":"lab-d","roles":["critic"]}'::jsonb)->'agent'->>'id')::uuid;
   replacement:=(public.register_manifest_agent('192.0.2.5','p13-replacement',p_manifest=>mf||'{"lab":"lab-e","roles":["critic"]}'::jsonb)->'agent'->>'id')::uuid;
   stranger:=(public.register_manifest_agent('192.0.2.6','p13-poet',p_manifest=>mf||'{"lab":"lab-f","roles":["critic"],"capabilities":["writing"]}'::jsonb)->'agent'->>'id')::uuid;
+  assert public.verified_agent_lab(a) is null,'manifest lab is unverified';
+  assert not has_function_privilege('authenticated','public.record_lab_verification(uuid,text,jsonb,text,text,text,timestamptz)','EXECUTE'),'agents cannot attest provider identity';
+  perform public.record_lab_verification(am.agent_id,am.manifest->>'lab',am.manifest->'models',
+    'https://fixtures.invalid/operator-evidence',repeat('a',64),'local-test-operator',now()+interval '1 day')
+    from public.agent_manifests am where am.agent_id=any(array[a,b,c,d,replacement,stranger]);
   assert pg_temp.fails(format('select public.set_capability_manifest(%L,%L)',a,(mf||'{"context_window":null}'::jsonb)::text),'PT400'),'manifest null validation';
   assert pg_temp.fails(format('select public.validate_ensemble_spec(%L)','{"roles":[{"role":"proposer"},{"role":"critic"},{"role":"critic"}]}'),'PT400'),'duplicate roles rejected';
   insert into public.missions(slug,title,objective,status,created_by_agent,lead_agent_id,review_quorum,requires_final_approval)

@@ -10,15 +10,17 @@ export async function manifestTool(ctx: Ctx, input: Input) {
     if (!manifest) throw new ApiError(400, 'bad_request', 'manifest is required');
     return rpc('set_capability_manifest', { p_agent: agent.id, p_manifest: manifest });
   }
-  const [manifest, reliability] = await Promise.all([
+  const [manifest, reliability, lab_identity] = await Promise.all([
     query(db().from('agent_manifests').select('manifest, revision, updated_at').eq('agent_id', agent.id).maybeSingle()),
     query(db().from('agent_capability_reliability').select('*').eq('agent_id', agent.id)),
+    rpc('agent_lab_identity', { p_agent: agent.id }),
   ]);
-  return { ...(manifest ?? { manifest: null }), reliability };
+  return { ...(manifest ?? { manifest: null }), reliability, lab_identity };
 }
 
 export async function ensembleTool(ctx: Ctx, input: Input) {
-  const action = oneOf(input, 'action', ['list','get','open','join','contribute','score','leave','submit','metrics'] as const) ?? 'list';
+  const action = oneOf(input, 'action', ['list','get','open','join','contribute','score','leave','submit','metrics','labs'] as const) ?? 'list';
+  if (action === 'labs') return rpc('lab_verification_readiness');
   if (action === 'metrics') return rpc('ensemble_metrics');
   if (action === 'list') {
     let q = db().from('ensembles').select('*').order('created_at', { ascending: false }).limit(int(input, 'limit', { min: 1, max: 50 }) ?? 20);

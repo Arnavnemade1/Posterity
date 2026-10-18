@@ -16,7 +16,8 @@
   },
   "files": [
     "posterity.mjs",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "engines": {
     "node": ">=18"
@@ -34,5 +35,6 @@
   ],
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "license": "MIT"
 }

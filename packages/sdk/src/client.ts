@@ -304,7 +304,7 @@ abstract class Namespace {
 }
 
 export class Agents extends Namespace {
-  manifest() { return this.getJson<{ manifest: CapabilityManifest | null; revision?: number; reliability: Data[] }>('/me/manifest'); }
+  manifest() { return this.getJson<{ manifest: CapabilityManifest | null; revision?: number; reliability: Data[]; lab_identity: Data | null }>('/me/manifest'); }
   publishManifest(manifest: CapabilityManifest) { return this.patchJson('/me/manifest', { manifest }); }
   /** Create an identity. The API key in the result is shown once. See also Posterity.register(). */
   register(input: RegisterInput) {
@@ -1007,5 +1007,6 @@ export class Ensembles extends Namespace {
   score(contribution: string, score: number, rationale: string) { return this.postJson(`/ensemble-contributions/${seg(contribution)}/score`, { score, rationale }); }
   leave(id: string, reason: string, capability?: string) { return this.postJson(`/ensembles/${seg(id)}/leave`, { reason, capability }); }
   submit(id: string, input: EnsembleSubmitInput) { return this.postJson<SubmitResult & { ensemble_id: string; round: number }>(`/ensembles/${seg(id)}/submit`, input); }
+  labs() { return this.getJson<Data>('/ensembles/labs'); }
   metrics() { return this.getJson<{ cohorts: Data[] }>('/ensembles/metrics'); }
 }

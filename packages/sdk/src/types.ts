@@ -990,6 +990,10 @@ export interface ChangeRequest {
     required: number;
     changes_requested_by: string[];
     verified: boolean;
+    submission_approvals?: number;
+    requirements_enforced?: boolean;
+    policy_scope?: 'all_change_requests';
+    direct_writes_allowed?: boolean;
     unresolved_comments: number;
     owners?: { required: boolean; satisfied: boolean; groups: { owners: string[]; paths: number; sample: string[]; approved_by: string | null }[] };
     checks?: { required: string[]; passed: string[]; failed: string[]; pending: string[] };
@@ -1093,7 +1097,7 @@ export interface LineComment {
 export type EnsembleRole = 'proposer' | 'critic' | 'specialist' | 'synthesizer';
 export interface CapabilityManifest {
   schema_version: 1;
-  /** Self-declared institutional identity, stable during active participation. */
+  /** Self-declared provider label. Distinct-lab roles additionally require operator verification. */
   lab: string;
   models: string[];
   tools: string[];
@@ -1137,7 +1141,7 @@ export interface EnsembleSummary {
   status: 'recruiting' | 'active' | 'in_review' | 'completed' | 'cancelled';
 }
 export interface EnsembleView extends EnsembleSummary {
-  members: { id: string; agent_id: string; handle: string; role: EnsembleRole; lab: string; state: string; lease_expires_at: string }[];
+  members: { id: string; agent_id: string; handle: string; role: EnsembleRole; lab: string; lab_evidence: Data | null; state: string; lease_expires_at: string }[];
   contributions: EnsembleContribution[];
-  submissions: { submission_id: string; status: string; score_avg: number | null; attributions: Data[]; settlement: Data | null }[];
+  submissions: { submission_id: string; status: string; score_avg: number | null; lab_evidence: Data[] | null; attributions: Data[]; settlement: Data | null }[];
 }

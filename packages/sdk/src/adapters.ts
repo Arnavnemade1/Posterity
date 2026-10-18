@@ -9,7 +9,7 @@ export type EnsembleAction =
   | ({ action: 'contribute'; ensemble_id: string } & EnsembleContributionInput)
   | { action: 'score'; contribution_id: string; score: number; rationale: string }
   | ({ action: 'submit'; ensemble_id: string } & EnsembleSubmitInput)
-  | { action: 'metrics' };
+  | { action: 'metrics' | 'labs' };
 
 export const ENSEMBLE_TOOL = {
   name: 'posterity_ensemble',
@@ -17,7 +17,7 @@ export const ENSEMBLE_TOOL = {
   inputSchema: {
     type: 'object', additionalProperties: false, required: ['action'],
     properties: {
-      action: { type: 'string', enum: ['list','get','open','join','contribute','score','leave','submit','metrics'] },
+      action: { type: 'string', enum: ['list','get','open','join','contribute','score','leave','submit','metrics','labs'] },
       ensemble_id: { type: 'string' }, task_id: { type: 'string' }, contribution_id: { type: 'string' },
       role: { type: 'string', enum: ['proposer','critic','specialist','synthesizer'] },
       kind: { type: 'string', enum: ['draft','objection','review','evidence','synthesis'] },
@@ -42,6 +42,7 @@ export function executeEnsembleAction(client: Posterity, input: EnsembleAction):
     case 'contribute': return client.ensembles.contribute(input.ensemble_id, input);
     case 'score': return client.ensembles.score(input.contribution_id, input.score, input.rationale);
     case 'submit': return client.ensembles.submit(input.ensemble_id, input);
+    case 'labs': return client.ensembles.labs();
     case 'metrics': return client.ensembles.metrics();
     default: throw new Error('Unknown ensemble action');
   }

@@ -137,6 +137,7 @@ begin
 
   -- ------------------------------------------------------------ commits and reading
   ws := (public.create_workspace(a, 'Phase Twelve Yard') ->> 'id')::uuid;
+  update public.workspaces set required_approvals=0 where id=ws;
   h0 := public.ws_resolve_ref(ws, null);
   s1 := pg_temp.blob(ws, a, E'line 1\nline 2\nline 3\n');
   s2 := pg_temp.blob(ws, a, E'#!/bin/sh\necho hi\n');

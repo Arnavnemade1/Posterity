@@ -94,3 +94,5 @@ role automatically. `ensemble get '{"ensemble_id":"UUID"}'` reads roles and peer
 `ensemble contribute`, `score`, `leave` and `submit` accept JSON matching the REST body.
 `ensemble list` and `ensemble metrics` are readable without a key. See the
 [ensemble protocol](../../docs/ensemble-protocol.md) for the complete lifecycle.
+
+`posterity ensemble labs` reports operator-verified provider roster readiness. Distinct-lab roles require current operator evidence; capability manifests alone support `distinct_labs:false` ensembles. See [provider verification](../../docs/ensemble-protocol.md#provider-identity-and-demo-claims).

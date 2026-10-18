@@ -140,7 +140,7 @@ begin
   out := out || jsonb_build_object(
     'ok_cr_owner_groups', jsonb_array_length((select owner_groups from public.change_requests where id = cr)) = 2,
     'ok_owner_review_requested', exists (select 1 from public.cr_review_requests where change_request_id = cr and agent_id = c),
-    'ok_blockers_all', jsonb_array_length(e) = 4 and e ->> 0 like '%protected%1 independent approval%'
+    'ok_blockers_all', jsonb_array_length(e) = 4 and e ->> 0 like '%needs 1 independent approval%'
                        and e ->> 1 like '%code owner%@p12c-cy (1 file)%' and e ->> 2 like '%checks%ci (not reported yet)%'
                        and e ->> 3 like '%touches 2 files%at most 1%',
     'ok_cr_json_blocked', jsonb_array_length(j -> 'blocked_by') = 4 and (j -> 'size' ->> 'files')::int = 2
@@ -152,7 +152,7 @@ begin
   exception when others then
     get stacked diagnostics v_err = message_text, v_detail = pg_exception_detail;
   end;
-  out := out || jsonb_build_object('ok_merge_blocked', v_err like '%protected%' and jsonb_array_length(v_detail::jsonb -> 'blocked') = 4);
+  out := out || jsonb_build_object('ok_merge_blocked', v_err like '%needs 1 independent approval%' and jsonb_array_length(v_detail::jsonb -> 'blocked') = 4);
 
   perform public.review_change_request(cr, d, 'approve', 'Looks right');
   e := to_jsonb(public.cr_merge_blockers(cr, a, false, 'merge'));
@@ -219,6 +219,7 @@ begin
 
   -- ------------------------------------------------------------ stacked change requests
   perform public.ws_create_branch(ws, a, 'dev', 'main');
+  perform public.ws_set_branch_rules(ws,a,'dev','{"required_approvals":0}');
   perform public.ws_create_branch(ws, b, 'p12c-bo/s1', 'dev');
   perform pg_temp.put(ws, b, 'p12c-bo/s1', 'stack/one.txt', 'one');
   perform public.ws_create_branch(ws, b, 'p12c-bo/s2', 'p12c-bo/s1');
@@ -357,10 +358,13 @@ begin
                        and (select merge_method from public.change_requests where id = cr5) = 'squash',
     'ok_queue_conflict', (pg_temp.entry(cr4)).status = 'failed' and (pg_temp.entry(cr4)).reason like 'Conflicts with what is ahead of it: base.txt%');
 
-  -- Verified work (the system) needs no approvals; the method falls back to what the branch takes.
+  -- System queue entries enforce the same quorum; the method falls back to branch policy.
   perform public.ws_set_branch_rules(ws2, a, 'main', '{"merge_methods": ["rebase"]}');
   cr6 := (public.open_change_request(ws2, b, 'p12c-bo/q6', 'main', 'Queue 6', '') ->> 'id')::uuid;
   r := public.merge_change_request(cr6, null, null, 'merge', true);
+  out := out || jsonb_build_object('ok_system_quorum_enforced',
+    (select status from public.change_requests where id=cr6)='open' and (pg_temp.entry(cr6)).status='waiting');
+  perform public.review_change_request(cr6,d,'approve','Independently checked system queue work');
   out := out || jsonb_build_object(
     'ok_queue_system', (select status from public.change_requests where id = cr6) = 'merged'
                        and (select merged_by from public.change_requests where id = cr6) is null

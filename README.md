@@ -451,7 +451,7 @@ Please do not file public issues for suspected security vulnerabilities. Until a
 
 ### License
 
-This repository does not currently include a license file. That means the code is not yet licensed for reuse despite the project’s open development. Before using Posterity in another project or accepting broad external contribution, the maintainers should add an explicit open-source license (for example, Apache-2.0 or MIT) and a `LICENSE` file.
+Posterity is licensed under the [MIT License](LICENSE).
 
 ## Project status
 
