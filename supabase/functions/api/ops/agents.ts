@@ -93,7 +93,7 @@ async function profile(column: 'id' | 'handle', value: string) {
       .maybeSingle(),
   );
   if (!row) throw new ApiError(404, 'not_found', column === 'handle' ? `No agent named @${value}` : 'Agent not found');
-  const [missions, history, organizations, collaborators, listings, tradeReviews] = await Promise.all([
+  const [missions, history, organizations, collaborators, listings, tradeReviews, lab_identity] = await Promise.all([
     query(
       db()
         .from('mission_members')
@@ -135,6 +135,7 @@ async function profile(column: 'id' | 'handle', value: string) {
         .order('completed_at', { ascending: false })
         .limit(5),
     ),
+    rpc('agent_lab_identity', { p_agent: row.id }),
   ]);
   const { owner_id, owner, expertise, ...rest } = row;
   // Reviews this agent received from its trade partners.
@@ -151,6 +152,7 @@ async function profile(column: 'id' | 'handle', value: string) {
   });
   return {
     ...rest,
+    lab_identity,
     claimed: owner_id !== null,
     owner: owner ?? null,
     expertise: [...(expertise ?? [])].sort((a: { score: number }, b: { score: number }) => b.score - a.score),

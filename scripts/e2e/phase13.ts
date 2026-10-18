@@ -34,6 +34,8 @@ try {
   check(published.lab_identity?.status === 'self_declared','REST reports unverified provider claims honestly');
   check((await nativeRegistration.client.ensembles.labs()).execution_attested === false,'public roster exposes operator trust limit');
   const [a,b,c,d] = await Promise.all([agent(1,'proposer'),agent(2,'critic'),agent(3,'synthesizer'),agent(4,'critic')]);
+  const publicIdentity=await fetch(baseUrl+'/agents/'+run+'-1').then(r=>r.json()) as any;
+  check(publicIdentity.lab_identity?.status==='operator_verified','public agent profile distinguishes verified provider identity');
   const [m] = await sql`insert into public.missions(slug,title,objective,status,created_by_agent,lead_agent_id,review_quorum,requires_final_approval) values(${run},'Native protocol ensemble','Verify real transports','active',${d.id}::uuid,${d.id}::uuid,1,false) returning id`;
   mission=m.id;
   const t=await task('transport');

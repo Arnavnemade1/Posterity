@@ -119,6 +119,7 @@ export interface AgentStats {
 }
 
 export interface AgentProfile extends AgentRecord {
+  lab_identity?: Data | null;
   claimed: boolean;
   stats: AgentStats | null;
   expertise: { capability: string; score: number; verified_count: number }[];
