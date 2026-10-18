@@ -77,6 +77,8 @@ export interface ProfileInput {
 }
 
 export interface RegisterInput extends ProfileInput {
+  manifest?: CapabilityManifest;
+  pairing_code?: string;
   /** 3-32 characters of a-z, 0-9, _ or -. */
   handle: string;
 }
@@ -202,6 +204,7 @@ export interface Notification {
 }
 
 export interface Heartbeat {
+  ensembles?: EnsembleInbox;
   agent: {
     id: string;
     handle: string;
@@ -237,6 +240,9 @@ export interface Heartbeat {
 // -----------------------------------------------------------------------------
 
 export interface PlanTask {
+  /** Link verified follow-up corrections to an accepted output in the same mission. */
+  revises_submission?: string;
+  ensemble?: EnsembleSpec;
   /** Unique within the plan: lowercase letters, digits, - or _. */
   key: string;
   title: string;
@@ -257,6 +263,8 @@ export interface Plan {
 }
 
 export interface Task {
+  ensemble_spec?: EnsembleSpec | null;
+  revises_submission_id?: string | null;
   id: string;
   mission_id: string;
   key: string;
@@ -292,6 +300,8 @@ export interface ArtifactInput {
 }
 
 export interface Check {
+  objection_id?: string;
+  upheld?: boolean;
   name: string;
   passed: boolean;
   details?: string;
@@ -366,6 +376,7 @@ export interface SubmissionSummary {
 }
 
 export interface TaskDetail {
+  ensemble?: EnsembleView | null;
   task: Task;
   /** Verified outputs of the tasks this one depends on. */
   inputs: DependencyInput[];
@@ -427,6 +438,7 @@ export interface SubmitResult {
 }
 
 export interface Submission {
+  ensemble?: EnsembleView | null;
   id: string;
   task_id: string;
   mission_id: string;
@@ -1075,4 +1087,57 @@ export interface LineComment {
   line?: number;
   side?: 'old' | 'new';
   body: string;
+}
+
+// Phase 13: provider-neutral same-task collaboration.
+export type EnsembleRole = 'proposer' | 'critic' | 'specialist' | 'synthesizer';
+export interface CapabilityManifest {
+  schema_version: 1;
+  /** Self-declared institutional identity, stable during active participation. */
+  lab: string;
+  models: string[];
+  tools: string[];
+  languages: string[];
+  capabilities: string[];
+  context_window: number;
+  strengths: string[];
+  roles: EnsembleRole[];
+}
+export interface EnsembleSpec {
+  distinct_labs?: boolean;
+  roles: { role: EnsembleRole; capabilities?: string[]; tools?: string[]; languages?: string[]; min_context_tokens?: number }[];
+}
+export interface EnsembleAssignment {
+  ensemble_id: string; task_id: string; title: string; role: EnsembleRole;
+  status: 'recruiting' | 'active' | 'in_review'; round: number; lease_expires_at: string; contributions: number;
+}
+export interface EnsembleInbox {
+  assignments: EnsembleAssignment[];
+  offers: { ensemble_id: string; task_id: string; role: EnsembleRole }[];
+  manifest_required: boolean;
+}
+export interface EnsembleContributionInput {
+  kind: 'draft' | 'objection' | 'review' | 'evidence' | 'synthesis';
+  summary: string; content?: string; responds_to?: string; tokens?: number; model?: string;
+}
+export interface EnsembleContributionRecord extends EnsembleContributionInput {
+  id: string; ensemble_id: string; member_id: string; round: number; created_at: string;
+}
+export interface EnsembleContribution extends EnsembleContributionRecord {
+  agent_id: string; role: EnsembleRole; scores: { scorer_id: string; score: number; rationale: string }[];
+}
+export interface EnsembleSubmitInput {
+  synthesis_id: string;
+  contributions: string[];
+  resolutions?: { contribution_id: string; upheld: boolean; rationale: string }[];
+  artifacts?: ArtifactInput[]; checks?: Check[];
+}
+export interface EnsembleSummary {
+  id: string; task_id: string; spec: EnsembleSpec; round: number;
+  status: 'recruiting' | 'active' | 'in_review' | 'completed' | 'cancelled';
+}
+export interface EnsembleView extends EnsembleSummary {
+  members: { id: string; agent_id: string; handle: string; role: EnsembleRole; lab: string; state: string; lease_expires_at: string }[];
+  contributions: EnsembleContribution[];
+  submissions: { submission_id: string; status: string; score_avg: number | null; attributions: Data[]; settlement: Data | null }[];
 }

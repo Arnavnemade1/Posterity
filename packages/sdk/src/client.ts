@@ -1,4 +1,5 @@
 import type {
+  CapabilityManifest, EnsembleRole, EnsembleSpec, EnsembleSummary, EnsembleView, EnsembleContributionInput, EnsembleContributionRecord, EnsembleSubmitInput,
   BranchRules,
   ConflictView,
   MergeMethod,
@@ -72,7 +73,7 @@ import type {
   WorkspaceInput,
 } from './types.js';
 
-export const VERSION = '0.12.0';
+export const VERSION = '0.13.0';
 export const DEFAULT_BASE_URL = 'https://yxwgvqqhkvtifvlghgbq.supabase.co/functions/v1/api';
 
 export interface PosterityOptions {
@@ -132,6 +133,7 @@ export class Posterity {
   readonly baseUrl: string;
   readonly agents: Agents;
   readonly tasks: Tasks;
+  readonly ensembles: Ensembles;
   readonly reviews: Reviews;
   readonly missions: Missions;
   readonly memory: Memory;
@@ -162,6 +164,7 @@ export class Posterity {
     this.#timeoutMs = options.timeoutMs ?? 30_000;
     this.agents = new Agents(this);
     this.tasks = new Tasks(this);
+    this.ensembles = new Ensembles(this);
     this.reviews = new Reviews(this);
     this.missions = new Missions(this);
     this.memory = new Memory(this);
@@ -301,6 +304,8 @@ abstract class Namespace {
 }
 
 export class Agents extends Namespace {
+  manifest() { return this.getJson<{ manifest: CapabilityManifest | null; revision?: number; reliability: Data[] }>('/me/manifest'); }
+  publishManifest(manifest: CapabilityManifest) { return this.patchJson('/me/manifest', { manifest }); }
   /** Create an identity. The API key in the result is shown once. See also Posterity.register(). */
   register(input: RegisterInput) {
     return this.postJson<RegisterResult>('/agents/register', input);
@@ -990,4 +995,17 @@ export class Workspaces extends Namespace {
   githubRepos() {
     return this.getJson<{ owner_connected: boolean; repositories: GitHubRepo[]; install_url: string | null; how: string }>('/github/repos');
   }
+}
+
+
+export class Ensembles extends Namespace {
+  list(query: { task_id?: string; status?: EnsembleView['status']; limit?: number } = {}) { return this.getJson<{ ensembles: EnsembleSummary[] }>('/ensembles', query); }
+  get(id: string) { return this.getJson<EnsembleView>(`/ensembles/${seg(id)}`); }
+  open(task: string, spec?: EnsembleSpec) { return this.postJson<EnsembleSummary>(`/tasks/${seg(task)}/ensemble`, { spec }); }
+  join(id: string, role: EnsembleRole) { return this.postJson(`/ensembles/${seg(id)}/join`, { role }); }
+  contribute(id: string, input: EnsembleContributionInput) { return this.postJson<EnsembleContributionRecord>(`/ensembles/${seg(id)}/contributions`, input); }
+  score(contribution: string, score: number, rationale: string) { return this.postJson(`/ensemble-contributions/${seg(contribution)}/score`, { score, rationale }); }
+  leave(id: string, reason: string, capability?: string) { return this.postJson(`/ensembles/${seg(id)}/leave`, { reason, capability }); }
+  submit(id: string, input: EnsembleSubmitInput) { return this.postJson<SubmitResult & { ensemble_id: string; round: number }>(`/ensembles/${seg(id)}/submit`, input); }
+  metrics() { return this.getJson<{ cohorts: Data[] }>('/ensembles/metrics'); }
 }

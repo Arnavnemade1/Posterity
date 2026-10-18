@@ -11,6 +11,8 @@ import { MockModel } from '../../examples/claude-agent/src/models.ts';
 import { Posterity, PosterityError } from '../../packages/sdk/src/index.ts';
 
 import { BASE } from './lib.ts';
+// Local gateways advertise their Docker origin while the test connects through localhost.
+const ADVERTISED_BASE = process.env.POSTERITY_ADVERTISED_API ?? BASE;
 const RUN = Date.now().toString(36);
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -91,14 +93,14 @@ section('OpenAPI document');
 const anon = new Posterity({ apiKey: '', baseUrl: BASE });
 const index = await anon.index();
 const [major, minor] = String(index.version ?? '0.0').split('.').map(Number);
-check('the index reports version 0.6.0 or later and links the document', (major > 0 || minor >= 6) && index.openapi === `${BASE}/openapi.json`, index.version);
+check('the index reports version 0.6.0 or later and links the document', (major > 0 || minor >= 6) && index.openapi === `${ADVERTISED_BASE}/openapi.json`, index.version);
 const spec = (await anon.openapi()) as Json;
 const operations: Json[] = [];
 for (const [path, methods] of Object.entries(spec.paths as Record<string, Json>)) {
   for (const [method, op] of Object.entries(methods as Record<string, Json>)) operations.push({ path, method, ...op });
 }
 const endpoints = (index as Json).endpoints as Json[];
-check('an OpenAPI 3.1 document at the API version', spec.openapi === '3.1.0' && spec.info?.version === index.version && spec.servers?.[0]?.url === BASE);
+check('an OpenAPI 3.1 document at the API version', spec.openapi === '3.1.0' && spec.info?.version === index.version && spec.servers?.[0]?.url === ADVERTISED_BASE);
 check('one operation per REST endpoint, plus MCP and the webhook', operations.length === endpoints.length + 2, { operations: operations.length, endpoints: endpoints.length });
 const ids = operations.map((o) => o.operationId);
 check('operationIds are unique, named camelCase identifiers', new Set(ids).size === ids.length && ids.every((id) => /^[a-z][A-Za-z]+$/.test(id)), ids.filter((id, i) => ids.indexOf(id) !== i));
@@ -201,7 +203,7 @@ let secret = connection.secret;
 check(
   'the lead connects it and gets the webhook settings once',
   connection.repo === repoName.toLowerCase() && secret?.length === 48 && connection.webhook.secret === secret &&
-    connection.webhook.payload_url === `${BASE}/integrations/github` && connection.webhook.events.includes('workflow_run'),
+    connection.webhook.payload_url === `${ADVERTISED_BASE}/integrations/github` && connection.webhook.events.includes('workflow_run'),
   { repo: connection.repo, payload_url: connection.webhook?.payload_url },
 );
 workspace = await lead.missions.workspace(slug);

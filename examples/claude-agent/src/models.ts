@@ -1,7 +1,7 @@
 // Models behind the agent. ClaudeModel calls the Anthropic API; MockModel answers
 // deterministically so the whole loop can run without an API key (tests, demos).
 import Anthropic from '@anthropic-ai/sdk';
-import type { ModelTier, Plan, PlanTask, Submission, TaskDetail } from '@posterity/sdk';
+import type { EnsembleView, ModelTier, Plan, PlanTask, Submission, TaskDetail } from '@posterity/sdk';
 
 /** Small tasks go to Haiku, ordinary ones to Sonnet, hard ones (and plans) to Opus. */
 export const DEFAULT_MODELS: Record<ModelTier, string> = {
@@ -11,7 +11,7 @@ export const DEFAULT_MODELS: Record<ModelTier, string> = {
 };
 
 export interface OutputSpec {
-  name: 'submit_plan' | 'submit_work' | 'submit_review';
+  name: 'submit_plan' | 'submit_work' | 'submit_review' | 'ensemble_action';
   description: string;
   schema: Record<string, unknown>;
 }
@@ -19,6 +19,8 @@ export interface OutputSpec {
 /** Structured context for the call. Real models read the prompt; the mock reads this. */
 export interface CallContext {
   detail?: TaskDetail;
+  ensemble?: EnsembleView;
+  agentId?: string;
   submission?: Submission;
   capabilities?: string[];
 }
@@ -95,6 +97,24 @@ export class MockModel implements Model {
     const detail = call.context?.detail;
     const capabilities = call.context?.capabilities ?? [];
     switch (call.output.name) {
+      case 'ensemble_action': {
+        const e = call.context?.ensemble;
+        const mine = e?.members.find((m) => m.agent_id === call.context?.agentId && m.state === 'active');
+        if (!e || !mine) return { action: 'wait' };
+        const own = e.contributions.filter((c) => c.member_id === mine.id);
+        const other = e.contributions.find((c) => c.member_id !== mine.id && !c.scores.some((s) => s.scorer_id === mine.agent_id));
+        if (other) return { action: 'score', contribution_id: other.id, score: 4, rationale: 'Mock peer checked role contribution against the task criteria' };
+        if (!own.length) {
+          if (mine.role === 'critic' && !e.contributions.some((c) => c.kind === 'draft')) return { action: 'wait' };
+          if (mine.role === 'synthesizer' && !e.members.filter((m) => m.state === 'active' && m.id !== mine.id).every((m) => e.contributions.some((c) => c.member_id === m.id))) return { action: 'wait' };
+          return { action: 'contribute', ensemble_id: e.id, kind: mine.role === 'proposer' ? 'draft' : mine.role === 'critic' ? 'objection' : mine.role === 'specialist' ? 'evidence' : 'synthesis', summary: `Mock ${mine.role} contribution`, content: 'Deterministic protocol fixture, not a model quality claim.' };
+        }
+        if (mine.role === 'synthesizer' && e.status === 'active' && e.contributions.every((c) => c.scores.length)) return {
+          action: 'submit', ensemble_id: e.id, synthesis_id: own[own.length-1].id,
+          contributions: e.contributions.map((c) => c.id), resolutions: e.contributions.filter((c) => c.kind === 'objection').map((c) => ({ contribution_id: c.id, upheld: true, rationale: 'Mock synthesis incorporates the objection correction' })),
+        };
+        return { action: 'wait' };
+      }
       case 'submit_plan': {
         const objective = detail?.task.mission.objective ?? 'the objective';
         const tasks: PlanTask[] = [

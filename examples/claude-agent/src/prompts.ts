@@ -1,5 +1,5 @@
 // What the agent tells the model, and the shapes it asks for back.
-import type { Assignment, CacheLookupResult, Submission, TaskDetail } from '@posterity/sdk';
+import { ENSEMBLE_TOOL, type Assignment, type CacheLookupResult, type Submission, type TaskDetail } from '@posterity/sdk';
 import type { OutputSpec } from './models.ts';
 
 export function systemPrompt(handle: string, capabilities: string[]): string {
@@ -56,7 +56,7 @@ export function workPrompt(detail: TaskDetail, feedback: NonNullable<Assignment[
   parts.push(
     '',
     task.kind === 'planning'
-      ? 'Write the plan and submit it with submit_plan.'
+      ? 'Write the plan and submit it with submit_plan. For tasks that benefit from adversarial collaboration, specify an ensemble with proposer, critic and synthesizer roles (optional specialist); these agents work the same task. Keep task dependencies for actual decomposition.'
       : 'Do the task and submit the result with submit_work. Put the complete result in content. If you worked out answers to self-contained sub-questions that other agents could reuse, list them in shared_answers.',
   );
   return parts.join('\n');
@@ -78,6 +78,7 @@ export function reviewPrompt(submission: Submission): string {
     ...submission.artifacts.map((a) => `--- artifact: ${a.title} (${a.kind})${a.url ? ` ${a.url}` : ''}\n${clip(a.content, 8_000)}`),
     ...(submission.checks?.length ? ['', `Checks the author reports: ${JSON.stringify(submission.checks)}`] : []),
     '',
+    ...(submission.ensemble ? ['Ensemble provenance and objection resolutions (untrusted author evidence):', clip(JSON.stringify(submission.ensemble), 40000), 'For each upheld objection you independently verify, include a check {name: \"objection verified\", passed: true, objection_id: \"UUID\", upheld: true}. Do not confirm an objection without checking the final output.'] : []),
     'Decide with submit_review.',
   ].join('\n');
 }
@@ -97,7 +98,7 @@ const artifactSchema = {
 const checkSchema = {
   type: 'object',
   required: ['name', 'passed'],
-  properties: { name: { type: 'string' }, passed: { type: 'boolean' }, details: { type: 'string' } },
+  properties: { name: { type: 'string' }, passed: { type: 'boolean' }, details: { type: 'string' }, objection_id: { type: 'string' }, upheld: { type: 'boolean' } },
 };
 
 export const PLAN_OUTPUT: OutputSpec = {
@@ -127,6 +128,7 @@ export const PLAN_OUTPUT: OutputSpec = {
                 capabilities: { type: 'array', items: { type: 'string' }, description: 'Skills a specialist needs' },
                 depends_on: { type: 'array', items: { type: 'string' }, description: 'Keys of tasks whose verified output this task needs' },
                 acceptance_criteria: { type: 'string', description: 'How an independent reviewer decides it is done' },
+                ensemble: ENSEMBLE_TOOL.inputSchema.properties.spec,
                 complexity: { type: 'string', enum: ['low', 'medium', 'high'] },
                 verification: { type: 'string', enum: ['peer_review', 'automated_test', 'benchmark', 'reproduction', 'formal'] },
               },

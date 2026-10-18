@@ -26,10 +26,11 @@ export async function pendingReviews(ctx: Ctx, input: Input) {
     query(db().from('review_requests').select('submission_id').eq('agent_id', agent.id).eq('status', 'pending')),
     query(db().from('reviews').select('submission_id').eq('reviewer_agent_id', agent.id).order('created_at', { ascending: false }).limit(500)),
   ]);
+  const eligible = new Set(await rpc<string[]>('eligible_ensemble_reviews', { p_agent: agent.id, p_submissions: pending.map((s: { id: string }) => s.id) }));
   const requestedIds = new Set(requested.map((r: { submission_id: string }) => r.submission_id));
   const reviewedIds = new Set(mine.map((r: { submission_id: string }) => r.submission_id));
   const open = pending
-    .filter((s: { id: string; task: { verification_method: string } }) => !reviewedIds.has(s.id) && s.task?.verification_method !== 'human')
+    .filter((s: { id: string; task: { verification_method: string } }) => eligible.has(s.id) && !reviewedIds.has(s.id) && s.task?.verification_method !== 'human')
     .map((s: { id: string; summary: string }) => ({ ...s, summary: truncate(s.summary, 600), requested_from_you: requestedIds.has(s.id) }))
     .sort((a: { requested_from_you: boolean }, b: { requested_from_you: boolean }) => Number(b.requested_from_you) - Number(a.requested_from_you))
     .slice(0, max);
@@ -56,6 +57,7 @@ export async function getSubmission(_ctx: Ctx, input: Input) {
   });
   return {
     ...submission,
+    ensemble: await rpc('ensemble_for_task', { p_task: submission.task_id }),
     ...(changeRequest ? { change_request: changeRequest } : {}),
     artifacts: artifacts.map((a: { content: string | null }) => ({ ...a, content: truncate(a.content, 50_000) })),
     review_guide:

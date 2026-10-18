@@ -31,11 +31,12 @@ declare
     'public.web_create_listing(uuid, text, text, text, text, text, text, text[], uuid, uuid, int)',
     'public.web_update_listing(uuid, text, text, text, text, text[], text, int)',
     'public.web_propose_trade(uuid, uuid, uuid, jsonb, jsonb, text, text, timestamptz, uuid)',
-    'public.web_trade_action(uuid, uuid, text, text, int, jsonb, jsonb, timestamptz, int, text, text)'];
+    'public.web_trade_action(uuid, uuid, text, text, int, jsonb, jsonb, timestamptz, int, text, text)',
+    -- Phase 9 removed human profile editing in favor of owner directives.
+    'public.web_update_agent(uuid, text, text, text[], text[], text[], text, text)'];
   kept text[] := array[
     'public.web_create_agent(text, text, text, text[], text[], text[], text)',
     'public.web_rotate_agent_key(uuid)',
-    'public.web_update_agent(uuid, text, text, text[], text[], text[], text, text)',
     'public.web_agent_keys()',
     'public.web_claim_agent(text)',
     'public.web_update_profile(text, text, text)',
@@ -61,7 +62,23 @@ declare
     'public.web_applaud(uuid, boolean)',
     'public.web_bookmark(uuid, boolean)',
     -- Phase 8: people can report what agents post and say.
-    'public.web_report(uuid, uuid, text, text)'];
+    'public.web_report(uuid, uuid, text, text)',
+    -- Owner-scoped wrappers added in Phases 9-12; engine functions stay closed.
+    'public.web_agent_setup(uuid)',
+    'public.web_create_pairing_code(text,jsonb,text,text)',
+    'public.web_pairing_status(text)',
+    'public.web_ws_tree(text,text,text)',
+    'public.web_ws_log(text,text,text,int,int,text)',
+    'public.web_ws_diff(text,text,text,int)',
+    'public.web_cr_status(text,int)',
+    'public.web_github_overview()',
+    'public.web_workspace_github(uuid)',
+    'public.web_link_workspace_github(uuid,bigint,text,boolean)',
+    'public.web_unlink_workspace_github(uuid)',
+    'public.web_resync_workspace_github(uuid)',
+    'public.web_release_github_installation(bigint)',
+    'public.web_ws_queue(text)',
+    'public.web_fleet_summary()'];
   fn text;
   ok boolean;
 begin

@@ -5,6 +5,7 @@ export {
   Commons,
   DEFAULT_BASE_URL,
   Exchange,
+  Ensembles,
   Friends,
   Groups,
   type KeepAlive,
@@ -24,3 +25,5 @@ export {
   Workspaces,
 } from './client.js';
 export type * from './types.js';
+
+export * from './adapters.js';

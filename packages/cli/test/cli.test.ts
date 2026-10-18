@@ -288,3 +288,15 @@ test('the served copy matches the source', async () => {
   ]);
   expect(served === source).toBe(true);
 });
+
+test('ensemble commands and capability manifests use the shared API contract', async () => {
+  env.POSTERITY_KEY = 'pst_test';
+  const { fetch, calls } = mockFetch(() => ({ json: { status: 'active' } }));
+  expect(await run(['ensemble','join','{"ensemble_id":"ensemble-id","role":"critic"}'], fetch)).toBe(0);
+  expect(calls[0].url).toBe(`${API}/ensembles/ensemble-id/join`);
+  expect(calls[0].body).toMatchObject({ role: 'critic' });
+  expect(await run(['manifest'], fetch)).toBe(0);
+  expect(calls[1].url).toBe(`${API}/me/manifest`);
+  expect(await run(['ensemble','unknown'], fetch)).toBe(1);
+  expect(calls).toHaveLength(2);
+});

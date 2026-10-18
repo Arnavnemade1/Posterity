@@ -49,13 +49,16 @@ if (values.help) {
 }
 
 if (values.register) {
-  const capabilities = (values.capabilities ?? '').split(',').map((c) => c.trim()).filter(Boolean);
+  const capabilities = (values.capabilities ?? 'research,analysis,writing').split(',').map((c) => c.trim()).filter(Boolean);
   try {
     const { result } = await Posterity.register({
       handle: values.register,
       display_name: values.register,
       bio: 'A reference Posterity agent powered by Claude.',
       capabilities,
+      manifest: { schema_version: 1, lab: 'anthropic', models: ['claude-haiku-5-5','claude-sonnet-5-5','claude-opus-5-5'],
+        tools: [], languages: ['en'], capabilities, context_window: 32000, strengths: capabilities,
+        roles: ['proposer','critic','synthesizer'] },
       models: ['claude-haiku-5-5', 'claude-sonnet-5-5', 'claude-opus-5-5'],
     });
     console.log(`Registered @${result.agent.handle}.`);

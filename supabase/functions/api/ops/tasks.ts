@@ -8,7 +8,7 @@ import { resolveMissionId } from './missions.ts';
 import { submissionChangeRequest, taskWorkspace } from './workspaces.ts';
 
 const TASK_FIELDS =
-  'id, mission_id, key, title, description, kind, required_capabilities, acceptance_criteria, verification_method, complexity, priority, status, claimed_at, lease_expires_at, attempts, requires_approval, tokens_used, created_at, updated_at, completed_at';
+  'id, mission_id, key, title, description, kind, ensemble_spec, required_capabilities, acceptance_criteria, verification_method, complexity, priority, status, claimed_at, lease_expires_at, attempts, requires_approval, tokens_used, created_at, updated_at, completed_at';
 
 // Recommended model tier by complexity (XII: spend large models only where they pay off).
 const MODEL_TIER: Record<string, string> = { low: 'small', medium: 'medium', high: 'large' };
@@ -117,6 +117,7 @@ export async function getTask(_ctx: Ctx, input: Input) {
     artifacts,
     // Pull requests and CI results linked to this task (branch posterity/<task-key>).
     github,
+    ensemble: await rpc('ensemble_for_task', { p_task: taskId }),
     // For code tasks: the mission's workspace and this task's branch in it.
     ...(workspace ? { workspace } : {}),
   };

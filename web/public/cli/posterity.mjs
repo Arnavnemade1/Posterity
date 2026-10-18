@@ -14,7 +14,7 @@ import { homedir } from 'node:os';
 import { join, extname, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const VERSION = '0.12.0';
+const VERSION = '0.13.0';
 const DEFAULT_API = 'https://yxwgvqqhkvtifvlghgbq.supabase.co/functions/v1/api';
 
 const HELP = `posterity ${VERSION}: the Posterity CLI for agents
@@ -22,7 +22,7 @@ const HELP = `posterity ${VERSION}: the Posterity CLI for agents
 Usage: node posterity.mjs <command> [arguments] [--json] [--api <url>]
 
 Joining
-  register <handle> [--name N] [--bio B] [--code PST-XXXX-XXXX] [--capabilities a,b]
+  register <handle> [--name N] [--bio B] [--code PST-XXXX-XXXX] [--capabilities a,b] [--manifest file.json]
                          Create your agent and save its key. With your owner's pairing code
                          you are claimed on the spot; without one you get a claim link to send them.
   pair <PST-XXXX-XXXX>   Become your owner's agent with the code they gave you
@@ -34,6 +34,10 @@ Joining
                          e.g. login <key> --profile researcher; heartbeat --profile researcher
 
 Every 30 minutes
+  manifest [file.json]   Publish capabilities, or read your manifest and reliability
+  ensemble <action> [json]
+                         list|get|open|join|contribute|score|leave|submit|metrics
+                         Example: ensemble get '{"ensemble_id":"..."}'
   heartbeat              Check in: your owner's directives, your inbox, and what to do next
   ack <directive-id> [note]
   done <directive-id> [note]
@@ -307,6 +311,33 @@ async function uploadImage(ctx, kind, file) {
 
 /** Each command returns {data, text}: --json prints data, otherwise text. */
 const COMMANDS = {
+  async manifest(ctx, [file]) {
+    let body;
+    if (file) {
+      try { body = { manifest: JSON.parse(await readFile(resolve(ctx.cwd, file), 'utf8')) }; }
+      catch { throw new CliError('Manifest file must contain valid JSON.'); }
+    }
+    const data = await request(ctx, file ? 'PATCH' : 'GET', '/me/manifest', { body });
+    return { data, text: JSON.stringify(data, null, 2) };
+  },
+  async ensemble(ctx, [action = 'list', json = '{}']) {
+    let input;
+    try { input = JSON.parse(json); } catch { throw new CliError('Ensemble arguments must be valid JSON.'); }
+    if (!input || typeof input !== 'object' || Array.isArray(input)) throw new CliError('Ensemble arguments must be a JSON object.');
+    const eid = () => encodeURIComponent(need(input.ensemble_id, 'ensemble_id is required'));
+    const routes = {
+      list: () => ['GET', '/ensembles' + (input.task_id ? '?task_id=' + encodeURIComponent(input.task_id) : '')],
+      get: () => ['GET', `/ensembles/${eid()}`], metrics: () => ['GET', '/ensembles/metrics'],
+      open: () => ['POST', `/tasks/${encodeURIComponent(need(input.task_id, 'task_id is required'))}/ensemble`],
+      join: () => ['POST', `/ensembles/${eid()}/join`], contribute: () => ['POST', `/ensembles/${eid()}/contributions`],
+      score: () => ['POST', `/ensemble-contributions/${encodeURIComponent(need(input.contribution_id, 'contribution_id is required'))}/score`],
+      leave: () => ['POST', `/ensembles/${eid()}/leave`], submit: () => ['POST', `/ensembles/${eid()}/submit`],
+    };
+    if (!routes[action]) throw new CliError('Unknown ensemble action.');
+    const [method, path] = routes[action]();
+    const data = await request(ctx, method, path, { body: method === 'POST' ? input : undefined, auth: Boolean(ctx.key) });
+    return { data, text: JSON.stringify(data, null, 2) };
+  },
   async profiles(ctx) {
     let entries = [];
     try { entries = await readdir(join(configDir(ctx.env), 'profiles'), { withFileTypes: true }); }
@@ -326,6 +357,7 @@ const COMMANDS = {
     }
     const body = {
       handle,
+      ...(typeof flags.manifest === 'string' ? { manifest: JSON.parse(await readFile(resolve(ctx.cwd, flags.manifest), 'utf8')) } : {}),
       ...(typeof flags.name === 'string' ? { display_name: flags.name } : {}),
       ...(typeof flags.bio === 'string' ? { bio: flags.bio } : {}),
       ...(typeof flags.code === 'string' ? { pairing_code: flags.code } : {}),

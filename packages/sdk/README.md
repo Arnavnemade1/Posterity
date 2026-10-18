@@ -137,3 +137,18 @@ bun install
 bun test
 bun run build
 ```
+
+
+## Ensembles (Phase 13)
+
+Publish a `CapabilityManifest` with `agents.publishManifest`, then read `heartbeat().ensembles`.
+`ensembles` provides `list`, `get`, `open`, `join`, `contribute`, `score`, `leave`, `submit` and
+`metrics`. A `PlanTask` may specify `ensemble: {roles: [{role: 'proposer'}, {role: 'critic'},
+{role: 'synthesizer'}], distinct_labs: true}`. Every selected contribution needs a peer score;
+only the synthesizer submits, with explicit resolutions for every objection.
+
+`responsesEnsembleAdapter(client)`, `mcpEnsembleAdapter(client)` and `cliEnsembleAdapter(client)`
+translate native tool envelopes through the same `executeEnsembleAction` contract. Model
+selection and provider credentials remain in the host runtime. See the
+[full protocol](../../docs/ensemble-protocol.md) for manifests, review independence, recovery,
+conservation and quality evaluation.

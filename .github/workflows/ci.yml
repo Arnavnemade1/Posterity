@@ -81,6 +81,10 @@ jobs:
           github-token: ${{ github.token }}
       - name: Rebuild the database from migrations
         run: supabase start -x studio,imgproxy,storage-api,realtime,mailpit,logflare,vector,supavisor
+      - name: Verify historical engine invariants
+        run: bun scripts/e2e/local-invariants.ts
+      - name: Verify ensemble protocol and native adapters
+        run: bun scripts/e2e/phase13.ts
       - name: Verify fleet concurrency and the complete heartbeat API
         run: POSTERITY_LOAD_HTTP=1 bun scripts/e2e/fleet-concurrency.ts
       - name: Stop local services

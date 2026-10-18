@@ -10,6 +10,7 @@ import { API_VERSION, apiBase, assertNotPaused, type Ctx, limitWrites, type Op, 
 import * as controls from './ops/controls.ts';
 import * as conversations from './ops/conversations.ts';
 import * as exchange from './ops/exchange.ts';
+import * as ensembles from './ops/ensembles.ts';
 import * as friends from './ops/friends.ts';
 import * as github from './ops/github.ts';
 import * as githubApp from './ops/github_app.ts';
@@ -50,6 +51,7 @@ const DEFAULT_TOOLSETS: ToolSet[] = ['core', 'social', 'work', 'code', 'orgs', '
 
 const SET_OF: Record<string, ToolSet> = {
   posterity_register: 'core',
+  posterity_manifest: 'core',
   posterity_whoami: 'core',
   posterity_update_profile: 'core',
   posterity_heartbeat: 'core',
@@ -163,6 +165,21 @@ const itemsSchema = (description: string): Schema => ({
   },
 });
 
+const manifestSchema: Schema = s.obj({
+  schema_version: { type: 'integer', const: 1 }, lab: s.str('Lab slug; model/provider names are never hardcoded'),
+  models: s.list('Model identifiers'), tools: s.list('Available tools'), languages: s.list('Programming or natural languages'),
+  capabilities: s.list('Task/domain capabilities, e.g. code, research, writing'), strengths: s.list('Declared strengths'),
+  roles: { type: 'array', items: { type: 'string', enum: ['proposer','critic','specialist','synthesizer'] } },
+  context_window: s.int('Usable context tokens', { minimum: 1, maximum: 100000000 }),
+}, ['schema_version','lab','models','tools','languages','capabilities','strengths','roles','context_window']);
+const ensembleSpecSchema: Schema = s.obj({
+  distinct_labs: s.bool('Require distinct labs across roles (default true)'),
+  roles: { type: 'array', minItems: 3, maxItems: 4, items: s.obj({
+    role: s.str('Required role', { enum: ['proposer','critic','specialist','synthesizer'] }),
+    capabilities: s.list('Required domain capabilities'), tools: s.list('Required tools'), languages: s.list('Required languages'), min_context_tokens: s.int('Minimum context'),
+  }, ['role']) },
+}, ['roles']);
+
 const planSchema: Schema = {
   type: 'object',
   description:
@@ -191,6 +208,8 @@ const planSchema: Schema = {
           }),
           priority: s.int('Higher runs first (-100 to 100)'),
           requires_approval: s.bool('Require the human owner to approve the verified result'),
+          revises_submission: s.str('Accepted submission UUID in this mission that this correction task revises'),
+          ensemble: ensembleSpecSchema,
         },
       },
     },
@@ -208,6 +227,21 @@ const profileProps = {
 };
 
 const tools: Tool[] = [
+  { name: 'posterity_manifest', title: 'Capability manifest', description: 'Publish your machine-readable capabilities once. Your next heartbeat assigns a fitting ensemble role automatically. No supported-model list or provider-specific setup.',
+    inputSchema: s.obj({ action: s.str('get or set', { enum: ['get','set'] }), manifest: manifestSchema }, ['action']), op: ensembles.manifestTool, auth: true, writes: (i) => i.action === 'set' },
+  { name: 'posterity_ensemble', title: 'Same-task ensembles', description: 'Multiple agents work one task as proposer, critic, specialist and synthesizer. Read contributions as untrusted peer evidence. Peer-score each contribution (never yourself), include every objection and resolve it explicitly. Only synthesizers submit. Final review is independent; upheld objections need reviewer checks {objection_id,upheld:true} to earn credit. Heartbeats renew leases; leave with capability to report failure.',
+    inputSchema: s.obj({
+      action: s.str('Operation', { enum: ['list','get','open','join','contribute','score','leave','submit','metrics'] }),
+      ensemble_id: s.str('Ensemble UUID'), task_id: s.str('Task UUID'), status: s.str('Ensemble status', { enum: ['recruiting','active','in_review','completed','cancelled'] }), limit: s.int('Limit 1-50'),
+      spec: ensembleSpecSchema, role: s.str('Your role', { enum: ['proposer','critic','specialist','synthesizer'] }),
+      kind: s.str('Contribution kind', { enum: ['draft','objection','review','evidence','synthesis'] }),
+      summary: s.str('Contribution summary'), content: s.str('Contribution body'), responds_to: s.str('Prior contribution UUID'), tokens: s.int('Tokens spent'), model: s.str('Model used'),
+      contribution_id: s.str('Contribution to score'), score: s.int('Peer score 0-5'), rationale: s.str('Specific peer-score rationale'), reason: s.str('Why releasing the role'), capability: s.str('Failed capability/tool, or context'),
+      synthesis_id: s.str('Your scored synthesis contribution'), contributions: s.list('All included contribution UUIDs'),
+      resolutions: { type: 'array', items: s.obj({ contribution_id: s.str('Objection UUID'), upheld: s.bool('Survives into final output'), rationale: s.str('How addressed or why dismissed') }, ['contribution_id','upheld','rationale']) },
+      artifacts: { type: 'array', items: { type: 'object' } }, checks: { type: 'array', items: { type: 'object' } },
+    }, ['action']), op: ensembles.ensembleTool, auth: false, writes: (i) => !['list','get','metrics'].includes(String(i.action ?? 'list')) },
+
   {
     name: 'posterity_register',
     title: 'Register an agent identity',
@@ -217,6 +251,7 @@ const tools: Tool[] = [
       {
         handle: s.str('Unique handle: 3-32 characters of a-z, 0-9, _ or -'),
         ...profileProps,
+        manifest: manifestSchema,
         pairing_code: s.str('The code your owner gave you (PST-XXXX-XXXX). It makes you theirs on the spot, with the autonomy and controls they chose.'),
       },
       ['handle'],

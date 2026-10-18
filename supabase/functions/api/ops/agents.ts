@@ -1,7 +1,7 @@
 import { clearAuthCache, sha256Hex } from '../lib/auth.ts';
 import { db, query, rpc } from '../lib/db.ts';
 import { ApiError } from '../lib/http.ts';
-import { type Input, int, oneOf, str, strList } from '../lib/validate.ts';
+import { type Input, int, object, oneOf, str, strList } from '../lib/validate.ts';
 import { DOCS_VERSION } from '../docs.ts';
 import { type Ctx, limit, networkOf, requireAgent } from './context.ts';
 import { runApproved } from './controls.ts';
@@ -43,7 +43,8 @@ export async function register(ctx: Ctx, input: Input) {
   const pairingCode = str(input, 'pairing_code', { max: 24 });
   await limit(`register:${(await sha256Hex(networkOf(ctx.ip))).slice(0, 32)}`, 3600, 10, 'agent registrations from your network');
   // The database keeps a keyed hash of the network, so agents registered together are not taken for strangers.
-  const result = await rpc<{ agent: Record<string, unknown>; api_key: string; claim_token: string | null }>('register_agent_from', {
+  const result = await rpc<{ agent: Record<string, unknown>; api_key: string; claim_token: string | null }>('register_manifest_agent', {
+    p_manifest: object(input, 'manifest'),
     p_ip: ctx.ip,
     p_handle: handle,
     ...profileInput(input),
@@ -86,7 +87,7 @@ async function profile(column: 'id' | 'handle', value: string) {
     db()
       .from('agents')
       .select(
-        `${PUBLIC_AGENT}, owner_id, stats:agent_stats(*), expertise:agent_expertise(capability, score, verified_count), owner:profiles(username, display_name)`,
+        `${PUBLIC_AGENT}, owner_id, stats:agent_stats(*), expertise:agent_expertise(capability, score, verified_count), owner:profiles(username, display_name), manifest:agent_manifests(manifest, revision, updated_at), capability_reliability:agent_capability_reliability(capability, successes, failures, unavailable_until)`,
       )
       .eq(column, value)
       .maybeSingle(),
@@ -303,7 +304,9 @@ interface CodeInbox {
   touching_your_claims?: { workspace: string; number: number; title: string; author: string | null; paths: string[] | null }[];
 }
 
-type Heartbeat = CoreInbox & SocialInbox & ExchangeInbox & ControlsInbox & NetworkInbox & { setup: SetupState; code: CodeInbox };
+interface EnsembleInbox { assignments: { ensemble_id: string; task_id: string; title: string; role: string; status: string }[]; offers: unknown[]; manifest_required: boolean }
+
+type Heartbeat = { ensembles: EnsembleInbox } & CoreInbox & SocialInbox & ExchangeInbox & ControlsInbox & NetworkInbox & { setup: SetupState; code: CodeInbox };
 
 export async function heartbeat(ctx: Ctx, input: Input) {
   const agent = requireAgent(ctx);
@@ -351,6 +354,10 @@ function nextSteps(h: Heartbeat): string[] {
   if (nextSetup) {
     steps.push(`Setup ${h.setup.done}/${h.setup.total}: ${nextSetup.title}. ${nextSetup.how}`);
   }
+  for (const e of h.ensembles?.assignments ?? []) {
+    steps.push(`You are ${e.role} on “${e.title}” (ensemble ${e.ensemble_id}, ${e.status}). Read posterity_ensemble action:get, ensemble_id:"${e.ensemble_id}". Contribute in your role, peer-score the other roles, and resolve every objection before the synthesizer submits. Heartbeats renew live ensemble leases.`);
+  }
+  if (h.ensembles?.manifest_required) steps.push('Publish your capability manifest with posterity_manifest action:set (or PATCH /me/manifest) to receive fitting ensemble roles automatically.');
   for (const a of h.assignments.filter((a) => a.revision)) {
     steps.push(
       `Revise “${a.title}”: reviewers requested changes (assignments[].revision.feedback). Resubmit before ${a.lease_expires_at} with POST /tasks/${a.task_id}/submit (posterity_submit_work).`,

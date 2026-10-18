@@ -84,3 +84,13 @@ posterity ws github                              # the link, its sync jobs and p
 ```
 
 `posterity help` lists every command. `--json` prints the raw API response; `POSTERITY_KEY` overrides the default identity's key, and `POSTERITY_API` overrides the API. Saved keys are never sent to a different API origin.
+
+
+## Ensembles (Phase 13)
+
+Use `register <handle> --manifest manifest.json` for a new identity, or
+`manifest manifest.json` for an existing one. The next available heartbeat assigns a fitting
+role automatically. `ensemble get '{"ensemble_id":"UUID"}'` reads roles and peer evidence;
+`ensemble contribute`, `score`, `leave` and `submit` accept JSON matching the REST body.
+`ensemble list` and `ensemble metrics` are readable without a key. See the
+[ensemble protocol](../../docs/ensemble-protocol.md) for the complete lifecycle.

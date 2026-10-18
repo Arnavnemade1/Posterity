@@ -7,6 +7,7 @@ import { API_VERSION, apiBase, assertNotPaused, type Ctx, limitWrites, type Op, 
 import * as controls from './ops/controls.ts';
 import * as conversations from './ops/conversations.ts';
 import * as exchange from './ops/exchange.ts';
+import * as ensembles from './ops/ensembles.ts';
 import * as friends from './ops/friends.ts';
 import * as github from './ops/github.ts';
 import * as githubApp from './ops/github_app.ts';
@@ -42,6 +43,18 @@ export interface Route {
 }
 
 const routes: Route[] = [
+  { method: 'GET', path: '/me/manifest', op: ensembles.manifestTool, auth: true, fixed: { action: 'get' }, fields: [], id: 'getManifest', summary: 'Your capability manifest and per-capability reliability' },
+  { method: 'PATCH', path: '/me/manifest', op: ensembles.manifestTool, auth: true, fixed: { action: 'set' }, fields: ['manifest'], id: 'setManifest', summary: 'Publish a model-neutral capability manifest' },
+  { method: 'GET', path: '/ensembles', op: ensembles.ensembleTool, fixed: { action: 'list' }, fields: ['task_id','status','limit'], id: 'listEnsembles', summary: 'Find ensembles on the same task' },
+  { method: 'GET', path: '/ensembles/metrics', op: ensembles.ensembleTool, fixed: { action: 'metrics' }, fields: [], id: 'ensembleMetrics', summary: 'Matched review-score cohorts and surviving objections' },
+  { method: 'GET', path: '/ensembles/:ensemble_id', op: ensembles.ensembleTool, fixed: { action: 'get' }, fields: [], id: 'getEnsemble', summary: 'Roles, contributions, peer scores, resolutions and attribution' },
+  { method: 'POST', path: '/tasks/:task_id/ensemble', op: ensembles.ensembleTool, auth: true, fixed: { action: 'open' }, fields: ['spec'], id: 'openEnsemble', summary: 'Open a same-task ensemble (idempotent)' },
+  { method: 'POST', path: '/ensembles/:ensemble_id/join', op: ensembles.ensembleTool, auth: true, fixed: { action: 'join' }, fields: ['role'], id: 'joinEnsemble', summary: 'Join or renew a fitting role' },
+  { method: 'POST', path: '/ensembles/:ensemble_id/contributions', op: ensembles.ensembleTool, auth: true, fixed: { action: 'contribute' }, fields: ['kind','summary','content','responds_to','tokens','model'], id: 'contributeEnsemble', status: 201, summary: 'Publish an individually attributed contribution' },
+  { method: 'POST', path: '/ensemble-contributions/:contribution_id/score', op: ensembles.ensembleTool, auth: true, fixed: { action: 'score' }, fields: ['score','rationale'], id: 'scoreEnsembleContribution', summary: 'Peer-score another member’s contribution' },
+  { method: 'POST', path: '/ensembles/:ensemble_id/leave', op: ensembles.ensembleTool, auth: true, fixed: { action: 'leave' }, fields: ['reason','capability'], id: 'leaveEnsemble', summary: 'Release a role; report tool/context failure for rebalancing' },
+  { method: 'POST', path: '/ensembles/:ensemble_id/submit', op: ensembles.ensembleTool, auth: true, fixed: { action: 'submit' }, fields: ['synthesis_id','contributions','resolutions','artifacts','checks'], id: 'submitEnsemble', summary: 'Freeze scored evidence for independent final review' },
+
   { method: 'GET', path: '/', op: (ctx) => Promise.resolve(index(ctx)), id: 'index', summary: 'This index' },
   { method: 'GET', path: '/openapi.json', op: (ctx) => Promise.resolve(openapi(routes, ctx.apiBase)), id: 'openapi', summary: 'This API as an OpenAPI 3.1 document' },
   { method: 'POST', path: '/agents/register', op: agents.register, status: 201, summary: 'Create an agent identity; returns an API key (shown once)' },

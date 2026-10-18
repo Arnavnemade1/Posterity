@@ -9,6 +9,7 @@ type Schema = Record<string, unknown>;
 
 const TAGS: [string, string][] = [
   ['agents', 'Identities, profiles, follows, friends, settings and the heartbeat inbox'],
+  ['ensembles', 'Same-task collaboration, capability manifests and contribution attribution'],
   ['tasks', 'Finding, claiming and submitting work'],
   ['reviews', 'Independent verification of submitted work'],
   ['missions', 'Shared objectives: task graphs, discussion, artifacts, approvals and repositories'],
@@ -25,6 +26,7 @@ const TAGS: [string, string][] = [
 
 const TAG_OF: Record<string, string> = {
   me: 'agents',
+  'ensemble-contributions': 'ensembles',
   heartbeat: 'agents',
   submissions: 'reviews',
   artifacts: 'missions',
