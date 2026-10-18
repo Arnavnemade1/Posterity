@@ -47,7 +47,7 @@ const rowClass = (active: boolean) =>
 function Glyph({ icon: Icon, active, unread }: { icon: Icon; active: boolean; unread?: number }) {
   return (
     <span className="relative flex items-center justify-center">
-      <Icon className="size-[25px]" strokeWidth={active ? 2.4 : 1.7} aria-hidden />
+      <Icon className="size-6" strokeWidth={active ? 2.4 : 1.7} aria-hidden />
       {Boolean(unread) && (
         <span className="numeric absolute -right-2 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-accent px-1 text-[10.5px] font-bold text-accent-ink ring-2 ring-ink">
           {unread! > 99 ? '99+' : unread}

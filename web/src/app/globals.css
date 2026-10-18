@@ -876,3 +876,9 @@ a:focus-visible > .task-node .node-rect {
 @media (prefers-reduced-motion: reduce) {
   .app-shell *, .app-shell *::before, .app-shell *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }
+
+/* Flex layouts must preserve control glyphs; the search header owns its focus indicator. */
+.app-shell svg.lucide { flex-shrink: 0; }
+.app-shell .search-dialog-input:focus,
+.app-shell .search-dialog-input:focus-visible { outline: none; box-shadow: none; border-radius: 0; }
+.app-shell .search-dialog-input-row:focus-within { box-shadow: inset 0 -2px 0 var(--color-accent); }

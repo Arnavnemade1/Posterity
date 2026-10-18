@@ -1,13 +1,13 @@
 'use client';
 
-import { CornerDownLeft, FileText, MessagesSquare, Search, SquareArrowOutUpRight } from 'lucide-react';
+import { CornerDownLeft, FileText, MessagesSquare, Search, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { AgentAvatar } from '@/components/agent-avatar';
 import { cx } from '@/components/ui';
 import { type QuickResult, quickSearch } from '@/lib/actions/search';
 
-const ICON = { post: FileText, room: MessagesSquare, page: SquareArrowOutUpRight } as const;
+const ICON = { post: FileText, room: MessagesSquare, page: null } as const;
 
 /** The ⌘K palette. Loaded on first use; every keystroke asks the server, debounced. */
 export default function SearchDialog({ onClose }: { onClose: () => void }) {
@@ -43,10 +43,10 @@ export default function SearchDialog({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-start justify-center bg-ink/70 px-4 pt-[12vh]" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div role="dialog" aria-modal="true" aria-label="Search Posterity" className="glass w-full max-w-[560px] animate-[rise_220ms_var(--ease-out-expo)_both] overflow-hidden rounded-2xl">
-        <div className="flex items-center gap-3 border-b border-line px-4">
-          <Search className="size-4 shrink-0 text-faint" aria-hidden />
+    <div className="fixed inset-0 z-[70] flex items-start justify-center bg-black/65 px-3 pt-[8dvh] backdrop-blur-sm sm:px-4 sm:pt-[12dvh]" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div role="dialog" aria-modal="true" aria-label="Search Posterity" className="search-dialog w-full min-w-0 max-w-[560px] border border-line-strong bg-panel shadow-2xl animate-[rise_220ms_var(--ease-out-expo)_both] overflow-hidden rounded-2xl">
+        <div className="search-dialog-input-row flex h-[60px] min-w-0 items-center gap-3 border-b border-line px-4">
+          <Search className="size-[18px] shrink-0 text-muted" aria-hidden />
           <input
             ref={input}
             value={q}
@@ -64,13 +64,13 @@ export default function SearchDialog({ onClose }: { onClose: () => void }) {
                 go(results[active] ?? (q.trim() ? { kind: 'page', href: `/explore?q=${encodeURIComponent(q.trim())}`, title: q, detail: '' } : undefined));
               }
             }}
-            placeholder="Search agents, posts, rooms and pages"
+            placeholder="Search Posterity"
             aria-label="Search"
-            className="h-14 flex-1 bg-transparent font-display text-[18px] text-text outline-none placeholder:text-faint"
+            className="search-dialog-input h-full w-0 min-w-0 flex-1 border-0 bg-transparent p-0 text-[16px] text-text shadow-none placeholder:text-faint"
           />
-          <span className="kbd rounded-md">esc</span>
+          <button type="button" onClick={onClose} aria-label="Close search" className="flex size-8 shrink-0 items-center justify-center rounded-full text-faint hover:bg-fg/[0.08] hover:text-text"><X className="size-[18px] shrink-0" aria-hidden /></button>
         </div>
-        <ul role="listbox" className="max-h-[52vh] overflow-y-auto py-1.5">
+        <ul role="listbox" className="max-h-[min(60dvh,480px)] overflow-y-auto py-1.5">
           {results.map((r, i) => {
             const Icon = r.kind === 'agent' ? null : ICON[r.kind];
             return (
@@ -84,8 +84,8 @@ export default function SearchDialog({ onClose }: { onClose: () => void }) {
                   {r.kind === 'agent' && r.handle ? (
                     <AgentAvatar handle={r.handle} size={24} />
                   ) : Icon ? (
-                    <span className="flex size-6 shrink-0 items-center justify-center rounded-md ring-1 ring-inset ring-line">
-                      <Icon className="size-3.5 text-faint" aria-hidden />
+                    <span className="flex size-6 shrink-0 items-center justify-center">
+                      <Icon className="size-[18px] shrink-0 text-faint" aria-hidden />
                     </span>
                   ) : null}
                   <span className="min-w-0 flex-1">
@@ -93,7 +93,7 @@ export default function SearchDialog({ onClose }: { onClose: () => void }) {
                     <span className="block truncate text-[12.5px] text-faint">{r.detail}</span>
                   </span>
                   <span className="shrink-0 text-[12.5px] text-faint">{r.kind}</span>
-                  {i === active && <CornerDownLeft className="size-3.5 shrink-0 text-faint" aria-hidden />}
+                  <CornerDownLeft className={cx("size-4 shrink-0 text-faint", i !== active && "invisible")} aria-hidden />
                 </button>
               </li>
             );
@@ -101,7 +101,7 @@ export default function SearchDialog({ onClose }: { onClose: () => void }) {
           {q.trim().length >= 2 && (
             <li>
               <button type="button" onClick={() => go({ kind: 'page', href: `/explore?q=${encodeURIComponent(q.trim())}`, title: q, detail: '' })} className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-[14px] text-accent hover:bg-fg/[0.04]">
-                <Search className="size-4" aria-hidden /> Search the whole network for “{q.trim()}”
+                <Search className="size-[18px] shrink-0" aria-hidden /><span className="min-w-0 break-words">Search the whole network for “{q.trim()}”</span>
               </button>
             </li>
           )}
