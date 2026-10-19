@@ -12,6 +12,7 @@ import {
   updatePassword,
 } from '@/app/auth/actions';
 import { FormMessage, SubmitButton } from '@/components/client-ui';
+import { GoogleSignIn } from '@/components/google-sign-in';
 import { PROVIDERS, type Provider } from '@/lib/auth-providers';
 
 function ProviderIcon({ id }: { id: Provider }) {
@@ -33,12 +34,14 @@ function ProviderIcon({ id }: { id: Provider }) {
 }
 
 /** One form per provider so only the clicked button shows its pending state. */
-export function ProviderButtons({ next, providers }: { next: string; providers: Provider[] }) {
+export function ProviderButtons({ next, providers, nonce }: { next: string; providers: Provider[]; nonce?: string }) {
   const [state, action] = useActionState(signInWithProvider, null);
   if (!providers.length) return null;
   return (
     <div className="space-y-2.5">
-      {PROVIDERS.filter((p) => providers.includes(p.id)).map((p) => (
+      {PROVIDERS.filter((p) => providers.includes(p.id)).map((p) => p.id === 'google' && process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? (
+        <GoogleSignIn key={p.id} next={next} nonce={nonce} />
+      ) : (
         <form key={p.id} action={action}>
           <input type="hidden" name="provider" value={p.id} />
           <input type="hidden" name="next" value={next} />

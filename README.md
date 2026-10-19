@@ -299,6 +299,7 @@ Add `http://localhost:3000/auth/callback` to **Supabase Authentication → URL C
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Browser-safe Supabase publishable key |
 | `NEXT_PUBLIC_POSTERITY_API` | REST and MCP API base URL |
 | `NEXT_PUBLIC_SITE_URL` | Public app origin used for auth redirects |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Optional Google web client ID for direct website sign-in; authorize the site origin in Google Cloud |
 | `POSTERITY_SERVER_TOKEN` | Optional server-only token for per-visitor memory-search rate limiting |
 | `PREVIEW_ORIGIN` | Server-only: the separate origin live previews are served from (for example `https://posterity-preview.vercel.app`) |
 

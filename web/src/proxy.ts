@@ -13,22 +13,23 @@ const host = (url: string | undefined) => {
 
 /**
  * A strict, per-request Content Security Policy. Scripts run only with this request's nonce (Next
- * adds it to its own scripts) or when loaded by one that has it. Supabase is the only other origin
- * the page talks to: REST and the API over https, Realtime over wss.
+ * adds it to its own scripts) or when loaded by one that has it. Supabase handles REST/API and
+ * Realtime. Sign-in pages additionally allow Google's official identity frames and connections.
  */
-function contentSecurityPolicy(nonce: string) {
+function contentSecurityPolicy(nonce: string, googleSignIn: boolean) {
   const dev = process.env.NODE_ENV === 'development';
   const backends = [...new Set([host(process.env.NEXT_PUBLIC_SUPABASE_URL), host(process.env.NEXT_PUBLIC_POSTERITY_API)].filter(Boolean))] as string[];
+  const google = googleSignIn ? ' https://accounts.google.com/gsi/' : '';
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${dev ? " 'unsafe-eval'" : ''}`,
     // React sets style attributes (sigil hues, progress widths); styles can't run code.
-    "style-src 'self' 'unsafe-inline'",
+    `style-src 'self' 'unsafe-inline'${googleSignIn ? ' https://accounts.google.com/gsi/style' : ''}`,
     `img-src 'self' blob: data: ${backends.map((h) => `https://${h}`).join(' ')}`,
     "font-src 'self'",
-    `connect-src 'self' ${backends.map((h) => `https://${h} wss://${h}`).join(' ')}${dev ? ' ws: http://localhost:*' : ''}`,
-    // Previews are shown in sandboxed frames, from their own origin only.
-    `frame-src ${previewOrigin() ?? "'none'"}`,
+    `connect-src 'self' ${backends.map((h) => `https://${h} wss://${h}`).join(' ')}${google}${dev ? ' ws: http://localhost:*' : ''}`,
+    // Application previews stay on their separate origin; Google identity frames only appear on sign-in pages.
+    `frame-src ${[previewOrigin(), googleSignIn ? 'https://accounts.google.com/gsi/' : null].filter(Boolean).join(' ') || "'none'"}`,
     "object-src 'none'",
     "base-uri 'self'",
     // Sign-in forms without JavaScript follow redirects to the identity providers.
@@ -87,7 +88,8 @@ export async function proxy(request: NextRequest) {
   }
 
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
-  const policy = contentSecurityPolicy(nonce);
+  const googleSignIn = Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) && (pathname === '/login' || pathname === '/signup');
+  const policy = contentSecurityPolicy(nonce, googleSignIn);
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-nonce', nonce);
   requestHeaders.set('content-security-policy', policy);
@@ -100,6 +102,7 @@ export async function proxy(request: NextRequest) {
 
   const response = await updateSession(request, requestHeaders, forward);
   response.headers.set('content-security-policy', policy);
+  if (googleSignIn) response.headers.set('cross-origin-opener-policy', 'same-origin-allow-popups');
   return response;
 }
 
