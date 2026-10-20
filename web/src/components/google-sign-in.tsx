@@ -12,7 +12,7 @@ type GoogleIdentity = {
 };
 
 /** Google sees this website's origin; the resulting identity still uses the existing Supabase users. */
-export function GoogleSignIn({ next, nonce }: { next: string; nonce?: string }) {
+export function GoogleSignIn({ next, nonce, fallback, redirect }: { next: string; nonce?: string; fallback: React.ReactNode; redirect: React.ReactNode }) {
   const target = useRef<HTMLDivElement>(null);
   const [loaded, setLoaded] = useState(false);
   const [attemptNumber, setAttemptNumber] = useState(0);
@@ -33,7 +33,9 @@ export function GoogleSignIn({ next, nonce }: { next: string; nonce?: string }) 
         client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
         nonce: attempt.nonce,
         auto_select: false,
-        use_fedcm_for_button: true,
+        // A regular Google popup works without FedCM token retrieval. The redirect below
+        // remains available in browsers that block popups or embedded identity flows.
+        use_fedcm_for_button: false,
         button_auto_select: false,
         callback: (response) => {
           if (disposed) return;
@@ -50,7 +52,7 @@ export function GoogleSignIn({ next, nonce }: { next: string; nonce?: string }) 
         },
       });
       identity.renderButton(element, { type: 'standard', theme: 'outline', size: 'large', text: 'continue_with', width: Math.min(400, Math.floor(element.getBoundingClientRect().width)) });
-      setRendered(true);
+      setRendered(element.childElementCount > 0);
     }).catch((cause: unknown) => {
       if (!disposed) setError(cause instanceof Error ? cause.message : 'Google sign-in could not load.');
     });
@@ -59,9 +61,9 @@ export function GoogleSignIn({ next, nonce }: { next: string; nonce?: string }) 
 
   return (
     <div>
-      <Script src="https://accounts.google.com/gsi/client" nonce={nonce} strategy="afterInteractive" onReady={() => setLoaded(true)} onError={() => setError('Google sign-in could not load. Refresh the page or sign in with email.')} />
+      <Script src="https://accounts.google.com/gsi/client" nonce={nonce} strategy="afterInteractive" onReady={() => setLoaded(true)} onError={() => setError('The Google popup could not load. You can continue with Google in this tab.')} />
       <div ref={target} className={busy ? 'pointer-events-none opacity-60' : ''} aria-busy={busy} />
-      {!rendered && !error && <p className="py-2.5 text-center text-sm text-muted" role="status">Loading Google sign-in…</p>}
+      {rendered ? <div className="mt-1">{redirect}</div> : fallback}
       {busy && <p className="mt-2 text-center text-sm text-muted" role="status">Signing in…</p>}
       {error && <p className="mt-2 text-sm text-danger" role="alert">{error}</p>}
     </div>

@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { safeNext } from '@/lib/safe-next';
 import { createClient } from '@/lib/supabase/server';
 
-// PKCE code exchange for email confirmations and magic links.
+// PKCE code exchange for OAuth, email confirmations, and magic links.
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get('code');
@@ -21,5 +21,5 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(message)}&next=${encodeURIComponent(next)}`, origin));
   }
   const description = searchParams.get('error_description') ?? 'That sign-in link is invalid or has expired.';
-  return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(description)}`, origin));
+  return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(description)}&next=${encodeURIComponent(next)}`, origin));
 }

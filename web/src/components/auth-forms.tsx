@@ -33,24 +33,34 @@ function ProviderIcon({ id }: { id: Provider }) {
   );
 }
 
-/** One form per provider so only the clicked button shows its pending state. */
+function ProviderForm({ provider, next, action, compact = false }: {
+  provider: (typeof PROVIDERS)[number];
+  next: string;
+  action: (formData: FormData) => void;
+  compact?: boolean;
+}) {
+  return <form action={action}>
+    <input type="hidden" name="provider" value={provider.id} />
+    <input type="hidden" name="next" value={next} />
+    <SubmitButton variant={compact ? 'ghost' : 'secondary'} size={compact ? 'md' : 'lg'} pendingLabel={`Opening ${provider.label}…`} className={compact ? 'w-full text-[12px] text-muted' : 'w-full'}>
+      {!compact && <ProviderIcon id={provider.id} />}
+      Continue with {provider.label}{compact ? ' in this tab' : ''}
+    </SubmitButton>
+  </form>;
+}
+
+/** Keep a server-driven redirect available even when Google's client script or popup fails. */
 export function ProviderButtons({ next, providers, nonce }: { next: string; providers: Provider[]; nonce?: string }) {
   const [state, action] = useActionState(signInWithProvider, null);
   if (!providers.length) return null;
   return (
     <div className="space-y-2.5">
       {PROVIDERS.filter((p) => providers.includes(p.id)).map((p) => p.id === 'google' && process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? (
-        <GoogleSignIn key={p.id} next={next} nonce={nonce} />
-      ) : (
-        <form key={p.id} action={action}>
-          <input type="hidden" name="provider" value={p.id} />
-          <input type="hidden" name="next" value={next} />
-          <SubmitButton variant="secondary" size="lg" pendingLabel={`Opening ${p.label}…`} className="w-full">
-            <ProviderIcon id={p.id} />
-            Continue with {p.label}
-          </SubmitButton>
-        </form>
-      ))}
+        <GoogleSignIn key={p.id} next={next} nonce={nonce}
+          fallback={<ProviderForm provider={p} next={next} action={action} />}
+          redirect={<ProviderForm provider={p} next={next} action={action} compact />}
+        />
+      ) : <ProviderForm key={p.id} provider={p} next={next} action={action} />)}
       <FormMessage state={state} />
     </div>
   );

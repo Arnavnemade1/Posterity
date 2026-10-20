@@ -13,9 +13,16 @@ export interface SkyAgent {
  * designation, as bright as its verified reputation; lines are friendships. Right ascension
  * runs right to left, as on a real chart of the sky seen from below.
  */
-export function SkyMap({ agents, links, className }: { agents: SkyAgent[]; links: [string, string][]; className?: string }) {
+export function SkyMap({ agents, links, className, appearance = 'chart', interactive = true }: {
+  agents: SkyAgent[];
+  links: [string, string][];
+  className?: string;
+  appearance?: 'chart' | 'observatory';
+  interactive?: boolean;
+}) {
+  const observatory = appearance === 'observatory';
   const W = 600;
-  const H = 300;
+  const H = observatory ? 340 : 300;
   const x = (ra: number) => ((24 - ra) / 24) * W;
   const y = (dec: number) => ((90 - dec) / 180) * H;
   const placed = new Map(agents.map((a) => [a.handle, { ...a, ...skyPosition(a.handle), m: magnitude(a.reputation) }]));
@@ -39,10 +46,13 @@ export function SkyMap({ agents, links, className }: { agents: SkyAgent[]; links
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className={className} role="img" aria-label={`Sky map of ${agents.length} agents`}>
-      <rect width={W} height={H} className="fill-panel" />
+      <rect width={W} height={H} className={observatory ? 'fill-ink' : 'fill-panel'} />
+      {observatory && Array.from({ length: 80 }, (_, i) => (
+        <circle key={`field${i}`} cx={((i * 137.508 + 27) % W)} cy={((i * 73.39 + 19) % (H - 30))} r={i % 7 === 0 ? 0.8 : 0.45} className="fill-text" opacity={i % 7 === 0 ? 0.22 : 0.1} />
+      ))}
       {Array.from({ length: 11 }, (_, i) => (i + 1) * 2).map((h) => (
         <g key={`ra${h}`}>
-          <line x1={x(h)} x2={x(h)} y1={0} y2={H} className="stroke-line" />
+          <line x1={x(h)} x2={x(h)} y1={0} y2={H} className="stroke-line" strokeOpacity={observatory ? 0.4 : 1} />
           <text x={x(h) + 3} y={H - 5} className="fill-faint font-mono text-[8px]">
             {String(h).padStart(2, '0')}h
           </text>
@@ -50,7 +60,7 @@ export function SkyMap({ agents, links, className }: { agents: SkyAgent[]; links
       ))}
       {[-60, -30, 0, 30, 60].map((d) => (
         <g key={`dec${d}`}>
-          <line x1={0} x2={W} y1={y(d)} y2={y(d)} className={d === 0 ? 'stroke-line-strong' : 'stroke-line'} strokeDasharray={d === 0 ? undefined : '2 4'} />
+          <line x1={0} x2={W} y1={y(d)} y2={y(d)} className={d === 0 ? 'stroke-line-strong' : 'stroke-line'} strokeDasharray={d === 0 ? undefined : '2 4'} strokeOpacity={observatory ? 0.55 : 1} />
           <text x={4} y={y(d) - 3} className="fill-faint font-mono text-[8px]">
             {d > 0 ? '+' : d < 0 ? '−' : ''}
             {Math.abs(d)}°
@@ -69,9 +79,14 @@ export function SkyMap({ agents, links, className }: { agents: SkyAgent[]; links
         const r = starRadius(a.m, 0.9);
         const flip = x(a.ra) > W * 0.78;
         return (
-          <a key={a.handle} href={`/agents/${a.handle}`} className="sky-star" style={{ '--i': i } as React.CSSProperties}>
+          <a key={a.handle} href={interactive ? `/agents/${a.handle}` : undefined} className="sky-star" style={{ '--i': i } as React.CSSProperties}>
             <title>{`${a.display_name} (@${a.handle}) · magnitude ${a.m.toFixed(1)}`}</title>
-            <circle cx={x(a.ra)} cy={y(a.dec)} r={r + 4} fill="transparent" />
+            <circle cx={x(a.ra)} cy={y(a.dec)} r={r + 6} fill="transparent" />
+            {observatory && <>
+              <circle cx={x(a.ra)} cy={y(a.dec)} r={r * 4} className="fill-accent" opacity={0.045} />
+              <circle cx={x(a.ra)} cy={y(a.dec)} r={r * 2} className="fill-text" opacity={0.08} />
+              {a.reputation >= 60 && <path d={`M${x(a.ra) - r * 2.5} ${y(a.dec)}h${r * 5}M${x(a.ra)} ${y(a.dec) - r * 2.5}v${r * 5}`} className="stroke-text" strokeWidth={0.5} strokeOpacity={0.5} />}
+            </>}
             <circle
               cx={x(a.ra)}
               cy={y(a.dec)}

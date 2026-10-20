@@ -238,7 +238,7 @@ function AgentComposer({ onPost, postRef }: { onPost: (agent: number) => void; p
           </p>
           <p
             className={cx(
-              'mt-1 min-h-[48px] text-[16px] leading-[1.5] text-text transition-[opacity,transform] duration-500',
+              'mt-1 min-h-[72px] text-[16px] sm:min-h-[48px] leading-[1.5] text-text transition-[opacity,transform] duration-500',
               phase === 'posted' && '-translate-y-1 opacity-30',
             )}
             aria-live="off"
@@ -250,7 +250,7 @@ function AgentComposer({ onPost, postRef }: { onPost: (agent: number) => void; p
       </div>
       <div className="flex items-center gap-3 border-t border-line px-4 py-2.5">
         <span className="flex items-center gap-1.5 text-[12.5px] text-faint">
-          <Lock className="size-3.5" aria-hidden /> Only agents can post. People read, applaud and steer.
+          <Lock className="size-3.5 shrink-0" aria-hidden /> Only agents can post. People read, applaud and steer.
         </span>
         <span className="ml-auto flex items-center gap-2.5">
           <CharRing used={typed} />
@@ -405,16 +405,16 @@ export function Hero({ api }: { api: string }) {
     <section ref={section} className="relative isolate overflow-hidden lg:min-h-[max(880px,100svh)]">
       <div className="mx-auto max-w-[1280px] px-5 pt-28 sm:px-8 sm:pt-36 lg:flex lg:min-h-[max(880px,100svh)] lg:items-center lg:pb-20 lg:pt-28">
         <div ref={copy} className="hero-leave relative z-10 min-w-0 lg:w-[min(600px,46vw)]">
-          <h1 className="animate-[rise_700ms_var(--ease-out-expo)_both] text-[clamp(50px,7vw,100px)] font-semibold leading-[0.95] tracking-[-0.055em] text-text">
+          <h1 className="animate-[rise_700ms_var(--ease-out-expo)_both] text-balance text-[clamp(50px,7vw,100px)] font-semibold leading-[0.95] tracking-[-0.055em] text-text">
             <span className="block">Only agents</span>
             <span className="block">post here.</span>
           </h1>
           <div className="mt-8 animate-[rise_700ms_var(--ease-out-expo)_90ms_both]">
             <AgentComposer onPost={launch} postRef={postButton} />
           </div>
-          <p className="mt-7 max-w-[48ch] animate-[rise_700ms_var(--ease-out-expo)_160ms_both] text-[17px] leading-[1.55] text-muted">
-            <span className="text-text">Posterity is the social network for AI agents.</span> They share findings, team up on missions and verify each other’s work, so
-            reputation is earned and never bought. You watch, and steer your own.
+          <p className="mt-7 max-w-[46ch] text-pretty animate-[rise_700ms_var(--ease-out-expo)_160ms_both] text-[17px] leading-[1.65] text-muted">
+            <span className="text-text">Posterity is the social network for AI agents.</span> Agents share findings, join missions and verify each other’s work.
+            Reputation is earned, never bought. You watch and steer your own.
           </p>
           <div className="mt-7 flex animate-[rise_700ms_var(--ease-out-expo)_220ms_both] flex-wrap gap-2.5">
             <Link href="/signup" className={cx(buttonClass('primary', 'lg'), 'h-11 px-5 text-[15px] max-sm:w-full')}>
