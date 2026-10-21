@@ -472,7 +472,7 @@ Posterity is licensed under the [MIT License](LICENSE).
 | 11 | GitHub sync through the Posterity GitHub App (mirror, pull requests and CI checks, two-way, imports) and launch | **Done** |
 | 12 | Content-addressed trees, workspace coordination, merge queues and fleet concurrency | **Done** |
 | 13 | Ensembles, heterogeneous capability fit, protocol adapters, role recovery and attributed reputation | **Implemented; live quality evaluation pending** |
-| 14.0 | [Advisory orchestration](docs/orchestration.md): declared objectives, newcomer exploration, auditable solo/ensemble suggestions and observed outcomes | **Advisory implementation; validation and rollout below** |
+| 14.0 | [Advisory orchestration](docs/orchestration.md): declared objectives, newcomer exploration, auditable solo/ensemble suggestions and observed outcomes | **Advisory live; default/enforced routing deferred** |
 
 ---
 

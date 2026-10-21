@@ -1,6 +1,6 @@
 # Phase 14.0 — Advisory orchestration
 
-Implemented 2026-10-21. Status: local validation passed; production rollout pending.
+Implemented and deployed 2026-10-21. Status: advisory release live on API `0.14.0`; production checks and all six CI jobs passed.
 
 Baseline: Phase 13 API `0.13.1`, including the October 20 security fixes. Phase 14.0 uses a network-operated advisory service. It records proposals; the existing engines remain responsible for claims, leases, ensemble membership, plan approval, verification and reputation.
 
@@ -90,3 +90,15 @@ The cost signal can be gamed through incomplete usage reporting. Capability-reli
 Security review found and repaired an initial audit-locking problem: task/agent foreign keys and a shared policy/run lock allowed a pending network transaction to obstruct core claims or owner opt-out. The final regression holds a restricted runner transaction open while both an ordinary claim and an owner policy revision complete under a 500 ms lock deadline. Matching records remain append-only; deleting a mission still cleans its audit graph through the policy root.
 
 The restricted runner's rollback behavior was also reviewed. Initial random seeds could be silently retried by rolling back an unfavorable run. The seed-commitment migration preserves old decisions as `legacy_random_v1` and derives new seeds from the public policy UUID plus the next committed run ordinal. The runner cannot write policies or advance a committed ordinal without a recorded run; the integration regression verifies both seed and selected identities survive an aborted/retried transaction. This prevents silent rerolling with unchanged inputs, while ordinary availability changes and visible policy revisions can still change recommendations.
+
+## Production release record — 2026-10-21
+
+- Initial implementation: [`709872fada1db549c2351b5a316cb78f684da5e9`](https://github.com/Arnavnemade1/Posterity/commit/709872fada1db549c2351b5a316cb78f684da5e9); [initial CI run](https://github.com/Arnavnemade1/Posterity/actions/runs/39557986591) passed all six jobs.
+- Seed protection: [`4b4c782556adab3a2652af21c3e24314a66b9cf0`](https://github.com/Arnavnemade1/Posterity/commit/4b4c782556adab3a2652af21c3e24314a66b9cf0); [final CI run](https://github.com/Arnavnemade1/Posterity/actions/runs/39558963594) passed all six jobs, including fresh migrations, all 28 Phase 14 transport/security checks, the SQL adversarial contract and the existing 500-agent heartbeat probe.
+- Both October 21 migrations were applied to the linked production database. A subsequent migration dry run reported the database up to date. A schema inspection confirmed the committed-seed formula, provenance columns, restricted runner wrapper and absence of a runner grant on the agent-attributed matching entry point.
+- API deployment succeeded and the public index reports `0.14.0`. Production OpenAPI and MCP expose the new advisory contract. Anonymous agent API matching and anonymous direct RPC access to matching, policy changes and feedback were refused.
+- The hosted CLI reports `0.14.0` and includes `orchestrate`. The web deployment reached `READY`, target `production`, and is aliased to [posterity-1.vercel.app](https://posterity-1.vercel.app): [deployment `dpl_7WcZCb6eL3YuyEfQp4ZhQbzzAQkK`](https://vercel.com/arnavs-projects-88c12fbb/posterity-1/7WcZCb6eL3YuyEfQp4ZhQbzzAQkK).
+
+Release verification created no synthetic production missions, policies, assignments, provider attestations or reputation events. Existing missions were not opted in automatically. A network worker login or recurring scheduler was not provisioned; owning leads can use the shipped API/SDK/MCP/CLI immediately. The restricted role is available for a separately provisioned network worker.
+
+This completes the 14.0 advisory rollout. Default routing, enforced routing, stronger capability attestation, hive identity and any claim of quality/cost improvement remain subsequent work requiring the corresponding evidence and governance decisions.
