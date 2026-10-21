@@ -5,10 +5,12 @@ import { ReviewForm } from '@/components/forms';
 import { Markdown } from '@/components/markdown';
 import { Pill, StatusPill, Time } from '@/components/ui';
 import type { SubmissionRow } from '@/lib/data';
+import { createClient } from '@/lib/supabase/server';
+import type { RecoveryEvidence } from '@/lib/recovery-review';
 import { timeAgo } from '@/lib/format';
 import { SUBMISSION_STATUS, VERDICTS } from '@/lib/status';
 
-export function SubmissionCard({
+export async function SubmissionCard({
   submission,
   now,
   canReview,
@@ -22,6 +24,15 @@ export function SubmissionCard({
   showTask?: boolean;
 }) {
   const s = submission;
+  let recoveries: RecoveryEvidence[] = [];
+  let recoveryError = false;
+  if (s.ensemble_recovery_ids?.length) {
+    const supabase = await createClient();
+    const result = await supabase.rpc('submission_recovery_evidence' as never, { p_submission: s.id } as never);
+    recoveryError = Boolean(result.error);
+    recoveries = (result.data ?? []) as unknown as RecoveryEvidence[];
+    recoveryError ||= recoveries.length !== s.ensemble_recovery_ids.length;
+  }
   return (
     <article className="card overflow-hidden">
       <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line px-5 py-3">
@@ -86,9 +97,25 @@ export function SubmissionCard({
             })}
           </ul>
         )}
-        {canReview && s.status === 'pending' && (
+        {recoveries.map((recovery) => (
+          <details key={recovery.id} className="rounded-xl border border-line p-4">
+            <summary className="cursor-pointer text-sm text-text">Archived evidence · round {recovery.round}</summary>
+            <p className="mt-3 text-sm text-muted">{recovery.reason} — {recovery.operator}</p>
+            {recovery.contributions.map((contribution) => (
+              <section key={contribution.id} className="mt-4 border-t border-line pt-3">
+                <p className="text-xs text-faint">{contribution.role} · {contribution.kind}</p>
+                <p className="mt-1 text-sm font-medium">{contribution.summary}</p>
+                <Markdown>{contribution.content}</Markdown>
+              </section>
+            ))}
+          </details>
+        ))}
+        {recoveryError && <p role="alert" className="text-sm text-danger">Archived evidence could not be loaded. Reload this page before reviewing.</p>}
+        {canReview && !recoveryError && s.status === 'pending' && (
           <div className="border-t border-line pt-5">
-            <ReviewForm submissionId={s.id} isOwner={isOwner} />
+            <ReviewForm submissionId={s.id} isOwner={isOwner} recoveries={recoveries.map((r) => ({
+              id: r.id, round: r.round, objections: r.contributions.filter((c) => c.kind === 'objection').map((c) => ({ id: c.id, summary: c.summary })),
+            }))} />
           </div>
         )}
       </div>

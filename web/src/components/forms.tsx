@@ -1,9 +1,10 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { cancelMission, decideApproval, reviewSubmission } from '@/app/actions';
 import { FormMessage, SubmitButton } from '@/components/client-ui';
 import { cx } from '@/components/ui';
+import type { RecoveryReview } from '@/lib/recovery-review';
 
 const VERDICT_OPTIONS = [
   { value: 'approve', label: 'Approve', hint: 'Meets the acceptance criteria', tone: 'peer-checked:bg-done/[0.08] peer-checked:text-done peer-checked:ring-done/50' },
@@ -11,7 +12,8 @@ const VERDICT_OPTIONS = [
   { value: 'reject', label: 'Reject', hint: 'Wrong or unusable', tone: 'peer-checked:bg-danger/[0.08] peer-checked:text-danger peer-checked:ring-danger/50' },
 ];
 
-export function ReviewForm({ submissionId, isOwner }: { submissionId: string; isOwner: boolean }) {
+export function ReviewForm({ submissionId, isOwner, recoveries = [] }: { submissionId: string; isOwner: boolean; recoveries?: RecoveryReview[] }) {
+  const [verdict, setVerdict] = useState('');
   const [state, action] = useActionState(reviewSubmission, null);
   if (state?.ok) return <FormMessage state={state} />;
   return (
@@ -24,7 +26,7 @@ export function ReviewForm({ submissionId, isOwner }: { submissionId: string; is
         <div className="grid gap-2 sm:grid-cols-3">
           {VERDICT_OPTIONS.map((o) => (
             <label key={o.value} className="cursor-pointer">
-              <input type="radio" name="verdict" value={o.value} className="peer sr-only" required />
+              <input type="radio" name="verdict" value={o.value} onChange={() => setVerdict(o.value)} className="peer sr-only" required />
               <span
                 className={cx(
                   'rounded-xl block px-3 py-2.5 text-sm text-muted ring-1 ring-inset ring-line transition-all hover:bg-fg/[0.03] hover:text-text peer-focus-visible:ring-accent/60',
@@ -62,6 +64,34 @@ export function ReviewForm({ submissionId, isOwner }: { submissionId: string; is
           />
         </label>
       </div>
+      {recoveries.map((recovery) => (
+        <fieldset key={recovery.id} disabled={verdict !== 'approve'} className="space-y-3 rounded-xl border border-line p-4">
+          <legend className="label px-1">Recovered round {recovery.round}</legend>
+          <input type="hidden" name="recovery_id" value={recovery.id} />
+          <label className="flex items-start gap-2 text-sm text-muted">
+            <input type="checkbox" name={`recovery_${recovery.id}_checked`} required={verdict === 'approve'} />
+            I checked this round’s archived evidence against the final result.
+          </label>
+          {recovery.objections.map((objection) => (
+            <div key={objection.id} className="space-y-2">
+              <input type="hidden" name={`recovery_${recovery.id}_objection`} value={objection.id} />
+              <label className="block text-sm">
+                <span className="text-text">{objection.summary}</span>
+                <select name={`objection_${objection.id}_upheld`} defaultValue="" required={verdict === 'approve'} className="field mt-2">
+                  <option value="">Assess this objection</option>
+                  <option value="true">Valid objection, addressed by the final result</option>
+                  <option value="false">Objection is not supported</option>
+                </select>
+              </label>
+              <label className="block text-sm text-muted">
+                Reason for your decision
+                <textarea name={`objection_${objection.id}_rationale`} required={verdict === 'approve'} minLength={10} maxLength={8000} rows={2} className="field mt-2" />
+              </label>
+            </div>
+          ))}
+          <p className="text-xs text-faint">If a valid objection remains unresolved, request changes or reject the result.</p>
+        </fieldset>
+      ))}
       <div className="flex items-center gap-3">
         <SubmitButton size="sm" pendingLabel="Recording…">
           Submit review

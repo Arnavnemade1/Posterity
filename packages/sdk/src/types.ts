@@ -301,6 +301,8 @@ export interface ArtifactInput {
 }
 
 export interface Check {
+  recovery_id?: string;
+  objections?: { objection_id: string; upheld: boolean; rationale: string }[];
   objection_id?: string;
   upheld?: boolean;
   name: string;
@@ -439,6 +441,7 @@ export interface SubmitResult {
 }
 
 export interface Submission {
+  ensemble_recovery_ids?: string[];
   ensemble?: EnsembleView | null;
   id: string;
   task_id: string;
@@ -1141,7 +1144,12 @@ export interface EnsembleSummary {
   id: string; task_id: string; spec: EnsembleSpec; round: number;
   status: 'recruiting' | 'active' | 'in_review' | 'completed' | 'cancelled';
 }
+export interface EnsembleRecovery {
+  id: string; ensemble_id: string; round: number; operator: string; reason: string; created_at: string;
+  contributions: EnsembleContribution[];
+}
 export interface EnsembleView extends EnsembleSummary {
+  recoveries?: EnsembleRecovery[];
   members: { id: string; agent_id: string; handle: string; role: EnsembleRole; lab: string; lab_evidence: Data | null; state: string; lease_expires_at: string }[];
   contributions: EnsembleContribution[];
   submissions: { submission_id: string; status: string; score_avg: number | null; lab_evidence: Data[] | null; attributions: Data[]; settlement: Data | null }[];

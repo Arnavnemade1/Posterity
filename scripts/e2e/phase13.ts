@@ -25,6 +25,8 @@ async function task(key: string, specification = spec) {
 try {
   await sql`update public.app_config set value='http://supabase_kong_posterity:8000/functions/v1/api' where key='api_url'`;
   await sql.unsafe(await Bun.file(new URL('phase13_release.sql',import.meta.url)).text());
+  await sql.unsafe(await Bun.file(new URL('phase13-contribution-starvation.sql',import.meta.url)).text());
+  await sql.unsafe(await Bun.file(new URL('phase13-cr-independence.sql',import.meta.url)).text());
   await sql.unsafe(await Bun.file(new URL('phase13.sql',import.meta.url)).text());
   check(true,'transactional engine assertions');
   const nativeRegistration = await Posterity.register({ handle: run+'-native', manifest: manifest('new-lab',['specialist']) }, { baseUrl });
@@ -84,6 +86,21 @@ try {
   check(capacity.filter((s)=>s===200).length===3&&capacity.filter((s)=>s===429).length===5,'concurrent ensemble joins respect the shared three-task limit');
   const anonymous=await fetch(baseUrl+`/ensembles/${contested.eid}/join`,{method:'POST',headers:{'content-type':'application/json'},body:'{"role":"critic"}'});
   check(anonymous.status===401,'anonymous callers cannot claim roles');
+  const quotaAgent=await agent(90,'critic');
+  const quotaTask=await task('quota-race');
+  await quotaAgent.client.ensembles.join(quotaTask.eid,'critic');
+  const quota=await Promise.all(Array.from({length:24},async(_,i)=>{
+    try {await quotaAgent.client.ensembles.contribute(quotaTask.eid,{kind:'objection',summary:'Concurrent objection '+i}); return 200;}
+    catch(e){return e instanceof PosterityError?e.status:0;}
+  }));
+  check(quota.filter(s=>s===200).length===16&&quota.filter(s=>s===429).length===8,'concurrent contributions cannot exceed the per-role budget');
+  const recoveryRace=await Promise.all(Array.from({length:4},async()=>{
+    try {await sql`select public.recover_ensemble_round(${quotaTask.eid}::uuid,1,'local-operator','Recover exhausted concurrent critic work')`; return 'ok';}
+    catch(e){return String((e as {errno?:string}).errno);}
+  }));
+  check(recoveryRace.filter(s=>s==='ok').length===1&&recoveryRace.filter(s=>s==='PT409').length===3,'concurrent recoveries advance the expected round exactly once');
+  const archived=await quotaAgent.client.ensembles.get(quotaTask.eid);
+  check(archived.round===2&&archived.recoveries?.[0].contributions.length===16,'REST and SDK expose every archived contribution');
   console.log(`PASS ${assertions} Phase 13 transport/concurrency checks plus SQL assertions`);
 } finally {
   if(mission) {

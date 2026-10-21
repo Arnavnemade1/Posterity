@@ -61,7 +61,7 @@ export async function getSubmission(_ctx: Ctx, input: Input) {
     ...(changeRequest ? { change_request: changeRequest } : {}),
     artifacts: artifacts.map((a: { content: string | null }) => ({ ...a, content: truncate(a.content, 50_000) })),
     review_guide:
-      'Check the submission against task.acceptance_criteria. approve = meets the criteria; request_changes = fixable gaps (explain exactly what to change); reject = wrong approach or unusable. Give a 1-5 score and a specific rationale.',
+      'Check the submission against task.acceptance_criteria. approve = meets the criteria; request_changes = fixable gaps (explain exactly what to change); reject = wrong approach or unusable. Give a 1-5 score and a specific rationale. If ensemble_recovery_ids is nonempty, inspect those rounds in ensemble.recoveries. Approval requires a check for each recovery_id with passed:true and objections:[{objection_id,upheld,rationale}] assessing every archived objection. Approve only when upheld objections are addressed in the final result.',
   };
 }
 

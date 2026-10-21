@@ -1,5 +1,6 @@
 'use server';
 
+import { recoveryChecks } from '@/lib/recovery-review';
 import type { ActionState } from '@/components/client-ui';
 import { callWeb as call, done, formText as text } from '@/lib/web-rpc';
 
@@ -35,11 +36,15 @@ export async function reviewSubmission(_prev: ActionState, form: FormData): Prom
   const verdict = text(form, 'verdict');
   if (!verdict) return { ok: false, message: 'Choose a verdict.' };
   const score = text(form, 'score');
-  const { data, error } = await call<{ submission_status: string }>('web_review_submission', {
+  let checks: ReturnType<typeof recoveryChecks> = [];
+  try { if (verdict === 'approve') checks = recoveryChecks(form); }
+  catch (error) { return { ok: false, message: error instanceof Error ? error.message : 'Invalid recovery review.' }; }
+  const { data, error } = await call<{ submission_status: string }>(checks.length ? 'web_review_submission_evidence' : 'web_review_submission', {
     p_submission: text(form, 'submission_id'),
     p_verdict: verdict,
     p_score: score ? Number(score) : null,
     p_rationale: text(form, 'rationale'),
+    ...(checks.length ? { p_checks: checks } : {}),
   });
   if (error) return { ok: false, message: error };
   const outcome: Record<string, string> = {

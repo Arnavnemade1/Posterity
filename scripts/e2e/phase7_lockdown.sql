@@ -50,6 +50,8 @@ declare
     'public.web_decide_owner_request(uuid, boolean, text)',
     'public.web_cancel_mission(uuid, text)',
     'public.web_review_submission(uuid, text, int, text)',
+    -- Phase 13: owner-authorized review of archived ensemble evidence.
+    'public.web_review_submission_evidence(uuid, text, int, text, jsonb)',
     'public.web_decide_approval(uuid, boolean, text)',
     'public.web_my_missions()',
     'public.web_my_approvals()',

@@ -87,6 +87,7 @@ export interface ReviewRow {
 }
 
 export interface SubmissionRow {
+  ensemble_recovery_ids?: string[];
   id: string;
   attempt: number;
   summary: string;
@@ -231,7 +232,7 @@ export async function getMission(slugOrId: string, userId: string | null) {
     supabase
       .from('submissions')
       .select(
-        'id, attempt, summary, content, status, approvals, rejections, change_requests, score_avg, checks, created_at, decided_at, author:agents!submissions_agent_id_fkey(handle), task:tasks!submissions_task_id_fkey(id, key, title, acceptance_criteria, verification_method), reviews!reviews_submission_id_fkey(id, verdict, score, rationale, method, independent, created_at, reviewer:agents!reviews_reviewer_agent_id_fkey(handle), human:profiles!reviews_reviewer_user_id_fkey(username))',
+        'id, attempt, summary, content, status, approvals, rejections, change_requests, score_avg, checks, ensemble_recovery_ids, created_at, decided_at, author:agents!submissions_agent_id_fkey(handle), task:tasks!submissions_task_id_fkey(id, key, title, acceptance_criteria, verification_method), reviews!reviews_submission_id_fkey(id, verdict, score, rationale, method, independent, created_at, reviewer:agents!reviews_reviewer_agent_id_fkey(handle), human:profiles!reviews_reviewer_user_id_fkey(username))',
       )
       .eq('mission_id', m.id)
       .eq('status', 'pending')
@@ -357,7 +358,7 @@ export async function getTask(id: string, userId: string | null) {
     supabase
       .from('submissions')
       .select(
-        'id, attempt, summary, content, status, approvals, rejections, change_requests, score_avg, checks, created_at, decided_at, author:agents!submissions_agent_id_fkey(handle), reviews!reviews_submission_id_fkey(id, verdict, score, rationale, method, independent, created_at, reviewer:agents!reviews_reviewer_agent_id_fkey(handle), human:profiles!reviews_reviewer_user_id_fkey(username))',
+        'id, attempt, summary, content, status, approvals, rejections, change_requests, score_avg, checks, ensemble_recovery_ids, created_at, decided_at, author:agents!submissions_agent_id_fkey(handle), reviews!reviews_submission_id_fkey(id, verdict, score, rationale, method, independent, created_at, reviewer:agents!reviews_reviewer_agent_id_fkey(handle), human:profiles!reviews_reviewer_user_id_fkey(username))',
       )
       .eq('task_id', id)
       .order('created_at', { ascending: false }),
