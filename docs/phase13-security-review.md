@@ -1,6 +1,6 @@
 # Phase 13 security review — 2026-10-20
 
-Status: scoped Phase 13 security review completed; two confirmed release blockers repaired and regression-tested locally. Production rollout of this audit patch is pending verification below. This is a source review and adversarial engine/transport test, not an independent third-party audit or a proof of security.
+Status: scoped Phase 13 security review completed; two confirmed release blockers repaired and regression-tested locally. The repaired release is deployed and verified in production; all six CI jobs passed. This is a source review and adversarial engine/transport test, not an independent third-party audit or a proof of security.
 
 ## Scope and trust contract
 
@@ -56,7 +56,8 @@ All fixture-writing tests use localhost. SQL fixtures roll back; transport/load 
 | Edge function typecheck and tests | Typecheck passed; 41 tests passed |
 | Web typecheck, lint and production build | Passed |
 | Local fleet probe | 500 identities; 500 HTTP heartbeats at concurrency 100; zero errors |
-| Linked production migration dry run | Exactly the three October 20 audit migrations pending |
+| Production migration state | All three October 20 audit migrations applied; subsequent dry run reports up to date |
+| Fresh CI rebuild and release checks | All six jobs passed for `ecd03cc7b2c21bb3d2276ad17e06d090c568508c` |
 
 The load result verifies this local workload; it is not a production throughput guarantee. Browser rendering has build/type/lint validation; a signed-in production owner review was not exercised using fabricated production work.
 
@@ -64,7 +65,16 @@ The load result verifies this local workload; it is not a production throughput 
 
 Apply all three October 20 migrations before deploying API `0.13.1` and the web app. The old API remains compatible with the schema, but the new web review fields need the new browser RPC. Keep the schema snapshot taken before rollout for diagnosis; a rollback must not erase recovery records or re-enable participant approvals.
 
-Production migration, API and web rollout verification will be recorded here after deployment. No synthetic missions, reviews, provider attestations or reputation events are needed in production to verify the deployment.
+Released source: [`ecd03cc7b2c21bb3d2276ad17e06d090c568508c`](https://github.com/Arnavnemade1/Posterity/commit/ecd03cc7b2c21bb3d2276ad17e06d090c568508c), pushed to `main` on October 20 (America/Chicago).
+
+- Supabase applied all three October 20 migrations successfully. A subsequent linked dry run reported the remote database up to date.
+- API deployment succeeded; the public API reports `0.13.1`.
+- The GitHub-triggered production web deployment reached `READY` for this exact commit: [`dpl_6LVpFLtUfgH2MVZSYaKYQB5RWU8e`](https://vercel.com/arnavs-projects-88c12fbb/posterity-1/6LVpFLtUfgH2MVZSYaKYQB5RWU8e).
+- A second deployment from a clean archive of the same commit also reached `READY` and was aliased to [posterity-1.vercel.app](https://posterity-1.vercel.app): [`dpl_G7qnYdoZY2xRFvGvtdGkMiSfwbBV`](https://vercel.com/arnavs-projects-88c12fbb/posterity-1/G7qnYdoZY2xRFvGvtdGkMiSfwbBV).
+- [CI run 39519384265](https://github.com/Arnavnemade1/Posterity/actions/runs/39519384265) passed all six jobs, including a fresh database rebuild, historical/audit regressions, fleet concurrency, all three package checks, edge checks and web build.
+- Production smoke checks passed: API version, site HTTP 200, anonymous denial of round recovery, provider attestation and evidence review, and empty public evidence for a nonexistent submission. No synthetic production missions, reviews, attestations or reputation events were created.
+
+The initial unscoped manual web deployment returned `Not authorized`; the explicit team-scoped deployment succeeded. No credential or permission changes were required.
 
 ## Remaining trust limits
 
@@ -72,4 +82,4 @@ The service operator remains trusted for provider evidence and manual recovery. 
 
 No live heterogeneous-model quality superiority is claimed. The existing matched/blinded evaluation gate remains separate from correctness and release verification. This review does not extend to a new audit of OAuth providers, cloud infrastructure, every historical subsystem, or an external penetration test.
 
-Phase 14 implementation remains gated until the repaired release is deployed and verified. Phase 14's future self-claim fallback does not replace Phase 13's operator recovery procedure.
+The Phase 13 trust-contract, approval-policy, scoped security-review and deployment prerequisites are complete for this baseline. Phase 14 may proceed against the shipped release. Phase 14's future self-claim fallback does not replace Phase 13's operator recovery procedure.
