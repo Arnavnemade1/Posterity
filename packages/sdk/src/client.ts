@@ -1,4 +1,5 @@
 import type {
+  OrchestrationPolicyInput, OrchestrationPolicy, OrchestrationInbox, OrchestrationRun, OrchestrationRunView,
   CapabilityManifest, EnsembleRole, EnsembleSpec, EnsembleSummary, EnsembleView, EnsembleContributionInput, EnsembleContributionRecord, EnsembleSubmitInput,
   BranchRules,
   ConflictView,
@@ -73,7 +74,7 @@ import type {
   WorkspaceInput,
 } from './types.js';
 
-export const VERSION = '0.13.0';
+export const VERSION = '0.14.0';
 export const DEFAULT_BASE_URL = 'https://yxwgvqqhkvtifvlghgbq.supabase.co/functions/v1/api';
 
 export interface PosterityOptions {
@@ -134,6 +135,7 @@ export class Posterity {
   readonly agents: Agents;
   readonly tasks: Tasks;
   readonly ensembles: Ensembles;
+  readonly orchestration: Orchestration;
   readonly reviews: Reviews;
   readonly missions: Missions;
   readonly memory: Memory;
@@ -165,6 +167,7 @@ export class Posterity {
     this.agents = new Agents(this);
     this.tasks = new Tasks(this);
     this.ensembles = new Ensembles(this);
+    this.orchestration = new Orchestration(this);
     this.reviews = new Reviews(this);
     this.missions = new Missions(this);
     this.memory = new Memory(this);
@@ -1009,4 +1012,18 @@ export class Ensembles extends Namespace {
   submit(id: string, input: EnsembleSubmitInput) { return this.postJson<SubmitResult & { ensemble_id: string; round: number }>(`/ensembles/${seg(id)}/submit`, input); }
   labs() { return this.getJson<Data>('/ensembles/labs'); }
   metrics() { return this.getJson<{ cohorts: Data[] }>('/ensembles/metrics'); }
+}
+
+export class Orchestration extends Namespace {
+  policies(mission: string, query: {limit?:number; offset?:number} = {}) { return this.getJson<{policies:OrchestrationPolicy[]; mode:'advisory'}>(`/missions/${seg(mission)}/orchestration/policies`,query); }
+  policy(mission: string) { return this.getJson<{ policy: OrchestrationPolicy | null; mode: 'advisory' }>(`/missions/${seg(mission)}/orchestration`); }
+  configure(mission: string, input: OrchestrationPolicyInput) { return this.patchJson<OrchestrationPolicy>(`/missions/${seg(mission)}/orchestration`,input); }
+  run(mission: string) { return this.postJson<{run_id:string; mode:'advisory'; suggestions:number; sampled_agents:number; agent_population:number; considered_tasks:number}>(`/missions/${seg(mission)}/orchestration/runs`); }
+  runs(mission: string, query: {limit?:number; offset?:number} = {}) { return this.getJson<{runs:OrchestrationRun[]; mode:'advisory'}>(`/missions/${seg(mission)}/orchestration/runs`,query); }
+  get(run: string, query: {limit?:number; offset?:number} = {}) { return this.getJson<OrchestrationRunView>(`/orchestration/runs/${seg(run)}`,query); }
+  suggestions() { return this.getJson<OrchestrationInbox>('/me/orchestration'); }
+  respond(suggestion: string, kind: 'followed'|'decline'|'appeal', reason: string) { return this.postJson(`/orchestration/suggestions/${seg(suggestion)}/respond`,{kind,reason}); }
+  proposePlan(mission: string, plan: Plan) { return this.postJson<Data & {materialized:false}>(`/missions/${seg(mission)}/orchestration/plans`,{plan}); }
+  plans(mission: string, query: {limit?:number; offset?:number} = {}) { return this.getJson<{plans:Data[]; mode:'advisory'}>(`/missions/${seg(mission)}/orchestration/plans`,query); }
+  metrics(mission: string) { return this.getJson<Data>(`/missions/${seg(mission)}/orchestration/metrics`); }
 }

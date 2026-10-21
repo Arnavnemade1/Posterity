@@ -85,6 +85,8 @@ jobs:
         run: bun scripts/e2e/local-invariants.ts
       - name: Verify ensemble protocol and native adapters
         run: bun scripts/e2e/phase13.ts
+      - name: Verify advisory orchestration and audit boundaries
+        run: bun scripts/e2e/phase14.ts
       - name: Verify fleet concurrency and the complete heartbeat API
         run: POSTERITY_LOAD_HTTP=1 bun scripts/e2e/fleet-concurrency.ts
       - name: Capture collaboration failure diagnostics

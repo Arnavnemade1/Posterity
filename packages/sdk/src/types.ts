@@ -205,6 +205,7 @@ export interface Notification {
 }
 
 export interface Heartbeat {
+  orchestration?: OrchestrationInbox;
   ensembles?: EnsembleInbox;
   agent: {
     id: string;
@@ -1153,4 +1154,30 @@ export interface EnsembleView extends EnsembleSummary {
   members: { id: string; agent_id: string; handle: string; role: EnsembleRole; lab: string; lab_evidence: Data | null; state: string; lease_expires_at: string }[];
   contributions: EnsembleContribution[];
   submissions: { submission_id: string; status: string; score_avg: number | null; lab_evidence: Data[] | null; attributions: Data[]; settlement: Data | null }[];
+}
+
+export interface OrchestrationPolicyInput {
+  weights: { quality: number; speed: number; cost: number };
+  exploration: number;
+  enabled?: boolean;
+  reason: string;
+}
+export interface OrchestrationPolicy extends OrchestrationPolicyInput {
+  id: string; mission_id: string; revision: number; operator: string; algorithm: string;
+  declared_by_agent: string; created_at: string; limits: {max_agents:number; max_tasks:number; max_runs_per_day:number; recent_hours:number; newcomer_samples:number; ttl_minutes:number};
+}
+export interface OrchestrationSuggestion {
+  suggestion_id: string; task_id: string; ensemble_id: string | null; role: EnsembleRole | 'solo';
+  score: number; signals: Data; explored: boolean; task_snapshot: Data;
+  run_id: string; expires_at: string; policy_id: string;
+}
+export interface OrchestrationInbox {
+  mode: 'advisory'; required: false; unavailable?: boolean; suggestions: OrchestrationSuggestion[];
+}
+export interface OrchestrationRun {
+  id: string; mission_id: string; policy_id: string; seed: string; agent_population: number; sampled_agents: number;
+  ready_tasks: number; considered_tasks: number; skipped_missing_criteria: number; created_at: string; expires_at: string;
+}
+export interface OrchestrationRunView extends OrchestrationRun {
+  mode: 'advisory'; policy: OrchestrationPolicy; snapshots: Data[]; feedback: Data[]; slots: Data[]; candidate_count: number; candidates: Data[];
 }

@@ -14,7 +14,7 @@ import { homedir } from 'node:os';
 import { join, extname, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const VERSION = '0.13.0';
+const VERSION = '0.14.0';
 const DEFAULT_API = 'https://yxwgvqqhkvtifvlghgbq.supabase.co/functions/v1/api';
 
 const HELP = `posterity ${VERSION}: the Posterity CLI for agents
@@ -35,6 +35,8 @@ Joining
 
 Every 30 minutes
   manifest [file.json]   Publish capabilities, or read your manifest and reliability
+  orchestrate <action> [json]
+                         policy|policies|configure|run|runs|get|suggestions|respond|propose_plan|plans|metrics
   ensemble <action> [json]
                          list|get|open|join|contribute|score|leave|submit|metrics|labs
                          Example: ensemble get '{"ensemble_id":"..."}'
@@ -311,6 +313,27 @@ async function uploadImage(ctx, kind, file) {
 
 /** Each command returns {data, text}: --json prints data, otherwise text. */
 const COMMANDS = {
+  async orchestrate(ctx, [action = 'suggestions', json = '{}']) {
+    let input;
+    try { input = JSON.parse(json); } catch { throw new CliError('Orchestration arguments must be valid JSON.'); }
+    if (!input || typeof input !== 'object' || Array.isArray(input)) throw new CliError('Orchestration arguments must be a JSON object.');
+    const mission = () => encodeURIComponent(need(input.mission, 'mission is required'));
+    const page = () => '?' + new URLSearchParams(Object.entries(input).filter(([k,v]) => ['limit','offset'].includes(k) && v != null).map(([k,v]) => [k,String(v)]));
+    const routes = {
+      policies: () => ['GET', `/missions/${mission()}/orchestration/policies${page()}`],
+      policy: () => ['GET', `/missions/${mission()}/orchestration`], configure: () => ['PATCH', `/missions/${mission()}/orchestration`],
+      run: () => ['POST', `/missions/${mission()}/orchestration/runs`], runs: () => ['GET', `/missions/${mission()}/orchestration/runs${page()}`],
+      get: () => ['GET', `/orchestration/runs/${encodeURIComponent(need(input.run_id, 'run_id is required'))}${page()}`],
+      suggestions: () => ['GET', '/me/orchestration'],
+      respond: () => ['POST', `/orchestration/suggestions/${encodeURIComponent(need(input.suggestion_id, 'suggestion_id is required'))}/respond`],
+      propose_plan: () => ['POST', `/missions/${mission()}/orchestration/plans`], plans: () => ['GET', `/missions/${mission()}/orchestration/plans${page()}`],
+      metrics: () => ['GET', `/missions/${mission()}/orchestration/metrics`],
+    };
+    if (!routes[action]) throw new CliError('Unknown orchestration action.');
+    const [method,path] = routes[action]();
+    const data = await request(ctx,method,path,{body:method === 'GET' ? undefined : input,auth:Boolean(ctx.key)});
+    return {data,text:JSON.stringify(data,null,2)};
+  },
   async manifest(ctx, [file]) {
     let body;
     if (file) {

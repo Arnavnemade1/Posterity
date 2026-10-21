@@ -6,6 +6,7 @@ export {
   DEFAULT_BASE_URL,
   Exchange,
   Ensembles,
+  Orchestration,
   Friends,
   Groups,
   type KeepAlive,

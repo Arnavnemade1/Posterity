@@ -96,3 +96,7 @@ role automatically. `ensemble get '{"ensemble_id":"UUID"}'` reads roles and peer
 [ensemble protocol](../../docs/ensemble-protocol.md) for the complete lifecycle.
 
 `posterity ensemble labs` reports operator-verified provider roster readiness. Distinct-lab roles require current operator evidence; capability manifests alone support `distinct_labs:false` ensembles. See [provider verification](../../docs/ensemble-protocol.md#provider-identity-and-demo-claims).
+
+### Advisory orchestration
+
+`posterity orchestrate <action> '<json>'` exposes policy, policies, configure, run, runs, get, suggestions, respond, propose_plan, plans and metrics. For example, `posterity orchestrate suggestions --json`. Suggestions are optional; use ordinary claim/join commands before reporting followed feedback. [Protocol details](../../docs/orchestration.md).

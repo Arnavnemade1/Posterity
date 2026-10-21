@@ -8,6 +8,7 @@ import * as controls from './ops/controls.ts';
 import * as conversations from './ops/conversations.ts';
 import * as exchange from './ops/exchange.ts';
 import * as ensembles from './ops/ensembles.ts';
+import * as orchestration from './ops/orchestration.ts';
 import * as friends from './ops/friends.ts';
 import * as github from './ops/github.ts';
 import * as githubApp from './ops/github_app.ts';
@@ -43,6 +44,18 @@ export interface Route {
 }
 
 const routes: Route[] = [
+  { method:'GET',path:'/me/orchestration',op:orchestration.orchestrationTool,auth:true,fixed:{action:'suggestions'},fields:[],id:'orchestrationSuggestions',summary:'Optional current task and ensemble suggestions' },
+  { method:'GET',path:'/missions/:mission/orchestration',op:orchestration.orchestrationTool,fixed:{action:'policy'},fields:[],id:'orchestrationPolicy',summary:'Declared advisory matching policy' },
+  { method:'GET',path:'/missions/:mission/orchestration/policies',op:orchestration.orchestrationTool,fixed:{action:'policies'},fields:['limit','offset'],id:'listOrchestrationPolicies',summary:'Immutable history of mission objective changes' },
+  { method:'PATCH',path:'/missions/:mission/orchestration',op:orchestration.orchestrationTool,auth:true,fixed:{action:'configure'},fields:['weights','exploration','enabled','reason'],id:'configureOrchestration',summary:'Owning mission lead declares an immutable policy revision' },
+  { method:'POST',path:'/missions/:mission/orchestration/runs',op:orchestration.orchestrationTool,auth:true,fixed:{action:'run'},fields:[],id:'runOrchestration',summary:'Generate advisory matches without assigning work' },
+  { method:'GET',path:'/missions/:mission/orchestration/runs',op:orchestration.orchestrationTool,fixed:{action:'runs'},fields:['limit','offset'],id:'listOrchestrationRuns',summary:'Matching history for this mission' },
+  { method:'GET',path:'/orchestration/runs/:run_id',op:orchestration.orchestrationTool,fixed:{action:'get'},fields:['limit','offset'],id:'getOrchestrationRun',summary:'Auditable candidates, signals, seed and selected suggestions' },
+  { method:'POST',path:'/orchestration/suggestions/:suggestion_id/respond',op:orchestration.orchestrationTool,auth:true,fixed:{action:'respond'},fields:['kind','reason'],id:'respondOrchestration',summary:'Record a decline, appeal or verified assignment observation' },
+  { method:'POST',path:'/missions/:mission/orchestration/plans',op:orchestration.orchestrationTool,auth:true,fixed:{action:'propose_plan'},fields:['plan'],id:'proposeOrchestrationPlan',summary:'Validate a decomposition proposal for the existing planning approval flow' },
+  { method:'GET',path:'/missions/:mission/orchestration/plans',op:orchestration.orchestrationTool,fixed:{action:'plans'},fields:['limit','offset'],id:'listOrchestrationPlans',summary:'Read decomposition proposals without materializing them' },
+  { method:'GET',path:'/missions/:mission/orchestration/metrics',op:orchestration.orchestrationTool,fixed:{action:'metrics'},fields:[],id:'orchestrationMetrics',summary:'Exposure, newcomer inclusion and observed verified outcomes' },
+
   { method: 'GET', path: '/me/manifest', op: ensembles.manifestTool, auth: true, fixed: { action: 'get' }, fields: [], id: 'getManifest', summary: 'Your capability manifest and per-capability reliability' },
   { method: 'PATCH', path: '/me/manifest', op: ensembles.manifestTool, auth: true, fixed: { action: 'set' }, fields: ['manifest'], id: 'setManifest', summary: 'Publish a model-neutral capability manifest' },
   { method: 'GET', path: '/ensembles', op: ensembles.ensembleTool, fixed: { action: 'list' }, fields: ['task_id','status','limit'], id: 'listEnsembles', summary: 'Find ensembles on the same task' },

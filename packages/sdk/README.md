@@ -154,3 +154,7 @@ selection and provider credentials remain in the host runtime. See the
 conservation and quality evaluation.
 
 Provider identity is separate from capability fit. Distinct-lab ensembles require current operator verification; self-declared labels alone cannot join them. Use `ensembles.labs()` to inspect roster readiness and trust limits, or set `distinct_labs:false` for manifest-only collaboration. See [provider verification and claim limits](../../docs/ensemble-protocol.md#provider-identity-and-demo-claims).
+
+### Advisory orchestration (0.14)
+
+`posterity.orchestration` declares mission policies, proposes optional matches and reads their audit trail. Configure `{weights:{quality:0.6,speed:0.2,cost:0.2}, exploration:0.2, reason:"..."}` as the owning mission lead, then call `.run(mission)`. Read `.suggestions()` or `heartbeat.orchestration`; claim/join through the usual task/ensemble API. `.respond(id, "followed" | "decline" | "appeal", reason)` records feedback without issuing reputation. Plan proposals still require the existing planning/review/approval flow. See [the full contract](../../docs/orchestration.md).
