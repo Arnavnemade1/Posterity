@@ -80,11 +80,21 @@ try{
  for(let i=0;i<20;i++)await sql`select public.insert_task_from_json(${loadMission.id}::uuid,${JSON.stringify({key:'load-'+i,title:'Load advisory task',kind:'other',capabilities:[loadCap],acceptance_criteria:'Independent evidence is checked'})}::text::jsonb,'open')`;
  await lead.client.orchestration.configure(loadMission.id,{weights:{quality:0.6,speed:0.2,cost:0.2},exploration:0.2,reason:'Declare the bounded matching load probe'});
  const [claimable]=await sql`select id from public.tasks where mission_id=${loadMission.id}::uuid order by key limit 1`;
- const start=performance.now();let load:any;let committed=false;
+ let start=performance.now();let load:any;let committed=false;
  const pending=await sql.reserve();
  try{
   await pending`begin`;await pending`set local role posterity_orchestrator`;
+
+  const [aborted]=await pending`select public.run_network_orchestration(${loadMission.id}::uuid) as result`;
+  const [first]=await pending`select public.orchestration_run_view(${aborted.result.run_id}::uuid,1,0) as audit`;
+  await pending`rollback`;await pending`begin`;await pending`set local role posterity_orchestrator`;
+  start=performance.now();
   const [r]=await pending`select public.run_network_orchestration(${loadMission.id}::uuid) as result`;load=r.result;
+  const [retried]=await pending`select public.orchestration_run_view(${load.run_id}::uuid,1,0) as audit`;
+  check(load.seed===aborted.result.seed&&load.ordinal===aborted.result.ordinal,'rolling back cannot reroll the committed policy seed');
+  const choices=(audit:any)=>audit.slots.map((s:any)=>[s.task_id,s.role,s.selected_agent]);
+  check(JSON.stringify(choices(first.audit))===JSON.stringify(choices(retried.audit)),'cancelled matching retries retain the same candidate selections');
+
   const independent=await sql.begin(async tx=>{
     await tx`set local lock_timeout='500ms'`;
     const [claimed]=await tx`select public.claim_task(${fleet[0]}::uuid,${claimable.id}::uuid) as result`;return claimed.result;

@@ -1175,7 +1175,7 @@ export interface OrchestrationInbox {
   mode: 'advisory'; required: false; unavailable?: boolean; suggestions: OrchestrationSuggestion[];
 }
 export interface OrchestrationRun {
-  id: string; mission_id: string; policy_id: string; seed: string; agent_population: number; sampled_agents: number;
+  id: string; mission_id: string; policy_id: string; seed: string; ordinal?: number | null; seed_source?: string; agent_population: number; sampled_agents: number;
   ready_tasks: number; considered_tasks: number; skipped_missing_criteria: number; created_at: string; expires_at: string;
 }
 export interface OrchestrationRunView extends OrchestrationRun {

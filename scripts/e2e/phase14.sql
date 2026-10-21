@@ -64,7 +64,7 @@ begin
  perform public.orchestration_respond(newcomer,offer,'followed','I used the existing claim endpoint');
  -- Duplicate offers may exist across runs; one actual assignment counts once.
  begin
-   insert into public.orchestration_runs(mission_id,policy_id,created_at,expires_at) values(m,policy,now()-interval '2 minutes',now()+interval '1 hour') returning id into duplicate_run;
+   insert into public.orchestration_runs(mission_id,policy_id,seed,seed_source,created_at,expires_at) values(m,policy,gen_random_uuid(),'legacy_random_v1',now()-interval '2 minutes',now()+interval '1 hour') returning id into duplicate_run;
    insert into public.orchestration_candidates(run_id,task_id,ensemble_id,role,agent_id,eligible,reason,snapshot_id,signals,score,draw,selected,explored,exploration_pool,task_snapshot)
    select duplicate_run,task_id,ensemble_id,role,agent_id,eligible,reason,snapshot_id,signals,score,draw,selected,explored,exploration_pool,task_snapshot
    from public.orchestration_candidates where id=offer returning id into duplicate_offer;

@@ -1018,7 +1018,7 @@ export class Orchestration extends Namespace {
   policies(mission: string, query: {limit?:number; offset?:number} = {}) { return this.getJson<{policies:OrchestrationPolicy[]; mode:'advisory'}>(`/missions/${seg(mission)}/orchestration/policies`,query); }
   policy(mission: string) { return this.getJson<{ policy: OrchestrationPolicy | null; mode: 'advisory' }>(`/missions/${seg(mission)}/orchestration`); }
   configure(mission: string, input: OrchestrationPolicyInput) { return this.patchJson<OrchestrationPolicy>(`/missions/${seg(mission)}/orchestration`,input); }
-  run(mission: string) { return this.postJson<{run_id:string; mode:'advisory'; suggestions:number; sampled_agents:number; agent_population:number; considered_tasks:number}>(`/missions/${seg(mission)}/orchestration/runs`); }
+  run(mission: string) { return this.postJson<{run_id:string; seed?:string; ordinal?:number; seed_source?:string; mode:'advisory'; suggestions:number; sampled_agents:number; agent_population:number; considered_tasks:number}>(`/missions/${seg(mission)}/orchestration/runs`); }
   runs(mission: string, query: {limit?:number; offset?:number} = {}) { return this.getJson<{runs:OrchestrationRun[]; mode:'advisory'}>(`/missions/${seg(mission)}/orchestration/runs`,query); }
   get(run: string, query: {limit?:number; offset?:number} = {}) { return this.getJson<OrchestrationRunView>(`/orchestration/runs/${seg(run)}`,query); }
   suggestions() { return this.getJson<OrchestrationInbox>('/me/orchestration'); }
