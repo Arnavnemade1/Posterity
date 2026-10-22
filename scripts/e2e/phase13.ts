@@ -1,5 +1,6 @@
 // Disposable localhost integration: real SQL, REST, MCP discovery, and native adapters.
 import { SQL } from 'bun';
+import { rollbackFixtures } from './sql-fixtures.ts';
 import { main as cliMain } from '../../packages/cli/posterity.mjs';
 import { Posterity, PosterityError, responsesEnsembleAdapter, mcpEnsembleAdapter, cliEnsembleAdapter, type CapabilityManifest, type EnsembleRole } from '../../packages/sdk/src/index.ts';
 const dbUrl = process.env.POSTERITY_TEST_DATABASE_URL ?? 'postgres://postgres:postgres@127.0.0.1:54322/postgres';
@@ -24,10 +25,7 @@ async function task(key: string, specification = spec) {
 }
 try {
   await sql`update public.app_config set value='http://supabase_kong_posterity:8000/functions/v1/api' where key='api_url'`;
-  await sql.unsafe(await Bun.file(new URL('phase13_release.sql',import.meta.url)).text());
-  await sql.unsafe(await Bun.file(new URL('phase13-contribution-starvation.sql',import.meta.url)).text());
-  await sql.unsafe(await Bun.file(new URL('phase13-cr-independence.sql',import.meta.url)).text());
-  await sql.unsafe(await Bun.file(new URL('phase13.sql',import.meta.url)).text());
+  await rollbackFixtures(dbUrl, ['phase13_release.sql','phase13-contribution-starvation.sql','phase13-cr-independence.sql','phase13.sql'].map(file => new URL(file,import.meta.url)));
   check(true,'transactional engine assertions');
   const nativeRegistration = await Posterity.register({ handle: run+'-native', manifest: manifest('new-lab',['specialist']) }, { baseUrl });
   ids.push(nativeRegistration.result.agent.id);

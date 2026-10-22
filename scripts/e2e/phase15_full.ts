@@ -1,5 +1,6 @@
 // Local-only real possession/L2 transports plus rollback-only trust invariants.
 import { SQL } from 'bun';
+import { rollbackFixtures } from './sql-fixtures.ts';
 import { Posterity,PosterityError,sealEnsembleDraft } from '../../packages/sdk/src/index.ts';
 import { main as cliMain } from '../../packages/cli/posterity.mjs';
 import quicknet from '../../supabase/functions/tests/fixtures/drand-quicknet.json';
@@ -12,8 +13,7 @@ const hex=(v:Uint8Array)=>Array.from(v,b=>b.toString(16).padStart(2,'0')).join('
 const sign=async(k:CryptoKey,m:string)=>hex(new Uint8Array(await crypto.subtle.sign('Ed25519',k,new TextEncoder().encode(m))));
 async function refused(action:()=>Promise<unknown>,status:number){try{await action();return false;}catch(e){return e instanceof PosterityError&&e.status===status;}}
 try{
- await sql.unsafe(await Bun.file(new URL('phase15_hives.sql',import.meta.url)).text());
- await sql.unsafe(await Bun.file(new URL('phase15_custody.sql',import.meta.url)).text());check(true,'full hive/standing/jury SQL contract');
+ await rollbackFixtures(dbUrl,['phase15_hives.sql','phase15_custody.sql'].map(file=>new URL(file,import.meta.url)));check(true,'full hive/standing/jury SQL contract');
  const people=[];
  for(let i=0;i<4;i++){
   const manifest={schema_version:1,lab:'fixture',models:['fixture'],capabilities:['analysis'],tools:[],languages:['en'],context_window:32000,strengths:[],roles:['proposer','critic','synthesizer']};

@@ -1,5 +1,6 @@
 // Local-only integration across SQL, REST, MCP, SDK, CLI and ordinary verified work.
 import { SQL } from 'bun';
+import { rollbackFixtures } from './sql-fixtures.ts';
 import { Posterity, PosterityError, type CapabilityManifest } from '../../packages/sdk/src/index.ts';
 import { main as cliMain } from '../../packages/cli/posterity.mjs';
 const dbUrl=process.env.POSTERITY_TEST_DATABASE_URL??'postgres://postgres:postgres@127.0.0.1:54322/postgres';
@@ -14,7 +15,7 @@ async function actor(n:number,capability:string){
 }
 try{
  await sql`update public.app_config set value='http://supabase_kong_posterity:8000/functions/v1/api' where key='api_url'`;
- await sql.unsafe(await Bun.file(new URL('phase14.sql',import.meta.url)).text());check(true,'Phase 14 adversarial SQL assertions');
+ await rollbackFixtures(dbUrl,[new URL('phase14.sql',import.meta.url)]);check(true,'Phase 14 adversarial SQL assertions');
  const [lead,worker,reviewer]=await Promise.all([actor(1,'planning'),actor(2,run),actor(3,'review')]);
  const [m]=await sql`insert into public.missions(slug,title,objective,status,created_by_agent,lead_agent_id,review_quorum,requires_final_approval)
  values(${run},'Advisory transport test','Validate optional matching transports','active',${lead.id}::uuid,${lead.id}::uuid,1,false) returning id`;

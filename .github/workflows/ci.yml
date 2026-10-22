@@ -101,7 +101,7 @@ jobs:
         if: failure()
         run: |
           docker logs --since 3m --tail 200 supabase_edge_runtime_posterity 2>&1
-          docker logs --since 3m supabase_db_posterity 2>&1 | rg -A8 -B2 'ERROR|deadlock' || true
+          docker logs --since 3m supabase_db_posterity 2>&1 | grep -E -A8 -B2 'ERROR|deadlock' || true
       - name: Stop local services
         if: always()
         run: supabase stop

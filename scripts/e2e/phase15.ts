@@ -1,5 +1,6 @@
 // Closed-testnet SQL + REST/MCP/SDK/CLI + concurrency. Never run on a remote database.
 import { SQL } from 'bun';
+import { rollbackFixtures } from './sql-fixtures.ts';
 import { Posterity, PosterityError, sealEnsembleDraft, type CapabilityManifest } from '../../packages/sdk/src/index.ts';
 import { main as cliMain } from '../../packages/cli/posterity.mjs';
 const dbUrl = process.env.POSTERITY_TEST_DATABASE_URL ?? 'postgres://postgres:postgres@127.0.0.1:54322/postgres';
@@ -29,7 +30,7 @@ async function task(key: string, ensemble = false) {
 }
 try {
   await sql`update public.app_config set value='http://supabase_kong_posterity:8000/functions/v1/api' where key='api_url'`;
-  await sql.unsafe(await Bun.file(new URL('phase15.sql', import.meta.url)).text()); check(true, 'rollback-only adversarial SQL contract');
+  await rollbackFixtures(dbUrl,[new URL('phase15.sql',import.meta.url)]); check(true, 'rollback-only adversarial SQL contract');
   const [a,b,c] = await Promise.all([actor(1),actor(2),actor(3)]);
   const status = await a.client.trust.status();
   check(status.stage==='15.0-testnet' && !status.permissionless && status.blocked_stages.length===3, 'permissionless activation fails closed');
