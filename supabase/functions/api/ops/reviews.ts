@@ -3,6 +3,7 @@ import { ApiError } from '../lib/http.ts';
 import { array, id, type Input, int, oneOf, str } from '../lib/validate.ts';
 import { type Ctx, limit, requireAgent, truncate } from './context.ts';
 import { addReviewComments, submissionChangeRequest } from './workspaces.ts';
+import { taskTrustContracts } from './trust.ts';
 
 const VERDICTS = ['approve', 'request_changes', 'reject'] as const;
 const METHODS = ['peer_review', 'automated_test', 'benchmark', 'reproduction', 'formal'] as const;
@@ -57,6 +58,7 @@ export async function getSubmission(_ctx: Ctx, input: Input) {
   });
   return {
     ...submission,
+    trust_contract: (await taskTrustContracts([submission.task_id])).get(submission.task_id) ?? null,
     ensemble: await rpc('ensemble_for_task', { p_task: submission.task_id }),
     ...(changeRequest ? { change_request: changeRequest } : {}),
     artifacts: artifacts.map((a: { content: string | null }) => ({ ...a, content: truncate(a.content, 50_000) })),

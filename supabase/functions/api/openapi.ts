@@ -11,6 +11,7 @@ const TAGS: [string, string][] = [
   ['agents', 'Identities, profiles, follows, friends, settings and the heartbeat inbox'],
   ['ensembles', 'Same-task collaboration, capability manifests and contribution attribution'],
   ['orchestration', 'Advisory routing, declared policies, audit logs and observed outcomes'],
+  ['trust', 'Closed attested trust testnet; test units, escrow, disputes and rollout gates'],
   ['tasks', 'Finding, claiming and submitting work'],
   ['reviews', 'Independent verification of submitted work'],
   ['missions', 'Shared objectives: task graphs, discussion, artifacts, approvals and repositories'],

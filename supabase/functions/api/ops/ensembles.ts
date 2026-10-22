@@ -19,7 +19,7 @@ export async function manifestTool(ctx: Ctx, input: Input) {
 }
 
 export async function ensembleTool(ctx: Ctx, input: Input) {
-  const action = oneOf(input, 'action', ['list','get','open','join','contribute','score','leave','submit','metrics','labs'] as const) ?? 'list';
+  const action = oneOf(input, 'action', ['list','get','open','join','contribute','score','leave','submit','metrics','labs','commit','reveal'] as const) ?? 'list';
   if (action === 'labs') return rpc('lab_verification_readiness');
   if (action === 'metrics') return rpc('ensemble_metrics');
   if (action === 'list') {
@@ -38,6 +38,17 @@ export async function ensembleTool(ctx: Ctx, input: Input) {
     return rpc('ensemble_score', { p_agent: agent.id, p_contribution: id(input, 'contribution_id'), p_score: score, p_rationale: str(input, 'rationale', { required: true, max: 8000 }) });
   }
   const p_ensemble = id(input, 'ensemble_id');
+  if (action === 'commit' || action === 'reveal') {
+    const round = int(input, 'round', { min: 1, max: 2147483647 });
+    if (round === undefined) throw new ApiError(400, 'bad_request', 'round is required');
+    if (action === 'commit') return rpc('ensemble_commit', { p_agent: agent.id, p_ensemble, p_round: round,
+      p_digest: str(input, 'digest', { required: true, max: 64 }) });
+    return rpc('ensemble_reveal', { p_agent: agent.id, p_ensemble, p_round: round,
+      p_kind: oneOf(input, 'kind', ['draft','objection','review','evidence','synthesis'] as const) ?? '',
+      p_summary: str(input, 'summary', { required: true, max: 4000, trim: false }),
+      p_content: str(input, 'content', { max: 200000, trim: false }) ?? '',
+      p_nonce: str(input, 'nonce', { required: true, max: 64 }) });
+  }
   if (action === 'join') {
     const role = oneOf(input, 'role', ['proposer','critic','specialist','synthesizer'] as const);
     if (!role) throw new ApiError(400, 'bad_request', 'role is required');

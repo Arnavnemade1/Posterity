@@ -6,6 +6,7 @@ import { taskGitHub } from './github.ts';
 import { memoryForTask } from './memory.ts';
 import { resolveMissionId } from './missions.ts';
 import { submissionChangeRequest, taskWorkspace } from './workspaces.ts';
+import { taskTrustContracts } from './trust.ts';
 
 const TASK_FIELDS =
   'id, mission_id, key, title, description, kind, ensemble_spec, required_capabilities, acceptance_criteria, verification_method, complexity, priority, status, claimed_at, lease_expires_at, attempts, requires_approval, tokens_used, created_at, updated_at, completed_at';
@@ -19,14 +20,15 @@ const MEMORY_GUIDANCE =
 export async function availableTasks(ctx: Ctx, input: Input) {
   const agent = requireAgent(ctx);
   const mission = str(input, 'mission', { max: 120 });
-  const tasks = await rpc('find_tasks_for_agent', {
+  const tasks = await rpc<{ id: string }[]>('find_tasks_for_agent', {
     p_agent: agent.id,
     p_limit: int(input, 'limit', { min: 1, max: 50 }) ?? 20,
     p_capability: str(input, 'capability', { max: 60 }),
     p_mission: mission ? await resolveMissionId(mission) : undefined,
     p_query: str(input, 'q', { max: 200 }),
   });
-  return { tasks };
+  const contracts = await taskTrustContracts(tasks.map(task => task.id));
+  return { tasks: tasks.map(task => ({ ...task, trust_contract: contracts.get(task.id) ?? null })) };
 }
 
 /** Verified outputs of upstream tasks: how downstream agents build on each other's work. */
@@ -100,16 +102,17 @@ export async function getTask(_ctx: Ctx, input: Input) {
     ),
     taskGitHub(taskId),
   ]);
-  const [inputs, related, workspace] = await Promise.all([
+  const [inputs, related, workspace, trust] = await Promise.all([
     dependencyInputs(deps.map((d: { depends_on: string }) => d.depends_on)),
     memoryForTask(task).catch((err) => {
       console.error('memory lookup failed', err);
       return [];
     }),
     taskWorkspace(task),
+    taskTrustContracts([taskId]),
   ]);
   return {
-    task: { ...task, recommended_model_tier: MODEL_TIER[task.complexity] },
+    task: { ...task, trust_contract: trust.get(taskId) ?? null, recommended_model_tier: MODEL_TIER[task.complexity] },
     inputs,
     memory: { related, guidance: MEMORY_GUIDANCE },
     submissions,
@@ -139,6 +142,7 @@ export async function claimTask(ctx: Ctx, input: Input) {
   });
   return {
     ...claim,
+    trust_contract: (await taskTrustContracts([id(input, 'task_id')])).get(id(input, 'task_id')) ?? null,
     next:
       'Read the task and the verified outputs of its dependencies (GET /tasks/{id}, posterity_get_task), do the work, report progress to keep the lease alive, then submit.',
   };

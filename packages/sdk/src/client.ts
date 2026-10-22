@@ -1,4 +1,5 @@
 import type {
+  TrustStatus, TrustAccountView, TrustAccount, TrustCase, EnsembleCommitment, SealedDraftReveal,
   OrchestrationPolicyInput, OrchestrationPolicy, OrchestrationInbox, OrchestrationRun, OrchestrationRunView,
   CapabilityManifest, EnsembleRole, EnsembleSpec, EnsembleSummary, EnsembleView, EnsembleContributionInput, EnsembleContributionRecord, EnsembleSubmitInput,
   BranchRules,
@@ -74,7 +75,7 @@ import type {
   WorkspaceInput,
 } from './types.js';
 
-export const VERSION = '0.14.0';
+export const VERSION = '0.15.0';
 export const DEFAULT_BASE_URL = 'https://yxwgvqqhkvtifvlghgbq.supabase.co/functions/v1/api';
 
 export interface PosterityOptions {
@@ -136,6 +137,7 @@ export class Posterity {
   readonly tasks: Tasks;
   readonly ensembles: Ensembles;
   readonly orchestration: Orchestration;
+  readonly trust: Trust;
   readonly reviews: Reviews;
   readonly missions: Missions;
   readonly memory: Memory;
@@ -168,6 +170,7 @@ export class Posterity {
     this.tasks = new Tasks(this);
     this.ensembles = new Ensembles(this);
     this.orchestration = new Orchestration(this);
+    this.trust = new Trust(this);
     this.reviews = new Reviews(this);
     this.missions = new Missions(this);
     this.memory = new Memory(this);
@@ -1006,12 +1009,22 @@ export class Ensembles extends Namespace {
   get(id: string) { return this.getJson<EnsembleView>(`/ensembles/${seg(id)}`); }
   open(task: string, spec?: EnsembleSpec) { return this.postJson<EnsembleSummary>(`/tasks/${seg(task)}/ensemble`, { spec }); }
   join(id: string, role: EnsembleRole) { return this.postJson(`/ensembles/${seg(id)}/join`, { role }); }
+  commit(id: string, round: number, digest: string) { return this.postJson<EnsembleCommitment>(`/ensembles/${seg(id)}/commit`, { round, digest }); }
+  reveal(id: string, input: SealedDraftReveal) { return this.postJson<EnsembleContributionRecord>(`/ensembles/${seg(id)}/reveal`, input); }
   contribute(id: string, input: EnsembleContributionInput) { return this.postJson<EnsembleContributionRecord>(`/ensembles/${seg(id)}/contributions`, input); }
   score(contribution: string, score: number, rationale: string) { return this.postJson(`/ensemble-contributions/${seg(contribution)}/score`, { score, rationale }); }
   leave(id: string, reason: string, capability?: string) { return this.postJson(`/ensembles/${seg(id)}/leave`, { reason, capability }); }
   submit(id: string, input: EnsembleSubmitInput) { return this.postJson<SubmitResult & { ensemble_id: string; round: number }>(`/ensembles/${seg(id)}/submit`, input); }
   labs() { return this.getJson<Data>('/ensembles/labs'); }
   metrics() { return this.getJson<{ cohorts: Data[] }>('/ensembles/metrics'); }
+}
+
+export class Trust extends Namespace {
+  status() { return this.getJson<TrustStatus>('/trust'); }
+  account(query: { limit?: number; offset?: number } = {}) { return this.getJson<TrustAccountView>('/me/trust', query); }
+  enroll() { return this.postJson<TrustAccount>('/me/trust/enroll'); }
+  release() { return this.postJson<{ released_units: number; custody: 'test_units' }>('/me/trust/release'); }
+  appeal(caseId: string, reason: string) { return this.postJson<TrustCase>(`/trust/cases/${seg(caseId)}/appeal`, { reason }); }
 }
 
 export class Orchestration extends Namespace {

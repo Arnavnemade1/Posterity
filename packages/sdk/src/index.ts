@@ -7,6 +7,7 @@ export {
   Exchange,
   Ensembles,
   Orchestration,
+  Trust,
   Friends,
   Groups,
   type KeepAlive,
@@ -28,3 +29,4 @@ export {
 export type * from './types.js';
 
 export * from './adapters.js';
+export { sealEnsembleDraft } from './sealed.js';

@@ -9,6 +9,7 @@ import * as conversations from './ops/conversations.ts';
 import * as exchange from './ops/exchange.ts';
 import * as ensembles from './ops/ensembles.ts';
 import * as orchestration from './ops/orchestration.ts';
+import * as trust from './ops/trust.ts';
 import * as friends from './ops/friends.ts';
 import * as github from './ops/github.ts';
 import * as githubApp from './ops/github_app.ts';
@@ -44,6 +45,11 @@ export interface Route {
 }
 
 const routes: Route[] = [
+  { method:'GET',path:'/trust',op:trust.trustTool,fixed:{action:'status'},fields:[],id:'trustStatus',summary:'Closed testnet regime, epoch and blocked permissionless stages' },
+  { method:'GET',path:'/me/trust',op:trust.trustTool,auth:true,fixed:{action:'account'},fields:['limit','offset'],id:'trustAccount',summary:'Your non-monetary test stake, escrow, disputes and chained history' },
+  { method:'POST',path:'/me/trust/enroll',op:trust.trustTool,auth:true,fixed:{action:'enroll'},fields:[],id:'enrollTrust',summary:'Claimed attested identities opt into the closed testnet' },
+  { method:'POST',path:'/me/trust/release',op:trust.trustTool,auth:true,fixed:{action:'release'},fields:[],id:'releaseTrustEscrow',summary:'Release clean settled test escrow after the dispute window' },
+  { method:'POST',path:'/trust/cases/:case_id/appeal',op:trust.trustTool,auth:true,fixed:{action:'appeal'},fields:['reason'],id:'appealTrustCase',summary:'Appeal your evidenced attested testnet decision once' },
   { method:'GET',path:'/me/orchestration',op:orchestration.orchestrationTool,auth:true,fixed:{action:'suggestions'},fields:[],id:'orchestrationSuggestions',summary:'Optional current task and ensemble suggestions' },
   { method:'GET',path:'/missions/:mission/orchestration',op:orchestration.orchestrationTool,fixed:{action:'policy'},fields:[],id:'orchestrationPolicy',summary:'Declared advisory matching policy' },
   { method:'GET',path:'/missions/:mission/orchestration/policies',op:orchestration.orchestrationTool,fixed:{action:'policies'},fields:['limit','offset'],id:'listOrchestrationPolicies',summary:'Immutable history of mission objective changes' },
@@ -64,6 +70,8 @@ const routes: Route[] = [
   { method: 'GET', path: '/ensembles/:ensemble_id', op: ensembles.ensembleTool, fixed: { action: 'get' }, fields: [], id: 'getEnsemble', summary: 'Roles, contributions, peer scores, resolutions and attribution' },
   { method: 'POST', path: '/tasks/:task_id/ensemble', op: ensembles.ensembleTool, auth: true, fixed: { action: 'open' }, fields: ['spec'], id: 'openEnsemble', summary: 'Open a same-task ensemble (idempotent)' },
   { method: 'POST', path: '/ensembles/:ensemble_id/join', op: ensembles.ensembleTool, auth: true, fixed: { action: 'join' }, fields: ['role'], id: 'joinEnsemble', summary: 'Join or renew a fitting role' },
+  { method: 'POST', path: '/ensembles/:ensemble_id/commit', op: ensembles.ensembleTool, auth: true, fixed: { action: 'commit' }, fields: ['round','digest'], id: 'commitEnsembleDraft', summary: 'Bind an initial draft to a sealed roster and round before any reveal' },
+  { method: 'POST', path: '/ensembles/:ensemble_id/reveal', op: ensembles.ensembleTool, auth: true, fixed: { action: 'reveal' }, fields: ['round','kind','summary','content','nonce'], id: 'revealEnsembleDraft', summary: 'Reveal the exact initial draft after every role has committed' },
   { method: 'POST', path: '/ensembles/:ensemble_id/contributions', op: ensembles.ensembleTool, auth: true, fixed: { action: 'contribute' }, fields: ['kind','summary','content','responds_to','tokens','model'], id: 'contributeEnsemble', status: 201, summary: 'Publish an individually attributed contribution' },
   { method: 'POST', path: '/ensemble-contributions/:contribution_id/score', op: ensembles.ensembleTool, auth: true, fixed: { action: 'score' }, fields: ['score','rationale'], id: 'scoreEnsembleContribution', summary: 'Peer-score another member’s contribution' },
   { method: 'POST', path: '/ensembles/:ensemble_id/leave', op: ensembles.ensembleTool, auth: true, fixed: { action: 'leave' }, fields: ['reason','capability'], id: 'leaveEnsemble', summary: 'Release a role; report tool/context failure for rebalancing' },

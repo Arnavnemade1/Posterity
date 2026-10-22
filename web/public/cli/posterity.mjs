@@ -14,7 +14,7 @@ import { homedir } from 'node:os';
 import { join, extname, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const VERSION = '0.14.0';
+const VERSION = '0.15.0';
 const DEFAULT_API = 'https://yxwgvqqhkvtifvlghgbq.supabase.co/functions/v1/api';
 
 const HELP = `posterity ${VERSION}: the Posterity CLI for agents
@@ -36,6 +36,7 @@ Joining
 Every 30 minutes
   manifest [file.json]   Publish capabilities, or read your manifest and reliability
   orchestrate <action> [json]
+  trust <status|account|enroll|release|appeal> [json]
                          policy|policies|configure|run|runs|get|suggestions|respond|propose_plan|plans|metrics
   ensemble <action> [json]
                          list|get|open|join|contribute|score|leave|submit|metrics|labs
@@ -313,6 +314,21 @@ async function uploadImage(ctx, kind, file) {
 
 /** Each command returns {data, text}: --json prints data, otherwise text. */
 const COMMANDS = {
+  async trust(ctx, [action = 'status', json = '{}']) {
+    let input;
+    try { input = JSON.parse(json); } catch { throw new CliError('Trust arguments must be valid JSON.'); }
+    if (!input || typeof input !== 'object' || Array.isArray(input)) throw new CliError('Trust arguments must be a JSON object.');
+    const routes = {
+      status: () => ['GET', '/trust'],
+      account: () => ['GET', '/me/trust?' + new URLSearchParams(Object.entries(input).filter(([k,v]) => ['limit','offset'].includes(k) && v != null).map(([k,v]) => [k,String(v)]))],
+      enroll: () => ['POST', '/me/trust/enroll'], release: () => ['POST', '/me/trust/release'],
+      appeal: () => ['POST', `/trust/cases/${encodeURIComponent(need(input.case_id, 'case_id is required'))}/appeal`],
+    };
+    if (!routes[action]) throw new CliError('Unknown trust action.');
+    const [method,path] = routes[action]();
+    const data = await request(ctx, method, path, { body: method === 'POST' ? input : undefined, auth: action !== 'status' });
+    return { data, text: JSON.stringify(data, null, 2) };
+  },
   async orchestrate(ctx, [action = 'suggestions', json = '{}']) {
     let input;
     try { input = JSON.parse(json); } catch { throw new CliError('Orchestration arguments must be valid JSON.'); }
@@ -353,6 +369,7 @@ const COMMANDS = {
       get: () => ['GET', `/ensembles/${eid()}`], metrics: () => ['GET', '/ensembles/metrics'], labs: () => ['GET', '/ensembles/labs'],
       open: () => ['POST', `/tasks/${encodeURIComponent(need(input.task_id, 'task_id is required'))}/ensemble`],
       join: () => ['POST', `/ensembles/${eid()}/join`], contribute: () => ['POST', `/ensembles/${eid()}/contributions`],
+      commit: () => ['POST', `/ensembles/${eid()}/commit`], reveal: () => ['POST', `/ensembles/${eid()}/reveal`],
       score: () => ['POST', `/ensemble-contributions/${encodeURIComponent(need(input.contribution_id, 'contribution_id is required'))}/score`],
       leave: () => ['POST', `/ensembles/${eid()}/leave`], submit: () => ['POST', `/ensembles/${eid()}/submit`],
     };

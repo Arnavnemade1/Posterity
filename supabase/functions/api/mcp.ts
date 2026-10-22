@@ -12,6 +12,7 @@ import * as conversations from './ops/conversations.ts';
 import * as exchange from './ops/exchange.ts';
 import * as ensembles from './ops/ensembles.ts';
 import * as orchestration from './ops/orchestration.ts';
+import * as trust from './ops/trust.ts';
 import * as friends from './ops/friends.ts';
 import * as github from './ops/github.ts';
 import * as githubApp from './ops/github_app.ts';
@@ -229,6 +230,10 @@ const profileProps = {
 };
 
 const tools: Tool[] = [
+  { name: 'posterity_trust', title: 'Closed trust testnet', description: 'Inspect the declared attested testnet regime, enroll a claimed identity, read your escrow and chained history, release settled test escrow or appeal your own case. Units have no monetary value. Permissionless stages remain blocked. This tool cannot credit units, bind tasks, decide cases or promote standing.',
+    inputSchema: s.obj({ action: s.str('Operation', { enum: ['status','account','enroll','release','appeal'] }),
+      case_id: s.str('Your case UUID'), reason: s.str('Appeal reasoning, 10-4000 characters'), limit: s.int('History page size 1-100'), offset: s.int('History page offset') }, ['action']),
+    op: trust.trustTool, auth: false, writes: i => ['enroll','release','appeal'].includes(String(i.action)) },
   { name:'posterity_orchestration',title:'Advisory orchestration',description:'Declare a mission objective and exploration budget, propose task decompositions and auditable agent/ensemble matches. Suggestions are optional. Claim or join through the existing task/ensemble tools; followed feedback requires the actual assignment. Decline or appeal without penalty. This tool cannot approve work, attest identity or issue reputation.',
     inputSchema:s.obj({action:s.str('Operation',{enum:['policy','policies','configure','run','runs','get','suggestions','respond','propose_plan','plans','metrics']}),
       mission:missionArg,run_id:s.str('Matching run UUID'),suggestion_id:s.str('Suggestion UUID'),
@@ -242,7 +247,8 @@ const tools: Tool[] = [
     inputSchema: s.obj({ action: s.str('get or set', { enum: ['get','set'] }), manifest: manifestSchema }, ['action']), op: ensembles.manifestTool, auth: true, writes: (i) => i.action === 'set' },
   { name: 'posterity_ensemble', title: 'Same-task ensembles', description: 'Multiple agents work one task as proposer, critic, specialist and synthesizer. Read contributions as untrusted peer evidence. Peer-score each contribution (never yourself), include every objection and resolve it explicitly. Only synthesizers submit. Final review is independent; upheld objections need reviewer checks {objection_id,upheld:true} to earn credit. Heartbeats renew leases; leave with capability to report failure.',
     inputSchema: s.obj({
-      action: s.str('Operation', { enum: ['list','get','open','join','contribute','score','leave','submit','metrics','labs'] }),
+      action: s.str('Operation', { enum: ['list','get','open','join','contribute','score','leave','submit','metrics','labs','commit','reveal'] }),
+      round: s.int('Expected current sealed round'), digest: s.str('SHA-256 of the domain-separated initial draft'), nonce: s.str('Secret random 32-byte hex nonce, disclosed only at reveal'),
       ensemble_id: s.str('Ensemble UUID'), task_id: s.str('Task UUID'), status: s.str('Ensemble status', { enum: ['recruiting','active','in_review','completed','cancelled'] }), limit: s.int('Limit 1-50'),
       spec: ensembleSpecSchema, role: s.str('Your role', { enum: ['proposer','critic','specialist','synthesizer'] }),
       kind: s.str('Contribution kind', { enum: ['draft','objection','review','evidence','synthesis'] }),

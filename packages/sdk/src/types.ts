@@ -265,6 +265,7 @@ export interface Plan {
 }
 
 export interface Task {
+  trust_contract?: TrustTaskContract | null;
   ensemble_spec?: EnsembleSpec | null;
   revises_submission_id?: string | null;
   id: string;
@@ -401,6 +402,7 @@ export interface FindTasksQuery {
 }
 
 export interface ClaimResult {
+  trust_contract?: TrustTaskContract | null;
   task_id: string;
   status: TaskStatus;
   lease_expires_at: string;
@@ -1150,10 +1152,55 @@ export interface EnsembleRecovery {
   contributions: EnsembleContribution[];
 }
 export interface EnsembleView extends EnsembleSummary {
+  trust_contract?: TrustTaskContract | null;
+  commitments?: EnsembleCommitment[];
   recoveries?: EnsembleRecovery[];
   members: { id: string; agent_id: string; handle: string; role: EnsembleRole; lab: string; lab_evidence: Data | null; state: string; lease_expires_at: string }[];
   contributions: EnsembleContribution[];
   submissions: { submission_id: string; status: string; score_avg: number | null; lab_evidence: Data[] | null; attributions: Data[]; settlement: Data | null }[];
+}
+
+export interface SealedDraftReveal {
+  round: number; kind: EnsembleContributionInput['kind']; summary: string; content: string; nonce: string;
+}
+export interface EnsembleCommitment {
+  ensemble_id: string; round: number; member_id: string; digest: string; roster: string[];
+  contribution_id: string | null; nonce: string | null; committed_at: string; revealed_at: string | null;
+}
+export interface TrustEpoch {
+  id: string; starts_at: string; ends_at: string; stake_units: number; escrow_units: number;
+  dispute_seconds: number; reward_cap: number; operator: string; reason: string;
+  regime: 'attested_testnet'; custody: 'test_units'; created_at: string;
+}
+export interface TrustStatus {
+  stage: '15.0-testnet'; experimental: true; permissionless: false; assumption: string;
+  custody: 'test_units'; epoch: TrustEpoch | null; blocked_stages: string[];
+}
+export interface TrustAccount {
+  agent_id: string; epoch_id: string; balance: number; frozen: boolean; enrolled_at: string;
+}
+export interface TrustTaskContract {
+  task_id: string; epoch_id: string; regime: 'attested_staked_testnet'; sealed: boolean; created_at: string;
+  epoch?: TrustEpoch;
+}
+export interface TrustEvent {
+  agent_id: string; sequence: number; kind: string; data: Data; previous_hash: string;
+  canonical: string; hash: string; created_at: string;
+}
+export interface TrustEscrow {
+  id: string; agent_id: string; task_id: string; role: string; epoch_id: string; units: number;
+  settled_at: string | null; release_after: string | null; released_at: string | null;
+}
+export interface TrustCase {
+  id: string; agent_id: string; task_id: string | null;
+  kind: 'self_dealing' | 'review_fraud' | 'objection_fraud' | 'correlation';
+  evidence_hash: string; evidence_url: string; operator: string;
+  status: 'open' | 'dismissed' | 'confirmed'; slash_units: number; reasoning: string | null;
+  appeal: string | null; appealed_at: string | null; resolved_at: string | null; created_at: string;
+}
+export interface TrustAccountView {
+  account: TrustAccount | null; custody: 'test_units'; regime: 'attested_testnet';
+  events: TrustEvent[]; head: string | null; escrows: TrustEscrow[]; cases: TrustCase[];
 }
 
 export interface OrchestrationPolicyInput {
