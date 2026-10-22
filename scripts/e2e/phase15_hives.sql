@@ -83,8 +83,11 @@ begin
  -- Privileged clock fixture: review begins long after the work policy was declared.
  execute 'set local session_replication_role=replica';
  update public.trust_task_policies set declared_at=now()-interval '1 hour' where task_id=t;
- update public.tasks set status='in_review',assignee_id=actors[1],attempts=1 where id=t;
- insert into public.submissions(task_id,mission_id,agent_id,summary) values(t,m,actors[1],'Independent review starts at submission, after the original assignment window');
+ update public.tasks set status='in_review',assignee_id=actors[1],attempts=2 where id=t;
+ insert into public.submissions(task_id,mission_id,agent_id,summary,created_at) values(t,m,actors[1],'Earlier attempt requested changes',now()-interval '1 hour') returning id into member;
+ insert into public.reviews(submission_id,task_id,mission_id,reviewer_agent_id,verdict,rationale,created_at)
+  values(member,t,m,actors[4],'request_changes','The earlier attempt needs an independently verified correction.',now()-interval '30 minutes');
+ insert into public.submissions(task_id,mission_id,agent_id,summary,attempt) values(t,m,actors[1],'Independent review starts at resubmission, after the earlier review window',2);
  execute 'set local session_replication_role=origin';
  draw:=public.prepare_trust_draw(t,'reviewer:1');
  assert (draw->>'beacon_due')::timestamptz>now(),'review dispatch uses a fresh submission anchor, not the old work assignment';
