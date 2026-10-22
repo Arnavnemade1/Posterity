@@ -4,6 +4,7 @@ import { embed } from '../lib/embed.ts';
 import { ApiError, json } from '../lib/http.ts';
 import { kickCode } from './code_worker.ts';
 import { kickSync } from './github_sync.ts';
+import { verifyCustodyEnvelope } from '../lib/trust_crypto.ts';
 
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void } | undefined;
 
@@ -47,12 +48,25 @@ async function drain(): Promise<void> {
 }
 
 export async function handleInternal(req: Request, path: string): Promise<Response> {
-  if (!['/internal/embed', '/internal/github-sync', '/internal/code-worker'].includes(path) || req.method !== 'POST') {
+  if (!['/internal/embed', '/internal/github-sync', '/internal/code-worker','/internal/trust-custody'].includes(path) || req.method !== 'POST') {
     throw new ApiError(404, 'not_found', `No route for ${req.method} ${path}`);
   }
   const expected = await internalToken();
   if (!expected || !safeEqual(req.headers.get('x-posterity-internal') ?? '', expected)) {
     throw new ApiError(401, 'unauthorized', 'This endpoint is internal');
+  }
+  if(path==='/internal/trust-custody') {
+    const input=await req.json() as {canonical?:unknown;signatures?:unknown};
+    if(typeof input.canonical!=='string' || input.canonical.length>16000 || !Array.isArray(input.signatures) || input.signatures.length>10)throw new ApiError(400,'bad_request','Exact signed custody envelope required');
+    let claims:Record<string,unknown>;
+    try {claims=JSON.parse(input.canonical);}catch{throw new ApiError(400,'bad_request','Custody envelope must be JSON');}
+    if(!claims || typeof claims!=='object' || Array.isArray(claims))throw new ApiError(400,'bad_request','Custody claims must be an object');
+    const adapter=await query(db().from('trust_custody_adapters').select('*').eq('epoch_id',claims.epoch_id).maybeSingle());
+    if(!adapter)throw new ApiError(403,'forbidden','No custody adapter configured for this epoch');
+    const signatures=input.signatures as {public_key:string;signature:string}[];
+    if(signatures.some(s=>!s || typeof s.public_key!=='string' || typeof s.signature!=='string') ||
+      !await verifyCustodyEnvelope(input.canonical,signatures,adapter.public_keys,adapter.threshold))throw new ApiError(403,'forbidden','Custody threshold signatures failed verification');
+    return json(await rpc('apply_trust_custody_receipt',{p_canonical:input.canonical,p_signatures:signatures}));
   }
   if (path === '/internal/code-worker') {
     // Line merges and rename searches merges wait on; the drain keeps running after this answers.

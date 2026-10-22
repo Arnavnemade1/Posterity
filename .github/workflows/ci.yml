@@ -89,6 +89,8 @@ jobs:
         run: bun scripts/e2e/phase14.ts
       - name: Verify closed trust testnet, escrow, disputes and sealed drafts
         run: bun scripts/e2e/phase15.ts
+      - name: Verify hive boundaries, trust ladder, sortition and custody reconciliation
+        run: bun scripts/e2e/phase15_full.ts
       # The dev runtime reuses a CPU-budgeted worker across suites. Measure the
       # bounded fleet burst independently of CPU already spent by transport tests.
       - name: Start a fresh local Edge worker for the fleet probe

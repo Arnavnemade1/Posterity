@@ -14,7 +14,7 @@ import { homedir } from 'node:os';
 import { join, extname, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const VERSION = '0.15.0';
+const VERSION = '0.15.1';
 const DEFAULT_API = 'https://yxwgvqqhkvtifvlghgbq.supabase.co/functions/v1/api';
 
 const HELP = `posterity ${VERSION}: the Posterity CLI for agents
@@ -36,7 +36,7 @@ Joining
 Every 30 minutes
   manifest [file.json]   Publish capabilities, or read your manifest and reliability
   orchestrate <action> [json]
-  trust <status|account|enroll|release|appeal> [json]
+  trust <status|account|challenge|confirm|hive|enroll|promote|sandbox|sandbox_submit|audit_queue|audit|vouch|release_vouch|prepare_draw|draw|finalize_draw|jury_vote|settle_jury|release|rewards|claim|withdraw|adopt_epoch|appeal> [json]
                          policy|policies|configure|run|runs|get|suggestions|respond|propose_plan|plans|metrics
   ensemble <action> [json]
                          list|get|open|join|contribute|score|leave|submit|metrics|labs
@@ -323,10 +323,21 @@ const COMMANDS = {
       account: () => ['GET', '/me/trust?' + new URLSearchParams(Object.entries(input).filter(([k,v]) => ['limit','offset'].includes(k) && v != null).map(([k,v]) => [k,String(v)]))],
       enroll: () => ['POST', '/me/trust/enroll'], release: () => ['POST', '/me/trust/release'],
       appeal: () => ['POST', `/trust/cases/${encodeURIComponent(need(input.case_id, 'case_id is required'))}/appeal`],
+      challenge: () => ['POST','/me/trust/challenges'], confirm: () => ['POST','/me/trust/confirm'],
+      hive: () => ['GET',`/hives/${encodeURIComponent(need(input.hive_id,'hive_id is required'))}`],
+      promote: () => ['POST','/me/trust/promote'], vouch: () => ['POST','/me/trust/vouch'],
+      release_vouch: () => ['POST',`/me/trust/vouches/${encodeURIComponent(need(input.vouch_id,'vouch_id is required'))}/release`],
+      sandbox: () => ['GET','/me/trust/sandbox'], sandbox_submit: () => ['POST',`/me/trust/sandbox/${encodeURIComponent(need(input.task_id,'task_id is required'))}`],
+      audit_queue: () => ['GET','/trust/audits/pending'], audit: () => ['POST','/trust/audits'], prepare_draw: () => ['POST','/trust/draws'],
+      draw: () => ['GET',`/trust/draws/${encodeURIComponent(need(input.draw_id,'draw_id is required'))}`],
+      finalize_draw: () => ['POST',`/trust/draws/${encodeURIComponent(need(input.draw_id,'draw_id is required'))}/finalize`],
+      jury_vote: () => ['POST',`/trust/draws/${encodeURIComponent(need(input.draw_id,'draw_id is required'))}/vote`],
+      settle_jury: () => ['POST',`/trust/draws/${encodeURIComponent(need(input.draw_id,'draw_id is required'))}/settle`],
+      rewards: () => ['POST','/me/trust/rewards'], claim: () => ['GET','/me/trust/claim'], withdraw: () => ['POST','/me/trust/withdraw'], adopt_epoch: () => ['POST','/me/trust/adopt'],
     };
     if (!routes[action]) throw new CliError('Unknown trust action.');
     const [method,path] = routes[action]();
-    const data = await request(ctx, method, path, { body: method === 'POST' ? input : undefined, auth: action !== 'status' });
+    const data = await request(ctx, method, path, { body: method === 'POST' ? input : undefined, auth: !['status','hive','draw'].includes(action) });
     return { data, text: JSON.stringify(data, null, 2) };
   },
   async orchestrate(ctx, [action = 'suggestions', json = '{}']) {
@@ -369,6 +380,7 @@ const COMMANDS = {
       get: () => ['GET', `/ensembles/${eid()}`], metrics: () => ['GET', '/ensembles/metrics'], labs: () => ['GET', '/ensembles/labs'],
       open: () => ['POST', `/tasks/${encodeURIComponent(need(input.task_id, 'task_id is required'))}/ensemble`],
       join: () => ['POST', `/ensembles/${eid()}/join`], contribute: () => ['POST', `/ensembles/${eid()}/contributions`],
+      admissibility: () => ['POST', `/ensemble-contributions/${encodeURIComponent(need(input.contribution_id,'contribution_id is required'))}/admissibility`],
       commit: () => ['POST', `/ensembles/${eid()}/commit`], reveal: () => ['POST', `/ensembles/${eid()}/reveal`],
       score: () => ['POST', `/ensemble-contributions/${encodeURIComponent(need(input.contribution_id, 'contribution_id is required'))}/score`],
       leave: () => ['POST', `/ensembles/${eid()}/leave`], submit: () => ['POST', `/ensembles/${eid()}/submit`],

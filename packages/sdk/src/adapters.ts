@@ -7,7 +7,8 @@ export type EnsembleAction =
   | { action: 'get' | 'join' | 'leave'; ensemble_id: string; role?: EnsembleRole; reason?: string; capability?: string }
   | { action: 'open'; task_id: string; spec?: EnsembleSpec }
   | ({ action: 'contribute'; ensemble_id: string } & EnsembleContributionInput)
-  | { action: 'commit'; ensemble_id: string; round: number; digest: string }
+  | { action: 'commit'; ensemble_id: string; round: number; digest: string; algorithm?: 'text-v1'|'accountable-v1' }
+  | { action: 'admissibility'; contribution_id: string; admissible: boolean; rationale: string }
   | ({ action: 'reveal'; ensemble_id: string } & SealedDraftReveal)
   | { action: 'score'; contribution_id: string; score: number; rationale: string }
   | ({ action: 'submit'; ensemble_id: string } & EnsembleSubmitInput)
@@ -19,7 +20,8 @@ export const ENSEMBLE_TOOL = {
   inputSchema: {
     type: 'object', additionalProperties: false, required: ['action'],
     properties: {
-      action: { type: 'string', enum: ['list','get','open','join','contribute','score','leave','submit','metrics','labs','commit','reveal'] },
+      action: { type: 'string', enum: ['list','get','open','join','contribute','score','leave','submit','metrics','labs','commit','reveal','admissibility'] },
+      algorithm: {type:'string',enum:['text-v1','accountable-v1']},accountability_wire:{type:'string'},vector_hash:{type:'string'},admissible:{type:'boolean'},
       round: { type: 'integer', minimum: 1 }, digest: { type: 'string' }, nonce: { type: 'string' },
       ensemble_id: { type: 'string' }, task_id: { type: 'string' }, contribution_id: { type: 'string' },
       role: { type: 'string', enum: ['proposer','critic','specialist','synthesizer'] },
@@ -43,7 +45,8 @@ export function executeEnsembleAction(client: Posterity, input: EnsembleAction):
     case 'join': if (!input.role) throw new Error('role is required'); return client.ensembles.join(input.ensemble_id, input.role);
     case 'leave': if (!input.reason) throw new Error('reason is required'); return client.ensembles.leave(input.ensemble_id, input.reason, input.capability);
     case 'contribute': return client.ensembles.contribute(input.ensemble_id, input);
-    case 'commit': return client.ensembles.commit(input.ensemble_id, input.round, input.digest);
+    case 'commit': return client.ensembles.commit(input.ensemble_id, input.round, input.digest,input.algorithm);
+    case 'admissibility': return client.ensembles.admissibility(input.contribution_id,input.admissible,input.rationale);
     case 'reveal': return client.ensembles.reveal(input.ensemble_id, input);
     case 'score': return client.ensembles.score(input.contribution_id, input.score, input.rationale);
     case 'submit': return client.ensembles.submit(input.ensemble_id, input);
@@ -61,7 +64,7 @@ function decode(value: unknown): EnsembleAction {
   for (const field of ['ensemble_id','task_id','contribution_id'] as const) {
     if (field in v && (typeof v[field] !== 'string' || !/^[0-9a-f-]{36}$/i.test(v[field] as string))) throw new Error(`Invalid ${field}`);
   }
-  const routing = v.action === 'open' ? 'task_id' : v.action === 'score' ? 'contribution_id' : ['get','join','leave','contribute','submit','commit','reveal'].includes(String(v.action)) ? 'ensemble_id' : null;
+  const routing = v.action === 'open' ? 'task_id' : ['score','admissibility'].includes(String(v.action)) ? 'contribution_id' : ['get','join','leave','contribute','submit','commit','reveal'].includes(String(v.action)) ? 'ensemble_id' : null;
   if (routing && typeof v[routing] !== 'string') throw new Error(`${routing} is required`);
   return value as EnsembleAction;
 }

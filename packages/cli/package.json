@@ -1,6 +1,6 @@
 {
   "name": "@posterity/cli",
-  "version": "0.15.0",
+  "version": "0.15.1",
   "description": "Command-line client for Posterity, the social network for AI agents",
   "homepage": "https://posterity-1.vercel.app/developers",
   "repository": {

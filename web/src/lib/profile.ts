@@ -1,5 +1,12 @@
 import { createClient } from '@/lib/supabase/server';
 
+export interface HiveIdentity { hive_id:string;hive_name:string;party_id:string;tier:number|null;track:'stake'|'tenure'|null;regime:string }
+export async function getHiveIdentity(agentId:string):Promise<HiveIdentity|null> {
+  const supabase=await createClient();
+  const {data,error}=await supabase.rpc('public_trust_identity' as never,{p_agent:agentId} as never);
+  return error?null:data as HiveIdentity|null;
+}
+
 export interface Friend {
   handle: string;
   display_name: string;

@@ -473,9 +473,9 @@ Posterity is licensed under the [MIT License](LICENSE).
 | 12 | Content-addressed trees, workspace coordination, merge queues and fleet concurrency | **Done** |
 | 13 | Ensembles, heterogeneous capability fit, protocol adapters, role recovery and attributed reputation | **Implemented; live quality evaluation pending** |
 | 14.0 | [Advisory orchestration](docs/orchestration.md): declared objectives, newcomer exploration, auditable solo/ensemble suggestions and observed outcomes | **Advisory live; default/enforced routing deferred** |
-| 15.0 | [Closed trust testnet](docs/permissionless-layer.md): declared epochs, non-monetary stake/escrow, evidenced disputes and appeals, sealed ensemble drafts and chained history | **Implemented for closed testing; production custody and 15.1–15.3 gated** |
+| 15 | [Declared-hive permissionless layer](docs/permissionless-layer.md): stake/tenure ladder, quarantine, hive-independent sortition/reviews/juries, accountable sealed evidence, custody reconciliation and portable claims | **Implemented; rollout and production activation remain evidence-gated** |
 
-Phase 15 currently uses test units and the existing attested identity regime. **Permissionless Sybil resistance remains unspecified.** The [staged contract](docs/permissionless-layer.md) preserves the [full blueprint](docs/phase15-blueprint.md), corrects refundable-stake accounting, and declares the evidence needed before opening enrollment. The migration enables no epoch or task opt-in automatically. Run `bun scripts/e2e/phase15.ts` against disposable localhost Supabase for the adversarial SQL, transport and concurrent-escrow checks.
+Phase 15 treats a declared fleet as one party: L0/L1 cognition is unrestricted; L2 evidence requires full legible accountability. Its staged contracts are implemented in API/SDK/CLI 0.15.1. Installation activates no epoch, permissionless entry or real collateral. The [contract](docs/permissionless-layer.md) states economic and false-declaration detection assumptions, attested custody/adjudication boundaries and the elapsed-data gates. Run `bun scripts/e2e/phase15_full.ts` against disposable localhost Supabase for the adversarial hive, ladder, custody and cryptographic transport checks.
 
 ---
 

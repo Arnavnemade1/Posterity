@@ -1128,6 +1128,8 @@ export interface EnsembleInbox {
   manifest_required: boolean;
 }
 export interface EnsembleContributionInput {
+  accountability_wire?: string;
+  vector_hash?: string;
   kind: 'draft' | 'objection' | 'review' | 'evidence' | 'synthesis';
   summary: string; content?: string; responds_to?: string; tokens?: number; model?: string;
 }
@@ -1161,6 +1163,7 @@ export interface EnsembleView extends EnsembleSummary {
 }
 
 export interface SealedDraftReveal {
+  accountability_wire?: string; vector_hash?: string; algorithm?: 'text-v1'|'accountable-v1';
   round: number; kind: EnsembleContributionInput['kind']; summary: string; content: string; nonce: string;
 }
 export interface EnsembleCommitment {
@@ -1170,17 +1173,21 @@ export interface EnsembleCommitment {
 export interface TrustEpoch {
   id: string; starts_at: string; ends_at: string; stake_units: number; escrow_units: number;
   dispute_seconds: number; reward_cap: number; operator: string; reason: string;
-  regime: 'attested_testnet'; custody: 'test_units'; created_at: string;
+  regime: 'attested_testnet'|'permissionless'; custody: 'test_units'|'threshold_attested_custody'; created_at: string;
 }
 export interface TrustStatus {
-  stage: '15.0-testnet'; experimental: true; permissionless: false; assumption: string;
-  custody: 'test_units'; epoch: TrustEpoch | null; blocked_stages: string[];
+  stage: '15.0-testnet'|'15.0'|'15.1'|'15.2'|'15.3'; experimental: boolean; permissionless: boolean; assumption: string;
+  custody: 'test_units'|'threshold_attested_custody'; epoch: TrustEpoch | null; blocked_stages?: string[];
+  implemented_stages?: string[]; settings?: Data; hive_protocol?: boolean;
 }
 export interface TrustAccount {
   agent_id: string; epoch_id: string; balance: number; frozen: boolean; enrolled_at: string;
 }
+export interface TrustStanding {
+  agent_id:string;tier:0|1|2;epoch_id:string;tier_since:string;stake_since:string|null;violations:number;expelled:boolean;
+}
 export interface TrustTaskContract {
-  task_id: string; epoch_id: string; regime: 'attested_staked_testnet'; sealed: boolean; created_at: string;
+  task_id: string; epoch_id: string; regime: 'attested_staked_testnet'|'permissionless'|'mixed'; sealed: boolean; created_at: string;
   epoch?: TrustEpoch;
 }
 export interface TrustEvent {
@@ -1193,14 +1200,33 @@ export interface TrustEscrow {
 }
 export interface TrustCase {
   id: string; agent_id: string; task_id: string | null;
-  kind: 'self_dealing' | 'review_fraud' | 'objection_fraud' | 'correlation';
+  kind: 'self_dealing' | 'review_fraud' | 'objection_fraud' | 'correlation' | 'undeclared_substrate' | 'false_independence' | 'opaque_coordination';
   evidence_hash: string; evidence_url: string; operator: string;
   status: 'open' | 'dismissed' | 'confirmed'; slash_units: number; reasoning: string | null;
   appeal: string | null; appealed_at: string | null; resolved_at: string | null; created_at: string;
 }
+
+export interface Accountability {
+  reasoning: string; claims: string[]; assumptions: string[]; evidence: string[]; uncertainties: string[];
+}
+export interface TrustChallenge {
+  id: string; agent_id: string; purpose: string; payload: Data; public_key: string; message: string; expires_at: string;
+}
+export interface TrustHive {
+  id: string; name: string; operator_key: string; substrate_hash: string; declaration: string; party_id: string;
+  members: {agent_id:string;joined_at:string}[]; links: Data[];
+}
+export interface TrustDraw {
+  id:string;epoch_id:string;purpose:'assignment'|'jury'|'appeal_jury';target_id:string;role:string;generation:number;
+  pool:{hive_id:string;agents:string[]}[];pool_hash:string;context:Data;beacon_round:number;beacon_due:string;
+  signature:string|null;randomness:string|null;selected:{agent_id:string;hive_id:string}[]|null;finalized_at:string|null;
+}
 export interface TrustAccountView {
-  account: TrustAccount | null; custody: 'test_units'; regime: 'attested_testnet';
+  account: TrustAccount | null; custody: 'test_units'|'threshold_attested_custody'; regime: 'attested_testnet'|'permissionless';
   events: TrustEvent[]; head: string | null; escrows: TrustEscrow[]; cases: TrustCase[];
+  identity?: Data|null; standing?: TrustStanding|null;
+  hive?: TrustHive|null; vouches?: Data[]; reward_holds?: Data[]; custody_commands?: Data[];
+  reputation_interpretation?: 'quarantine_nonexport'|'local_policy_only';
 }
 
 export interface OrchestrationPolicyInput {

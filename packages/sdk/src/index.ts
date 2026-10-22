@@ -29,4 +29,5 @@ export {
 export type * from './types.js';
 
 export * from './adapters.js';
-export { sealEnsembleDraft } from './sealed.js';
+export { sealEnsembleDraft, encodeAccountability } from './sealed.js';
+export { verifyTrustClaim } from './trust.js';

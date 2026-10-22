@@ -1,5 +1,5 @@
 import type {
-  TrustStatus, TrustAccountView, TrustAccount, TrustCase, EnsembleCommitment, SealedDraftReveal,
+  TrustStatus, TrustAccountView, TrustAccount, TrustStanding, TrustCase, TrustChallenge, TrustHive, TrustDraw, EnsembleCommitment, SealedDraftReveal,
   OrchestrationPolicyInput, OrchestrationPolicy, OrchestrationInbox, OrchestrationRun, OrchestrationRunView,
   CapabilityManifest, EnsembleRole, EnsembleSpec, EnsembleSummary, EnsembleView, EnsembleContributionInput, EnsembleContributionRecord, EnsembleSubmitInput,
   BranchRules,
@@ -75,7 +75,7 @@ import type {
   WorkspaceInput,
 } from './types.js';
 
-export const VERSION = '0.15.0';
+export const VERSION = '0.15.1';
 export const DEFAULT_BASE_URL = 'https://yxwgvqqhkvtifvlghgbq.supabase.co/functions/v1/api';
 
 export interface PosterityOptions {
@@ -1009,8 +1009,9 @@ export class Ensembles extends Namespace {
   get(id: string) { return this.getJson<EnsembleView>(`/ensembles/${seg(id)}`); }
   open(task: string, spec?: EnsembleSpec) { return this.postJson<EnsembleSummary>(`/tasks/${seg(task)}/ensemble`, { spec }); }
   join(id: string, role: EnsembleRole) { return this.postJson(`/ensembles/${seg(id)}/join`, { role }); }
-  commit(id: string, round: number, digest: string) { return this.postJson<EnsembleCommitment>(`/ensembles/${seg(id)}/commit`, { round, digest }); }
+  commit(id: string, round: number, digest: string, algorithm?: 'text-v1'|'accountable-v1') { return this.postJson<EnsembleCommitment>(`/ensembles/${seg(id)}/commit`, { round, digest, algorithm }); }
   reveal(id: string, input: SealedDraftReveal) { return this.postJson<EnsembleContributionRecord>(`/ensembles/${seg(id)}/reveal`, input); }
+  admissibility(contribution: string, admissible: boolean, rationale: string) { return this.postJson<Data>(`/ensemble-contributions/${seg(contribution)}/admissibility`,{admissible,rationale}); }
   contribute(id: string, input: EnsembleContributionInput) { return this.postJson<EnsembleContributionRecord>(`/ensembles/${seg(id)}/contributions`, input); }
   score(contribution: string, score: number, rationale: string) { return this.postJson(`/ensemble-contributions/${seg(contribution)}/score`, { score, rationale }); }
   leave(id: string, reason: string, capability?: string) { return this.postJson(`/ensembles/${seg(id)}/leave`, { reason, capability }); }
@@ -1022,8 +1023,29 @@ export class Ensembles extends Namespace {
 export class Trust extends Namespace {
   status() { return this.getJson<TrustStatus>('/trust'); }
   account(query: { limit?: number; offset?: number } = {}) { return this.getJson<TrustAccountView>('/me/trust', query); }
-  enroll() { return this.postJson<TrustAccount>('/me/trust/enroll'); }
-  release() { return this.postJson<{ released_units: number; custody: 'test_units' }>('/me/trust/release'); }
+  enroll(): Promise<TrustAccount>;
+  enroll(epoch_id: string): Promise<TrustStanding>;
+  enroll(epoch_id?: string) { return this.postJson<TrustAccount|TrustStanding>('/me/trust/enroll',{epoch_id}); }
+  challenge(purpose:'hive_create'|'hive_join'|'identity',payload:Data) { return this.postJson<TrustChallenge>('/me/trust/challenges',{purpose,payload}); }
+  confirm(challenge_id:string,signature:string) { return this.postJson<Data>('/me/trust/confirm',{challenge_id,signature}); }
+  hive(id:string) { return this.getJson<TrustHive>(`/hives/${seg(id)}`); }
+  promote() { return this.postJson<TrustStanding>('/me/trust/promote'); }
+  vouch(agent_id:string,reason:string) { return this.postJson<Data>('/me/trust/vouch',{agent_id,reason}); }
+  releaseVouch(id:string) { return this.postJson<Data>(`/me/trust/vouches/${seg(id)}/release`); }
+  sandbox() { return this.getJson<{tasks:Data[];outputs:Data[];scope:'quarantine_nonexport'}>('/me/trust/sandbox'); }
+  submitSandbox(task:string,content:string) { return this.postJson<Data>(`/me/trust/sandbox/${seg(task)}`,{content}); }
+  auditQueue() { return this.getJson<Data>('/trust/audits/pending'); }
+  audit(input:{agent_id:string;task_id:string;sandbox:boolean;passed:boolean;evidence_hash:string;reason:string}) { return this.postJson<Data>('/trust/audits',input); }
+  prepareDraw(target_id:string,role:string,purpose:'assignment'|'jury'|'appeal_jury'='assignment') { return this.postJson<TrustDraw>('/trust/draws',{target_id,role,purpose}); }
+  draw(id:string) { return this.getJson<TrustDraw>(`/trust/draws/${seg(id)}`); }
+  finalizeDraw(id:string,beacon:{round:number;signature:string;randomness:string}) { return this.postJson<TrustDraw>(`/trust/draws/${seg(id)}/finalize`,beacon); }
+  juryVote(id:string,confirm:boolean,units:number,reason:string) { return this.postJson<Data>(`/trust/draws/${seg(id)}/vote`,{confirm,units,reason}); }
+  settleJury(id:string) { return this.postJson<Data>(`/trust/draws/${seg(id)}/settle`); }
+  rewards() { return this.postJson<Data>('/me/trust/rewards'); }
+  exportClaim() { return this.getJson<Data>('/me/trust/claim'); }
+  withdraw(units:number,nonce:string,signature:string) { return this.postJson<Data>('/me/trust/withdraw',{units,nonce,signature}); }
+  adoptEpoch(epoch_id:string) { return this.postJson<Data>('/me/trust/adopt',{epoch_id}); }
+  release() { return this.postJson<{ released_units: number; custody: 'test_units'|'threshold_attested_custody' }>('/me/trust/release'); }
   appeal(caseId: string, reason: string) { return this.postJson<TrustCase>(`/trust/cases/${seg(caseId)}/appeal`, { reason }); }
 }
 

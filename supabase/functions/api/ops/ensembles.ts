@@ -19,7 +19,7 @@ export async function manifestTool(ctx: Ctx, input: Input) {
 }
 
 export async function ensembleTool(ctx: Ctx, input: Input) {
-  const action = oneOf(input, 'action', ['list','get','open','join','contribute','score','leave','submit','metrics','labs','commit','reveal'] as const) ?? 'list';
+  const action = oneOf(input, 'action', ['list','get','open','join','contribute','score','leave','submit','metrics','labs','commit','reveal','admissibility'] as const) ?? 'list';
   if (action === 'labs') return rpc('lab_verification_readiness');
   if (action === 'metrics') return rpc('ensemble_metrics');
   if (action === 'list') {
@@ -31,6 +31,11 @@ export async function ensembleTool(ctx: Ctx, input: Input) {
   }
   if (action === 'get') return rpc('ensemble_view', { p_ensemble: id(input, 'ensemble_id') });
   const agent = requireAgent(ctx);
+  if (action === 'admissibility') {
+    if(typeof input.admissible!=='boolean')throw new ApiError(400,'bad_request','admissible must be a boolean');
+    return rpc('assess_ensemble_admissibility',{p_agent:agent.id,p_contribution:id(input,'contribution_id'),p_admissible:input.admissible,
+      p_reason:str(input,'rationale',{required:true,max:4000})});
+  }
   if (action === 'open') return rpc('ensemble_open', { p_agent: agent.id, p_task: id(input, 'task_id'), p_spec: object(input, 'spec') });
   if (action === 'score') {
     const score = int(input, 'score', { min: 0, max: 5 });
@@ -41,13 +46,14 @@ export async function ensembleTool(ctx: Ctx, input: Input) {
   if (action === 'commit' || action === 'reveal') {
     const round = int(input, 'round', { min: 1, max: 2147483647 });
     if (round === undefined) throw new ApiError(400, 'bad_request', 'round is required');
-    if (action === 'commit') return rpc('ensemble_commit', { p_agent: agent.id, p_ensemble, p_round: round,
-      p_digest: str(input, 'digest', { required: true, max: 64 }) });
-    return rpc('ensemble_reveal', { p_agent: agent.id, p_ensemble, p_round: round,
+    if (action === 'commit') return rpc(input.algorithm==='accountable-v1'?'ensemble_commit_accountable':'ensemble_commit', { p_agent: agent.id, p_ensemble, p_round: round,
+      p_digest: str(input, 'digest', { required: true, max: 64 }),...(input.algorithm==='accountable-v1'?{p_algorithm:'accountable-v1'}:{}) });
+    return rpc(input.accountability_wire!==undefined?'ensemble_reveal_accountable':'ensemble_reveal', { p_agent: agent.id, p_ensemble, p_round: round,
       p_kind: oneOf(input, 'kind', ['draft','objection','review','evidence','synthesis'] as const) ?? '',
       p_summary: str(input, 'summary', { required: true, max: 4000, trim: false }),
       p_content: str(input, 'content', { max: 200000, trim: false }) ?? '',
-      p_nonce: str(input, 'nonce', { required: true, max: 64 }) });
+      p_nonce: str(input, 'nonce', { required: true, max: 64 }),...(input.accountability_wire!==undefined?{
+        p_accountability_wire:str(input,'accountability_wire',{required:true,max:32000,trim:false}),p_vector_hash:str(input,'vector_hash',{max:64})??null}:{}) });
   }
   if (action === 'join') {
     const role = oneOf(input, 'role', ['proposer','critic','specialist','synthesizer'] as const);
@@ -57,9 +63,11 @@ export async function ensembleTool(ctx: Ctx, input: Input) {
   if (action === 'contribute') {
     const kind = oneOf(input, 'kind', ['draft','objection','review','evidence','synthesis'] as const);
     if (!kind) throw new ApiError(400, 'bad_request', 'kind is required');
-    return rpc('ensemble_contribute', { p_agent: agent.id, p_ensemble, p_kind: kind,
+    if ('vectors' in input || 'embedding' in input)throw new ApiError(400,'bad_request','Opaque vectors stay at L0/L1; L2 accepts a vector hash with legible accountability');
+    return rpc(input.accountability_wire!==undefined?'ensemble_contribute_accountable':'ensemble_contribute', { p_agent: agent.id, p_ensemble, p_kind: kind,
       p_summary: str(input, 'summary', { required: true, max: 4000 }), p_content: str(input, 'content', { max: 200000, trim: false }) ?? '',
-      p_responds_to: optionalId(input, 'responds_to'), p_tokens: int(input, 'tokens', { min: 0, max: 50000000 }), p_model: str(input, 'model', { max: 80 }) });
+      p_responds_to: optionalId(input, 'responds_to'), p_tokens: int(input, 'tokens', { min: 0, max: 50000000 }), p_model: str(input, 'model', { max: 80 }),
+      ...(input.accountability_wire!==undefined?{p_accountability_wire:str(input,'accountability_wire',{required:true,max:32000,trim:false}),p_vector_hash:str(input,'vector_hash',{max:64})??null}:{}) });
   }
   if (action === 'leave') return rpc('ensemble_leave', { p_agent: agent.id, p_ensemble, p_reason: str(input, 'reason', { required: true, max: 2000 }), p_capability: str(input, 'capability', { max: 120 }) });
   const contributions = array(input, 'contributions', 64) ?? [];

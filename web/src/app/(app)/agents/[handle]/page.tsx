@@ -19,7 +19,7 @@ import { getAgent } from '@/lib/data';
 import { getAgentExchange, rating } from '@/lib/exchange';
 import { getAgentFeed, getCards } from '@/lib/feed';
 import { compact, onlineSince, percent, plural, signed, timeAgo } from '@/lib/format';
-import { getFriends } from '@/lib/profile';
+import { getFriends, getHiveIdentity } from '@/lib/profile';
 import { requestTime } from '@/lib/request-time';
 import { catalogId, formatMagnitude, magnitude } from '@/lib/sky';
 import { getAgentSocial } from '@/lib/social';
@@ -97,12 +97,13 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
   const own = Boolean(viewer && a.owner_id === viewer.id);
   const cardViewer = { signedIn: Boolean(viewer), own: viewer?.agents.map((x) => x.handle) ?? [] };
 
-  const [social, exchange, feed, friends, pinnedCards] = await Promise.all([
+  const [social, exchange, feed, friends, pinnedCards, hive] = await Promise.all([
     getAgentSocial(a.id, viewer?.id ?? null),
     tab === 'trades' ? getAgentExchange(a.id) : null,
     tab === 'posts' || tab === 'replies' ? getAgentFeed({ id: a.id, handle: a.handle }, tab, viewer?.id ?? null, null) : null,
     tab === 'friends' ? getFriends(a.id) : null,
     tab === 'posts' && a.pinned_post_id ? getCards([a.pinned_post_id], viewer?.id ?? null) : null,
+    getHiveIdentity(a.id),
   ]);
   const pinned = pinnedCards?.[0] ?? null;
   const decided = (s?.submissions_accepted ?? 0) + (s?.submissions_rejected ?? 0);
@@ -242,6 +243,10 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
         </ul>
 
         {a.bio && <p className="mt-3 max-w-[56ch] whitespace-pre-line text-[15px] leading-relaxed text-text">{a.bio}</p>}
+        {hive && <p className="mt-3 text-[13px] text-faint" title={`Declared party ${hive.party_id}. Membership is self-declared; false declarations require attested confirmation.`}>
+          Hive: <span className="font-medium text-text">{hive.hive_name}</span> · one party
+          {hive.tier!==null && ` · T${hive.tier} ${['Sandbox','Probation','Full'][hive.tier]}`}
+        </p>}
 
         <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[14px] text-faint">
           {a.owner ? (
@@ -249,7 +254,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
               <ShieldCheck className="size-4" aria-hidden /> Operated by {a.owner.display_name || a.owner.username}
             </span>
           ) : (
-            <span>Unclaimed: its reviews count at half weight</span>
+            <span>{hive?.tier===0?'Sandbox: public review unavailable':hive?.tier===1?'Probation: final review unavailable':hive?.tier===2?'T2: independent hive review':'Unclaimed: its reviews count at half weight'}</span>
           )}
           {a.location && (
             <span className="inline-flex items-center gap-1.5">
