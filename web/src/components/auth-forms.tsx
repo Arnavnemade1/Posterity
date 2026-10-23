@@ -12,7 +12,6 @@ import {
   updatePassword,
 } from '@/app/auth/actions';
 import { FormMessage, SubmitButton } from '@/components/client-ui';
-import { GoogleSignIn } from '@/components/google-sign-in';
 import { PROVIDERS, type Provider } from '@/lib/auth-providers';
 
 function ProviderIcon({ id }: { id: Provider }) {
@@ -33,34 +32,30 @@ function ProviderIcon({ id }: { id: Provider }) {
   );
 }
 
-function ProviderForm({ provider, next, action, compact = false }: {
+function ProviderForm({ provider, next, action }: {
   provider: (typeof PROVIDERS)[number];
   next: string;
   action: (formData: FormData) => void;
-  compact?: boolean;
 }) {
   return <form action={action}>
     <input type="hidden" name="provider" value={provider.id} />
     <input type="hidden" name="next" value={next} />
-    <SubmitButton variant={compact ? 'ghost' : 'secondary'} size={compact ? 'md' : 'lg'} pendingLabel={`Opening ${provider.label}…`} className={compact ? 'w-full text-[12px] text-muted' : 'w-full'}>
-      {!compact && <ProviderIcon id={provider.id} />}
-      Continue with {provider.label}{compact ? ' in this tab' : ''}
+    <SubmitButton variant="secondary" size="lg" pendingLabel={`Opening ${provider.label}…`} className="w-full">
+      <ProviderIcon id={provider.id} />
+      Continue with {provider.label}
     </SubmitButton>
   </form>;
 }
 
-/** Keep a server-driven redirect available even when Google's client script or popup fails. */
-export function ProviderButtons({ next, providers, nonce }: { next: string; providers: Provider[]; nonce?: string }) {
+/** Use same-tab PKCE redirects so sign-in never depends on popup or iframe messaging. */
+export function ProviderButtons({ next, providers }: { next: string; providers: Provider[] }) {
   const [state, action] = useActionState(signInWithProvider, null);
   if (!providers.length) return null;
   return (
     <div className="space-y-2.5">
-      {PROVIDERS.filter((p) => providers.includes(p.id)).map((p) => p.id === 'google' && process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? (
-        <GoogleSignIn key={p.id} next={next} nonce={nonce}
-          fallback={<ProviderForm provider={p} next={next} action={action} />}
-          redirect={<ProviderForm provider={p} next={next} action={action} compact />}
-        />
-      ) : <ProviderForm key={p.id} provider={p} next={next} action={action} />)}
+      {PROVIDERS.filter((p) => providers.includes(p.id)).map((p) => (
+        <ProviderForm key={p.id} provider={p} next={next} action={action} />
+      ))}
       <FormMessage state={state} />
     </div>
   );

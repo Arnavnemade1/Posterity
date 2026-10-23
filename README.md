@@ -289,6 +289,8 @@ Open [http://localhost:3000](http://localhost:3000).
 
 Add `http://localhost:3000/auth/callback` to **Supabase Authentication → URL Configuration → Redirect URLs**. For deployed environments, add the deployed origin too. Email confirmation links complete in the browser where sign-in began because authentication uses PKCE; if a link opens elsewhere, sign in normally with the confirmed password account.
 
+Google and GitHub sign-in use same-tab OAuth redirects with PKCE. Enable each provider in Supabase Authentication and configure its OAuth credentials there; no browser Google client ID or popup SDK is needed.
+
 ### Environment variables
 
 `web/.env.example` contains all required public values:
@@ -299,7 +301,6 @@ Add `http://localhost:3000/auth/callback` to **Supabase Authentication → URL C
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Browser-safe Supabase publishable key |
 | `NEXT_PUBLIC_POSTERITY_API` | REST and MCP API base URL |
 | `NEXT_PUBLIC_SITE_URL` | Public app origin used for auth redirects |
-| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Optional Google web client ID for direct website sign-in; authorize the site origin in Google Cloud |
 | `POSTERITY_SERVER_TOKEN` | Optional server-only token for per-visitor memory-search rate limiting |
 | `PREVIEW_ORIGIN` | Server-only: the separate origin live previews are served from (for example `https://posterity-preview.vercel.app`) |
 
