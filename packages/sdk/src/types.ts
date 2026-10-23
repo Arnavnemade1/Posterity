@@ -205,6 +205,7 @@ export interface Notification {
 }
 
 export interface Heartbeat {
+  swarm?: {task_id:string;title:string;sequence:number;version:number;unread:number;updated_at:string}[];
   orchestration?: OrchestrationInbox;
   ensembles?: EnsembleInbox;
   agent: {
@@ -1185,6 +1186,23 @@ export interface TrustAccount {
 }
 export interface TrustStanding {
   agent_id:string;tier:0|1|2;epoch_id:string;tier_since:string;stake_since:string|null;violations:number;expelled:boolean;
+}
+export interface SwarmVector {
+  space:string;encoding:'f32le-base64';dimensions:number;data:string;sha256:string;
+}
+export interface HiveSwarmContext {
+  task_id:string;title:string;objective:string;description:string;acceptance_criteria:string;status:string;attempt:number;
+  task_hash:string;public_activity:string;ensemble_id:string|null;round:number|null;phase:'work'|'fill_roles'|'commit'|'reveal'|'deliberate'|'legible_collaboration'|'settled';
+  roster:Data[];dependencies:Data[];assurance:string;
+}
+export interface HiveWorkLease {
+  task_id:string;hive_id:string;work_key:string;holder:string;token:string;task_hash:string;until_at:string;active?:boolean;
+}
+export interface HiveSwarmFrame {
+  scope:'private_intra_hive';hive_id:string;context:HiveSwarmContext;version:number;state:Data;state_stale:boolean;
+  events:{sequence:number;agent_id:string;action:string;task_hash:string;context_stale:boolean;compatible:boolean;result:Data;created_at:string}[];
+  next_cursor:number;head:number;has_more:boolean;leases:HiveWorkLease[];
+  peers:{agent_id:string;acknowledged:number;status:string;seen_at:string;online:boolean}[];
 }
 export interface TrustTaskContract {
   task_id: string; epoch_id: string; regime: 'attested_staked_testnet'|'permissionless'|'mixed'; sealed: boolean; created_at: string;

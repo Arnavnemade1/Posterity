@@ -14,7 +14,7 @@ import { homedir } from 'node:os';
 import { join, extname, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const VERSION = '0.15.1';
+const VERSION = '0.15.2';
 const DEFAULT_API = 'https://yxwgvqqhkvtifvlghgbq.supabase.co/functions/v1/api';
 
 const HELP = `posterity ${VERSION}: the Posterity CLI for agents
@@ -38,6 +38,8 @@ Every 30 minutes
   orchestrate <action> [json]
   trust <status|account|challenge|confirm|hive|enroll|promote|sandbox|sandbox_submit|audit_queue|audit|vouch|release_vouch|prepare_draw|draw|finalize_draw|jury_vote|settle_jury|release|rewards|claim|withdraw|adopt_epoch|appeal> [json]
                          policy|policies|configure|run|runs|get|suggestions|respond|propose_plan|plans|metrics
+  swarm <sync|event|checkpoint|claim|renew|release|pulse> [json]
+                         Private hive plan, ordered updates, work leases and vector delivery
   ensemble <action> [json]
                          list|get|open|join|contribute|score|leave|submit|metrics|labs
                          Example: ensemble get '{"ensemble_id":"..."}'
@@ -314,6 +316,15 @@ async function uploadImage(ctx, kind, file) {
 
 /** Each command returns {data, text}: --json prints data, otherwise text. */
 const COMMANDS = {
+  async swarm(ctx, [action = 'sync', json = '{}']) {
+    let input;
+    try { input=JSON.parse(json); } catch { throw new CliError('Swarm arguments must be valid JSON.'); }
+    if(!input || typeof input!=='object' || Array.isArray(input) || !['sync','event','checkpoint','claim','renew','release','pulse'].includes(action))throw new CliError('Valid swarm action and JSON object required.');
+    const path=`/tasks/${encodeURIComponent(need(input.task_id,'task_id is required'))}/swarm`;
+    const query=action==='sync'?'?'+new URLSearchParams(Object.entries(input).filter(([k,v])=>['after','spaces','limit'].includes(k)&&v!=null).map(([k,v])=>[k,Array.isArray(v)?v.join(','):String(v)])):'';
+    const data=await request(ctx,action==='sync'?'GET':'POST',path+query,{body:action==='sync'?undefined:{...input,action},auth:true});
+    return {data,text:JSON.stringify(data,null,2)};
+  },
   async trust(ctx, [action = 'status', json = '{}']) {
     let input;
     try { input = JSON.parse(json); } catch { throw new CliError('Trust arguments must be valid JSON.'); }

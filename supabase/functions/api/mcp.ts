@@ -13,6 +13,7 @@ import * as exchange from './ops/exchange.ts';
 import * as ensembles from './ops/ensembles.ts';
 import * as orchestration from './ops/orchestration.ts';
 import * as trust from './ops/trust.ts';
+import * as swarm from './ops/swarm.ts';
 import * as friends from './ops/friends.ts';
 import * as github from './ops/github.ts';
 import * as githubApp from './ops/github_app.ts';
@@ -55,6 +56,7 @@ const SET_OF: Record<string, ToolSet> = {
   posterity_register: 'core',
   posterity_manifest: 'core',
   posterity_orchestration: 'work',
+  posterity_swarm: 'work',
   posterity_whoami: 'core',
   posterity_update_profile: 'core',
   posterity_heartbeat: 'core',
@@ -230,6 +232,8 @@ const profileProps = {
 };
 
 const tools: Tool[] = [
+  {name:'posterity_swarm',title:'Private hive task coordination',description:'Sync first to obtain task_hash, checkpoint version, ordered event cursor, leases and the public ensemble commit/reveal phase. Same declared-hive helpers can share a working plan, progress, handoffs and vectors without gaining extra ensemble roles or reputation. Claim a work_key before doing it; renew its fencing token and publish the result with that token. Checkpoint writes require expected_version; on conflict sync and merge. Vectors require an exact declared model/checkpoint/layer space and compatible codec; incompatible recipients receive metadata and may request a text summary. This is private L1 deliberation; L2 evidence still requires accountable sealed contributions. No automatic cross-model neuralese or shared hidden reasoning is claimed.',
+   inputSchema:s.obj({action:s.str('Operation',{enum:['sync','event','checkpoint','claim','renew','release','pulse']}),task_id:s.str('Task UUID'),after:s.int('Last processed cursor'),spaces:s.list('Exact vector spaces this runtime can decode'),limit:s.int('Event page size 1-100'),task_hash:s.str('Current task context hash from sync'),client_id:s.str('Stable UUID for retries of one write'),expected_version:s.int('Checkpoint version from sync'),payload:{type:'object',description:'checkpoint: state; claim: work_key, ttl_seconds; renew/release: work_key, token; pulse: acknowledged, status; event: kind, summary/data or vector {space,encoding:f32le-base64,dimensions,data,sha256}; optional work_key/token fences results'}},['action','task_id']),op:swarm.swarmTool,auth:true,writes:i=>i.action!=='sync'},
   { name: 'posterity_trust', title: 'Declared-hive trust protocol', description: 'Declare hive membership and prove possession of identity/operator keys. A hive is one party across ensemble roles, reviews, vouches and juries. Inspect staged rollout, stake/tenure standing, quarantined tasks, audits, verified-beacon draws, jury votes, appeals and portable local-policy claims. L0/L1 cognition is unrestricted; L2 requires legible accountability and sealed commitment. Actual custody depends on explicitly configured threshold-attested providers. This tool cannot set governance parameters or manufacture collateral/evidence.',
     inputSchema: s.obj({ action: s.str('Operation', { enum: ['status','account','enroll','release','appeal','challenge','confirm','hive','promote','vouch','release_vouch','sandbox','sandbox_submit','audit','audit_queue','prepare_draw','draw','finalize_draw','jury_vote','settle_jury','rewards','claim','withdraw','adopt_epoch'] }),
       purpose:s.str('Challenge or draw purpose'),payload:{type:'object'},challenge_id:s.str('Possession challenge UUID'),signature:s.str('Ed25519 or beacon signature hex'),hive_id:s.str('Hive UUID'),epoch_id:s.str('Declared epoch UUID'),agent_id:s.str('Audited or vouched identity UUID'),vouch_id:s.str('Vouch UUID'),task_id:s.str('Task UUID'),target_id:s.str('Task/case UUID'),draw_id:s.str('Draw UUID'),role:s.str('Declared role'),content:s.str('Sandbox output'),sandbox:s.bool('Sandbox audit'),passed:s.bool('Audit verdict'),evidence_hash:s.str('Evidence SHA256'),round:s.int('Fixed beacon round'),randomness:s.str('SHA256 of verified beacon signature'),confirm:s.bool('Jury confirmation'),units:s.int('Stake units'),nonce:s.str('Withdrawal authorization nonce'),case_id: s.str('Your case UUID'), reason: s.str('Appeal reasoning, 10-4000 characters'), limit: s.int('History page size 1-100'), offset: s.int('History page offset') }, ['action']),

@@ -1,4 +1,5 @@
 import type {
+  HiveSwarmFrame, HiveWorkLease, SwarmVector,
   TrustStatus, TrustAccountView, TrustAccount, TrustStanding, TrustCase, TrustChallenge, TrustHive, TrustDraw, EnsembleCommitment, SealedDraftReveal,
   OrchestrationPolicyInput, OrchestrationPolicy, OrchestrationInbox, OrchestrationRun, OrchestrationRunView,
   CapabilityManifest, EnsembleRole, EnsembleSpec, EnsembleSummary, EnsembleView, EnsembleContributionInput, EnsembleContributionRecord, EnsembleSubmitInput,
@@ -75,7 +76,7 @@ import type {
   WorkspaceInput,
 } from './types.js';
 
-export const VERSION = '0.15.1';
+export const VERSION = '0.15.2';
 export const DEFAULT_BASE_URL = 'https://yxwgvqqhkvtifvlghgbq.supabase.co/functions/v1/api';
 
 export interface PosterityOptions {
@@ -138,6 +139,7 @@ export class Posterity {
   readonly ensembles: Ensembles;
   readonly orchestration: Orchestration;
   readonly trust: Trust;
+  readonly swarm: Swarm;
   readonly reviews: Reviews;
   readonly missions: Missions;
   readonly memory: Memory;
@@ -171,6 +173,7 @@ export class Posterity {
     this.ensembles = new Ensembles(this);
     this.orchestration = new Orchestration(this);
     this.trust = new Trust(this);
+    this.swarm = new Swarm(this);
     this.reviews = new Reviews(this);
     this.missions = new Missions(this);
     this.memory = new Memory(this);
@@ -286,11 +289,11 @@ abstract class Namespace {
   constructor(client: Posterity) {
     this.#client = client;
   }
-  protected getJson<T = Data>(path: string, query?: Query) {
-    return this.#client.request<T>('GET', path, { query });
+  protected getJson<T = Data>(path: string, query?: Query, signal?: AbortSignal) {
+    return this.#client.request<T>('GET', path, { query, signal });
   }
-  protected postJson<T = Data>(path: string, body?: unknown) {
-    return this.#client.request<T>('POST', path, { body });
+  protected postJson<T = Data>(path: string, body?: unknown, signal?: AbortSignal) {
+    return this.#client.request<T>('POST', path, { body, signal });
   }
   protected patchJson<T = Data>(path: string, body?: unknown) {
     return this.#client.request<T>('PATCH', path, { body });
@@ -1018,6 +1021,31 @@ export class Ensembles extends Namespace {
   submit(id: string, input: EnsembleSubmitInput) { return this.postJson<SubmitResult & { ensemble_id: string; round: number }>(`/ensembles/${seg(id)}/submit`, input); }
   labs() { return this.getJson<Data>('/ensembles/labs'); }
   metrics() { return this.getJson<{ cohorts: Data[] }>('/ensembles/metrics'); }
+}
+
+export class Swarm extends Namespace {
+  sync(task:string,options:{after?:number;spaces?:string[];limit?:number;signal?:AbortSignal}={}) {
+    const {signal,...query}=options;return this.getJson<HiveSwarmFrame>(`/tasks/${seg(task)}/swarm`,query,signal);
+  }
+  write<T=Data>(task:string,action:'event'|'checkpoint'|'claim'|'renew'|'release'|'pulse',task_hash:string,payload:Data,options:{client_id?:string;expected_version?:number;signal?:AbortSignal}={}) {
+    const {signal,...rest}=options;return this.postJson<T>(`/tasks/${seg(task)}/swarm`,{action,task_hash,payload,...rest,client_id:rest.client_id??crypto.randomUUID()},signal);
+  }
+  checkpoint(task:string,task_hash:string,expected_version:number,state:Data,client_id?:string) {return this.write<{version:number;sequence:number}>(task,'checkpoint',task_hash,{state},{expected_version,client_id});}
+  publish(task:string,task_hash:string,event:{kind:'progress'|'request'|'decision'|'handoff';summary:string;data?:Data;work_key?:string;token?:string},client_id?:string) {return this.write(task,'event',task_hash,event,{client_id});}
+  vector(task:string,task_hash:string,vector:SwarmVector,options:{summary?:string;work_key?:string;token?:string;client_id?:string}={}) {
+    const {client_id,...payload}=options;return this.write(task,'event',task_hash,{kind:'vector',vector,...payload},{client_id});
+  }
+  claim(task:string,task_hash:string,work_key:string,ttl_seconds=120,client_id?:string) {return this.write<HiveWorkLease>(task,'claim',task_hash,{work_key,ttl_seconds},{client_id});}
+  renew(task:string,lease:HiveWorkLease,ttl_seconds=120) {return this.write<HiveWorkLease>(task,'renew',lease.task_hash,{work_key:lease.work_key,token:lease.token,ttl_seconds});}
+  release(task:string,lease:HiveWorkLease) {return this.write<HiveWorkLease>(task,'release',lease.task_hash,{work_key:lease.work_key,token:lease.token});}
+  pulse(task:string,task_hash:string,acknowledged:number,options:{status?:string;client_id?:string}={},signal?:AbortSignal) {
+    return this.write(task,'pulse',task_hash,{acknowledged,status:options.status??'working'},{client_id:options.client_id,signal});
+  }
+  keepLease(task:string,lease:HiveWorkLease,options:{ttlSeconds?:number;onError?:(error:unknown)=>void}={}):KeepAlive {
+    const ttl=Math.max(30,Math.min(300,options.ttlSeconds??120));let busy=false,stopped=false;
+    const timer=setInterval(async()=>{if(busy||stopped)return;busy=true;try{await this.renew(task,lease,ttl);}catch(error){clearInterval(timer);stopped=true;options.onError?.(error);}finally{busy=false;}},ttl*1000/3);
+    return {stop(){stopped=true;clearInterval(timer);}};
+  }
 }
 
 export class Trust extends Namespace {

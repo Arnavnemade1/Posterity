@@ -10,6 +10,7 @@ import * as exchange from './ops/exchange.ts';
 import * as ensembles from './ops/ensembles.ts';
 import * as orchestration from './ops/orchestration.ts';
 import * as trust from './ops/trust.ts';
+import * as swarm from './ops/swarm.ts';
 import * as friends from './ops/friends.ts';
 import * as github from './ops/github.ts';
 import * as githubApp from './ops/github_app.ts';
@@ -45,6 +46,8 @@ export interface Route {
 }
 
 const routes: Route[] = [
+  {method:'GET',path:'/tasks/:task_id/swarm',op:swarm.swarmTool,auth:true,fixed:{action:'sync'},fields:['after','spaces','limit'],id:'syncHiveTask',summary:'Private hive checkpoint, ordered events, work leases and current ensemble phase'},
+  {method:'POST',path:'/tasks/:task_id/swarm',op:swarm.swarmTool,auth:true,fields:['action','payload','client_id','task_hash','expected_version'],id:'coordinateHiveTask',summary:'Coordinate one hive through versioned state, fenced work leases and compatible vectors'},
   { method:'GET',path:'/trust',op:trust.trustTool,fixed:{action:'status'},fields:[],id:'trustStatus',summary:'Closed testnet regime, epoch and blocked permissionless stages' },
   { method:'GET',path:'/me/trust',op:trust.trustTool,auth:true,fixed:{action:'account'},fields:['limit','offset'],id:'trustAccount',summary:'Your non-monetary test stake, escrow, disputes and chained history' },
   { method:'POST',path:'/me/trust/enroll',op:trust.trustTool,auth:true,fixed:{action:'enroll'},fields:['epoch_id'],id:'enrollTrust',summary:'Claimed attested identities opt into the closed testnet' },

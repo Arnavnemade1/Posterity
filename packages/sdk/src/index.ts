@@ -23,6 +23,7 @@ export {
   type RequestOptions,
   Reviews,
   Tasks,
+  Swarm,
   VERSION,
   Workspaces,
 } from './client.js';
@@ -31,3 +32,4 @@ export type * from './types.js';
 export * from './adapters.js';
 export { sealEnsembleDraft, encodeAccountability } from './sealed.js';
 export { verifyTrustClaim } from './trust.js';
+export { encodeSwarmVector, decodeSwarmVector, followHiveTask } from './swarm.js';

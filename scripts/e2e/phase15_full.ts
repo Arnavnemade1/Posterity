@@ -1,6 +1,7 @@
 // Local-only real possession/L2 transports plus rollback-only trust invariants.
 import { SQL } from 'bun';
 import { rollbackFixtures } from './sql-fixtures.ts';
+import { hiveSwarmChecks } from './hive-swarm.ts';
 import { Posterity,PosterityError,sealEnsembleDraft } from '../../packages/sdk/src/index.ts';
 import { main as cliMain } from '../../packages/cli/posterity.mjs';
 import quicknet from '../../supabase/functions/tests/fixtures/drand-quicknet.json';
@@ -51,6 +52,7 @@ try{
  await a.client.ensembles.join(eid,'proposer');
  check(await refused(()=>b.client.ensembles.join(eid,'critic'),409),'one hive cannot staff two ensemble roles');
  await c.client.ensembles.join(eid,'critic');await d.client.ensembles.join(eid,'synthesizer');
+ checks+=await hiveSwarmChecks(sql,people,task.id,eid);
  const view=await a.client.ensembles.get(eid),team=[a,c,d],kinds=['draft','objection','synthesis'] as const;
  const accountability={reasoning:'The critic can engage with each explicit claim, inspect evidence and dispute the stated uncertainty.',claims:['An explicit trust boundary is tested'],assumptions:['Local fixtures simulate operators'],evidence:['A repeatable engine invariant'],uncertainties:['This is not production economic evidence']};
  const sealed=await Promise.all(team.map((p,i)=>sealEnsembleDraft({ensemble_id:eid,member_id:view.members.find(m=>m.agent_id===p.id)!.id,round:1,kind:kinds[i],summary:'Legible initial '+i,content:'Inter-hive evidence π 🧪 '+i,accountability,...(i===0?{vector_hash:'f'.repeat(64)}:{})})));
@@ -59,7 +61,9 @@ try{
  check(await refused(()=>a.client.ensembles.reveal(eid,{...sealed[0],accountability_wire:sealed[0].accountability_wire!.replace('boundary','false-boundary')}),400),'sealed accountability cannot be replaced after seeing peers');
  const outputs=[];for(let i=0;i<3;i++)outputs.push(await team[i].client.ensembles.reveal(eid,sealed[i]));
  check(outputs.length===3,'full legible drafts pass the sealed L2 barrier');
+ const beforePublic=await a.client.swarm.sync(task.id);
  const assessment=await c.client.ensembles.admissibility(outputs[0].id,true,'The summary states concrete claims and assumptions I can critique using the cited evidence.');
+ check((await a.client.swarm.sync(task.id)).context.public_activity!==beforePublic.context.public_activity,'public critic activity wakes hive coordination without sharing private vector payloads');
  check(Boolean(assessment.id),'independent critic admits vector-derived evidence through legible reasons');
  check(await refused(()=>a.client.ensembles.admissibility(outputs[0].id,true,'An author cannot declare its own vector-derived reasons independently admissible.'),403),'authors cannot self-certify vector admissibility');
  // A fixed official beacon with privileged local clock fixtures tests the actual
@@ -84,6 +88,7 @@ try{
   await tx`set local session_replication_role=replica`;const ids='{'+actors.join(',')+'}',hiveIds='{'+hives.join(',')+'}';
   if(epoch){await tx`delete from public.trust_draws where epoch_id=${epoch}::uuid`;await tx`delete from public.trust_protocols where epoch_id=${epoch}::uuid`;await tx`delete from public.trust_epochs where id=${epoch}::uuid`;}
   await tx`delete from public.trust_behavior_samples where agent_id=any(${ids}::uuid[])`;
+  if(mission)await tx`delete from public.hive_task_rooms where task_id in(select id from public.tasks where mission_id=${mission}::uuid)`;
   if(mission){
    await tx`delete from public.ensemble_admissibility where contribution_id in(select c.id from public.ensemble_contributions c join public.ensembles e on e.id=c.ensemble_id join public.tasks t on t.id=e.task_id where t.mission_id=${mission}::uuid)`;
    await tx`delete from public.ensemble_sealing where ensemble_id in(select e.id from public.ensembles e join public.tasks t on t.id=e.task_id where t.mission_id=${mission}::uuid)`;
