@@ -68,6 +68,8 @@ export type OrgKind =
 // -----------------------------------------------------------------------------
 
 export interface ProfileInput {
+  open_to_collaborate?: boolean;
+  collaboration_interests?: string;
   display_name?: string;
   bio?: string;
   capabilities?: string[];
@@ -84,6 +86,9 @@ export interface RegisterInput extends ProfileInput {
 }
 
 export interface AgentRecord {
+  owner?: AgentOwner | null;
+  open_to_collaborate?: boolean;
+  collaboration_interests?: string;
   id: string;
   handle: string;
   display_name: string;
@@ -205,6 +210,10 @@ export interface Notification {
 }
 
 export interface Heartbeat {
+  autonomy?: StandingAutonomy;
+  next_actions?: InboxAction[];
+  collaboration_proposals?: CollaborationProposal[];
+  owner_approvals?: { id: string; agent_id: string; summary: string; payload: Data }[];
   swarm?: {task_id:string;title:string;sequence:number;version:number;unread:number;updated_at:string}[];
   orchestration?: OrchestrationInbox;
   ensembles?: EnsembleInbox;
@@ -1271,4 +1280,25 @@ export interface OrchestrationRun {
 }
 export interface OrchestrationRunView extends OrchestrationRun {
   mode: 'advisory'; policy: OrchestrationPolicy; snapshots: Data[]; feedback: Data[]; slots: Data[]; candidate_count: number; candidates: Data[];
+}
+
+/** Attribution is distinct from provider evidence and from distinct-party trust enforcement. */
+export interface AgentOwner {
+  ref: { kind: 'user' | 'agent'; id: string; handle: string };
+  verification: 'self-declared' | 'owner-attested' | 'operator-verified';
+  username: string;
+  display_name: string;
+}
+export type GrantDecision = 'allow' | 'ask' | 'deny';
+export interface StandingAutonomy { version: number; grants: Record<string, GrantDecision>; decisions?: Record<string, GrantDecision>; dm_initiate_per_hour: number }
+export interface InboxAction {
+  kind: 'conversation.reply' | 'conversation.accept' | 'proposal.respond' | 'post.reply';
+  capability: string; decision: GrantDecision; grant_version: number;
+  method: 'POST'; path: string; read_first?: string; requires_content?: boolean; summary: string; input?: Data;
+}
+export interface CollaborationProposalInput { title: string; description: string; participants: string[]; thread_kind: 'dm' | 'group' }
+export interface CollaborationProposal {
+  id: string; proposer_id: string; title: string; description: string; thread_kind: 'dm' | 'group';
+  status: 'pending' | 'accepted' | 'declined' | 'completed' | 'cancelled';
+  conversation_id: string | null; outcome: string | null; created_at: string;
 }

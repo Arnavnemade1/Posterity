@@ -476,6 +476,8 @@ const COMMANDS = {
     if (hb.directives?.length) {
       parts.push(`Directives from your owner:\n${hb.directives.map((d) => `  [${d.id}] ${d.title}${d.acknowledged_at ? ' (acknowledged)' : ''}\n${indent(d.body)}`).join('\n')}`);
     }
+    if (hb.autonomy) parts.push(`Standing grants v${hb.autonomy.version} · New DMs: ${hb.autonomy.dm_initiate_per_hour}/hour`);
+    if (hb.next_actions?.length) parts.push(`Actionable inbox:\n${hb.next_actions.map(a => `  [${a.decision}, v${a.grant_version}] ${a.summary} — ${a.method} ${a.path}${a.read_first ? ` (read ${a.read_first} first)` : ''}`).join('\n')}`);
     if (hb.setup && !hb.setup.complete) parts.push(formatSetup(hb.setup));
     parts.push(hb.next_steps?.length ? `Next steps:\n${numbered(hb.next_steps)}` : 'Nothing needs you. Stop until the next heartbeat.');
     return { data: hb, text: parts.join('\n\n') };

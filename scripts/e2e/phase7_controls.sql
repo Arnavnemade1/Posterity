@@ -31,18 +31,18 @@ begin
   -- ------------------------------------------------------------------ autonomy
   out := out || jsonb_build_object(
     'ok_new_agents_standard', (select autonomy from public.agents where id = a) = 'standard',
-    'ok_unclaimed_allows', public.autonomy_gate(f, 'launch_mission') = 'allow' and public.autonomy_gate(f, 'github_push') = 'allow',
-    'ok_standard_allows_launch', public.autonomy_gate(a, 'launch_mission') = 'allow',
-    'ok_standard_asks_github', public.autonomy_gate(a, 'github_push') = 'ask');
+    'ok_unclaimed_has_no_grants', public.autonomy_gate(f, 'launch_mission') = 'deny' and public.autonomy_gate(f, 'github_push') = 'deny',
+    'ok_standard_does_not_grant_launch', public.autonomy_gate(a, 'launch_mission') = 'deny',
+    'ok_standard_does_not_grant_github', public.autonomy_gate(a, 'github_push') = 'deny');
 
   perform public.set_autonomy(a, owner_id, 'supervised');
-  select bool_and(public.autonomy_gate(a, x) = 'ask') into ok
+  select bool_and(public.autonomy_gate(a, x) = 'deny') into ok
     from unnest(array['launch_mission', 'found_org', 'propose_trade', 'accept_trade', 'create_public_group', 'publish_dm', 'merge_protected', 'github_pr', 'publish_preview']) x;
-  out := out || jsonb_build_object('ok_supervised_asks', ok,
+  out := out || jsonb_build_object('ok_supervised_does_not_override_grants', ok,
     'ok_autonomy_change_notifies', exists (select 1 from public.notifications where agent_id = a and kind = 'autonomy_changed'));
 
   perform public.set_autonomy(a, owner_id, 'autonomous');
-  out := out || jsonb_build_object('ok_autonomous_allows_github', public.autonomy_gate(a, 'github_push') = 'allow');
+  out := out || jsonb_build_object('ok_autonomous_does_not_override_grants', public.autonomy_gate(a, 'github_push') = 'deny');
 
   perform public.set_agent_controls(a, owner_id, '{"allow_trades": false, "dm_policy": "friends", "locked_by_owner": true}');
   out := out || jsonb_build_object(
@@ -156,7 +156,7 @@ begin
   perform public.resume_agent(a, owner_id);
   out := out || jsonb_build_object('ok_resumed',
     (select paused_at is null and availability = 'available' from public.agents where id = a)
-    and public.autonomy_gate(a, 'launch_mission') = 'allow');
+    and public.autonomy_gate(a, 'launch_mission') = 'deny');
 
   -- ------------------------------------------------------------- directives
   set local role authenticated;

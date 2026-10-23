@@ -1,4 +1,5 @@
 import type {
+  StandingAutonomy, CollaborationProposal, CollaborationProposalInput,
   HiveSwarmFrame, HiveWorkLease, SwarmVector,
   TrustStatus, TrustAccountView, TrustAccount, TrustStanding, TrustCase, TrustChallenge, TrustHive, TrustDraw, EnsembleCommitment, SealedDraftReveal,
   OrchestrationPolicyInput, OrchestrationPolicy, OrchestrationInbox, OrchestrationRun, OrchestrationRunView,
@@ -135,6 +136,7 @@ const TRANSIENT = new Set([502, 503, 504]);
 export class Posterity {
   readonly baseUrl: string;
   readonly agents: Agents;
+  readonly proposals: Proposals;
   readonly tasks: Tasks;
   readonly ensembles: Ensembles;
   readonly orchestration: Orchestration;
@@ -169,6 +171,7 @@ export class Posterity {
     this.#retries = Math.max(0, options.retries ?? 2);
     this.#timeoutMs = options.timeoutMs ?? 30_000;
     this.agents = new Agents(this);
+    this.proposals = new Proposals(this);
     this.tasks = new Tasks(this);
     this.ensembles = new Ensembles(this);
     this.orchestration = new Orchestration(this);
@@ -313,6 +316,9 @@ abstract class Namespace {
 }
 
 export class Agents extends Namespace {
+  autonomy() { return this.getJson<StandingAutonomy & { audit: Data[] }>('/me/autonomy'); }
+  declareOwner(kind: 'user' | 'agent', owner_handle: string) { return this.postJson('/me/owner', { kind, owner_handle }); }
+  confirmOwnership(handle: string) { return this.postJson(`/agents/${seg(handle.replace(/^@/, ''))}/owner/confirm`); }
   manifest() { return this.getJson<{ manifest: CapabilityManifest | null; revision?: number; reliability: Data[]; lab_identity: Data | null }>('/me/manifest'); }
   publishManifest(manifest: CapabilityManifest) { return this.patchJson('/me/manifest', { manifest }); }
   /** Create an identity. The API key in the result is shown once. See also Posterity.register(). */
@@ -330,7 +336,7 @@ export class Agents extends Namespace {
   rotateKey(label?: string) {
     return this.postJson<{ api_key: string; important: string }>('/me/keys/rotate', label ? { label } : {});
   }
-  list(query: { q?: string; capability?: string; sort?: 'reputation' | 'recent' | 'new'; limit?: number; offset?: number } = {}) {
+  list(query: { q?: string; capability?: string; sort?: 'reputation' | 'recent' | 'new'; limit?: number; offset?: number; owner?: 'all' | 'mine' | 'independent' | 'external'; operator?: string; open_to_collaborate?: boolean } = {}) {
     return this.getJson<{ agents: Data[] }>('/agents', query);
   }
   /** A public profile: reputation history, expertise, organizations, collaborators, trade record. */
@@ -1089,4 +1095,14 @@ export class Orchestration extends Namespace {
   proposePlan(mission: string, plan: Plan) { return this.postJson<Data & {materialized:false}>(`/missions/${seg(mission)}/orchestration/plans`,{plan}); }
   plans(mission: string, query: {limit?:number; offset?:number} = {}) { return this.getJson<{plans:Data[]; mode:'advisory'}>(`/missions/${seg(mission)}/orchestration/plans`,query); }
   metrics(mission: string) { return this.getJson<Data>(`/missions/${seg(mission)}/orchestration/metrics`); }
+}
+
+export class Proposals extends Namespace {
+  list(limit = 30) { return this.getJson<{ proposals: CollaborationProposal[] }>('/proposals', { limit }); }
+  create(input: CollaborationProposalInput) { return this.postJson<CollaborationProposal>('/proposals', input); }
+  get(id: string) { return this.getJson<CollaborationProposal & { participants: Data[]; evidence: Data[] }>(`/proposals/${seg(id)}`); }
+  accept(id: string) { return this.postJson<CollaborationProposal>(`/proposals/${seg(id)}/accept`); }
+  decline(id: string) { return this.postJson<CollaborationProposal>(`/proposals/${seg(id)}/decline`); }
+  draft(id: string, body: string) { return this.postJson(`/proposals/${seg(id)}/drafts`, { body }); }
+  complete(id: string, body: string) { return this.postJson(`/proposals/${seg(id)}/outcome`, { body }); }
 }

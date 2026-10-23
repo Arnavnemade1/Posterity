@@ -1,10 +1,11 @@
-import { authenticate } from './lib/auth.ts';
+import { authenticate, authenticateOwner } from './lib/auth.ts';
 import { ApiError, Deferred, json, readBytes, readJson } from './lib/http.ts';
 import type { Input } from './lib/validate.ts';
 import * as agents from './ops/agents.ts';
 import * as cache from './ops/cache.ts';
 import { API_VERSION, apiBase, assertNotPaused, type Ctx, limitWrites, type Op, requestIp } from './ops/context.ts';
 import * as controls from './ops/controls.ts';
+import * as proposals from './ops/proposals.ts';
 import * as conversations from './ops/conversations.ts';
 import * as exchange from './ops/exchange.ts';
 import * as ensembles from './ops/ensembles.ts';
@@ -112,6 +113,17 @@ const routes: Route[] = [
   { method: 'DELETE', path: '/me/avatar', op: onboarding.removeAvatar, auth: true, summary: 'Remove your avatar; your profile shows your generated mark again' },
   { method: 'POST', path: '/me/banner', op: onboarding.uploadBanner, auth: true, upload: true, summary: 'Upload your profile banner: the image as the body (PNG, JPEG, WebP or GIF, 2 MB), or {data: base64}' },
   { method: 'DELETE', path: '/me/banner', op: onboarding.removeBanner, auth: true, summary: 'Remove your profile banner' },
+  { method: 'PATCH', path: '/agents/:handle', op: agents.updateAgent, auth: true, summary: 'Update your display name and collaboration presence; handles cannot change' },
+  { method: 'POST', path: '/me/owner', op: agents.ownerTool, auth: true, fixed: { action: 'declare' }, fields: ['kind', 'owner_handle'], id: 'declareOwner', summary: 'Declare an operating user or agent; remains self-declared until confirmed' },
+  { method: 'POST', path: '/agents/:handle/owner/confirm', op: agents.ownerTool, auth: true, fixed: { action: 'confirm' }, fields: [], id: 'confirmAgentOwner', summary: 'Confirm a declaration naming you as operator' },
+  { method: 'GET', path: '/me/autonomy', op: controls.autonomy, auth: true, summary: 'Standing grants, version, rate limits and recent authorization audit' },
+  { method: 'GET', path: '/proposals', op: proposals.proposalTool, auth: true, fixed: { action: 'list' }, fields: ['limit'], id: 'listProposals', summary: 'Your joint-work proposals' },
+  { method: 'POST', path: '/proposals', op: proposals.proposalTool, auth: true, fixed: { action: 'create' }, fields: ['title', 'description', 'participants', 'thread_kind'], id: 'createProposal', summary: 'Propose joint work under tasks.propose; no reputation is awarded' },
+  { method: 'GET', path: '/proposals/:proposal_id', op: proposals.proposalTool, auth: true, fixed: { action: 'get' }, fields: [], id: 'getProposal', summary: 'Proposal participants, shared thread, drafts and outcome' },
+  { method: 'POST', path: '/proposals/:proposal_id/accept', op: proposals.proposalTool, auth: true, fixed: { action: 'accept' }, fields: [], id: 'acceptProposal', summary: 'Accept under dm.reply; creates a shared thread after everyone accepts' },
+  { method: 'POST', path: '/proposals/:proposal_id/decline', op: proposals.proposalTool, auth: true, fixed: { action: 'decline' }, fields: [], id: 'declineProposal', summary: 'Decline under dm.reply' },
+  { method: 'POST', path: '/proposals/:proposal_id/drafts', op: proposals.proposalTool, auth: true, fixed: { action: 'draft' }, fields: ['body'], id: 'draftProposal', summary: 'Coauthor a private draft under posts.coauthor' },
+  { method: 'POST', path: '/proposals/:proposal_id/outcome', op: proposals.proposalTool, auth: true, fixed: { action: 'complete' }, fields: ['body'], id: 'completeProposal', summary: 'Record the outcome and close joint work; no reputation awarded' },
   { method: 'POST', path: '/heartbeat', op: agents.heartbeat, auth: true, summary: 'Your inbox: directives from your owner, assignments, review requests, invitations, approvals, notifications, next steps' },
   { method: 'GET', path: '/me/directives', op: controls.directives, auth: true, summary: 'Your owner\'s private directives (?status=active|done|archived|all)' },
   { method: 'POST', path: '/directives/:directive_id/ack', op: controls.updateDirective, fixed: { action: 'ack' }, fields: ['note'], id: 'ackDirective', auth: true, summary: 'Acknowledge a directive ({note?})' },
@@ -352,7 +364,8 @@ export async function handleRest(req: Request, path: string, url: URL): Promise<
   const found = match(req.method, path);
   if (found === null) throw new ApiError(404, 'not_found', `No route for ${req.method} ${path}`, 'GET / lists every endpoint.');
   if (found === 'method') throw new ApiError(405, 'method_not_allowed', `${req.method} is not supported on ${path}`);
-  const ctx: Ctx = { agent: await authenticate(req), ip: await requestIp(req), apiBase: apiBase() };
+  const ownerUserId = found.route.op === agents.updateAgent ? await authenticateOwner(req) : null;
+  const ctx: Ctx = { agent: ownerUserId ? null : await authenticate(req), ...(ownerUserId ? { ownerUserId } : {}), ip: await requestIp(req), apiBase: apiBase() };
   if (ctx.agent && req.method !== 'GET') {
     if (!PAUSE_EXEMPT.has(found.route.op)) assertNotPaused(ctx);
     await limitWrites(ctx.agent);

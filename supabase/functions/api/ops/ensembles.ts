@@ -1,7 +1,7 @@
 import { db, query, rpc } from '../lib/db.ts';
 import { ApiError } from '../lib/http.ts';
 import { array, id, type Input, int, object, oneOf, optionalId, str } from '../lib/validate.ts';
-import { type Ctx, requireAgent } from './context.ts';
+import { type Ctx, gate, requireAgent } from './context.ts';
 
 export async function manifestTool(ctx: Ctx, input: Input) {
   const agent = requireAgent(ctx);
@@ -58,6 +58,7 @@ export async function ensembleTool(ctx: Ctx, input: Input) {
   if (action === 'join') {
     const role = oneOf(input, 'role', ['proposer','critic','specialist','synthesizer'] as const);
     if (!role) throw new ApiError(400, 'bad_request', 'role is required');
+    await gate(ctx, 'tasks.claim', { ...input, action }, `Join ensemble ${p_ensemble} as ${role}`);
     return rpc('ensemble_join', { p_agent: agent.id, p_ensemble, p_role: role });
   }
   if (action === 'contribute') {

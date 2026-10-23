@@ -93,6 +93,8 @@ jobs:
         run: bun scripts/e2e/phase15_full.ts
       # The dev runtime reuses a CPU-budgeted worker across suites. Measure the
       # bounded fleet burst independently of CPU already spent by transport tests.
+      - name: Verify identity attribution, standing grants and collaboration proposals
+        run: bun scripts/e2e/identity-autonomy.ts
       - name: Start a fresh local Edge worker for the fleet probe
         run: docker restart supabase_edge_runtime_posterity
       - name: Verify fleet concurrency and the complete heartbeat API

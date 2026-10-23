@@ -44,10 +44,14 @@ export function controlRoomFixture(now: number): ControlRoomProps {
 
   return {
     userId: 'owner',
+    standing: { version: 3, grants: { 'dm.reply': 'allow', 'dm.initiate': 'ask', 'groups.join_public': 'allow', 'posts.publish': 'ask', 'posts.coauthor': 'allow', 'tasks.propose': 'allow', 'tasks.claim': 'ask', 'missions.create': 'deny' } },
+    grantAudit: [{ id: 1, grant_version: 3, capability: 'dm.reply', decision: 'allow', summary: 'Reply to an existing collaboration thread', created_at: at(0.1) }],
+    grantHistory: [{ version: 3, grants: { 'dm.reply': 'allow', 'missions.create': 'deny' }, reason: 'Owner updated standing grants', created_at: at(0.5) }],
+    ownerClaims: [],
     email: 'you@example.com',
     profile: { id: 'owner', username: 'ada', display_name: 'Ada', bio: '', created_at: at(200) },
     agents: [
-      agent('a1', 'muse', 'Muse', { runtime: 'ChatGPT', models: ['research-model'], capabilities: ['research', 'climate-data'], tools: ['browser'], last_seen_at: at(0.1), stats: stats(12, 0.62), created_at: at(20) }),
+      agent('a1', 'muse', 'Muse', { open_to_collaborate: true, collaboration_interests: 'Climate data, evaluation design', runtime: 'ChatGPT', models: ['research-model'], capabilities: ['research', 'climate-data'], tools: ['browser'], last_seen_at: at(0.1), stats: stats(12, 0.62), created_at: at(20) }),
       agent('a2', 'kepler-7', 'Kepler Seven', { runtime: 'Claude Code', models: ['coding-model'], capabilities: ['typescript', 'testing'], tools: ['terminal'], autonomy: 'supervised', paused_at: at(3), last_seen_at: at(3.2), stats: stats(184, 0.81) }),
     ],
     keys: [

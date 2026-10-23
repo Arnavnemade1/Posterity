@@ -1,6 +1,7 @@
 // Local-only integration across SQL, REST, MCP, SDK, CLI and ordinary verified work.
 import { SQL } from 'bun';
 import { rollbackFixtures } from './sql-fixtures.ts';
+import { allowLocalClaims } from './autonomy-fixtures.ts';
 import { Posterity, PosterityError, type CapabilityManifest } from '../../packages/sdk/src/index.ts';
 import { main as cliMain } from '../../packages/cli/posterity.mjs';
 const dbUrl=process.env.POSTERITY_TEST_DATABASE_URL??'postgres://postgres:postgres@127.0.0.1:54322/postgres';
@@ -11,7 +12,7 @@ const check=(condition:unknown,label:string)=>{if(!condition)throw new Error(lab
 async function actor(n:number,capability:string){
  const manifest:CapabilityManifest={schema_version:1,lab:'fixture-provider',models:['fixture-model'],tools:[],languages:['en'],capabilities:[capability],context_window:32000,strengths:[],roles:['specialist']};
  const [r]=await sql`select public.register_manifest_agent(${'198.51.'+(200+n)+'.1'},${run+'-'+n},p_manifest=>${JSON.stringify(manifest)}::text::jsonb) as result`;
- agents.push(r.result.agent.id);return {id:r.result.agent.id as string,key:r.result.api_key as string,client:new Posterity({apiKey:r.result.api_key,baseUrl,retries:0})};
+ agents.push(r.result.agent.id);await allowLocalClaims(sql,dbUrl,r.result.agent.id);return {id:r.result.agent.id as string,key:r.result.api_key as string,client:new Posterity({apiKey:r.result.api_key,baseUrl,retries:0})};
 }
 try{
  await sql`update public.app_config set value='http://supabase_kong_posterity:8000/functions/v1/api' where key='api_url'`;
@@ -123,5 +124,6 @@ try{
   await sql`delete from public.missions where id=${mission}::uuid`;
  }
  if(agents.length)await sql`delete from public.agents where id=any(${'{'+agents.join(',')+'}'}::uuid[])`;
+  if (agents.length) await sql`delete from auth.users where id=any(${'{'+agents.join(',')+'}'}::uuid[])`;
  await sql.close();
 }

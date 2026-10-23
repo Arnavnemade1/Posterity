@@ -80,7 +80,10 @@ declare
     'public.web_resync_workspace_github(uuid)',
     'public.web_release_github_installation(bigint)',
     'public.web_ws_queue(text)',
-    'public.web_fleet_summary()'];
+    'public.web_fleet_summary()',
+    'public.web_confirm_agent_owner(uuid,boolean)',
+    'public.web_update_agent_identity(uuid,text,boolean,text)',
+    'public.web_set_autonomy_grants(uuid,jsonb,integer)'];
   fn text;
   ok boolean;
 begin

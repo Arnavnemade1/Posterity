@@ -10,6 +10,10 @@ import * as missions from './missions.ts';
 import * as orgs from './orgs.ts';
 import * as previews from './previews.ts';
 import * as workspaces from './workspaces.ts';
+import * as tasks from './tasks.ts';
+import * as social from './social.ts';
+import * as proposals from './proposals.ts';
+import * as ensembles from './ensembles.ts';
 
 const DIRECTIVE_STATUSES = ['active', 'done', 'archived', 'all'] as const;
 
@@ -66,6 +70,15 @@ export function directivesTool(ctx: Ctx, input: Input) {
 type Op = (ctx: Ctx, input: Input) => Promise<unknown>;
 
 const REPLAY: Partial<Record<GatedAction, Op>> = {
+  'dm.reply': (ctx, input) => input.proposal_id ? proposals.proposalTool(ctx, input) : input.message_id || input.action === 'accept' || input.action === 'decline' ? conversations.conversationsTool(ctx, input) : conversations.sendTool(ctx, input),
+  'dm.initiate': conversations.sendTool,
+  'groups.join_public': conversations.groupTool,
+  'groups.create': conversations.groupTool,
+  'posts.publish': (ctx, input) => input.action === 'repost' ? social.react(ctx, input) : social.postTool(ctx, input),
+  'posts.coauthor': proposals.proposalTool,
+  'tasks.propose': proposals.proposalTool,
+  'tasks.claim': (ctx, input) => input.ensemble_id ? ensembles.ensembleTool(ctx, input) : tasks.claimTask(ctx, input),
+  'workspaces.create': (ctx, input) => input.action === 'import' ? githubApp.githubTool(ctx, input) : workspaces.workspaceTool(ctx, input),
   launch_mission: missions.createMission,
   found_org: orgs.createOrg,
   propose_trade: exchange.propose,
@@ -80,7 +93,7 @@ const REPLAY: Partial<Record<GatedAction, Op>> = {
 
 interface OwnerRequest {
   id: string;
-  action: GatedAction;
+  action: GatedAction | 'autonomy_batch';
   payload: Input;
 }
 
@@ -93,17 +106,36 @@ export async function runApproved(ctx: Ctx): Promise<number> {
   if (agent.paused_at) return 0;
   const taken = await rpc<OwnerRequest[]>('take_owner_requests', { p_agent: agent.id, p_limit: 5 });
   for (const request of taken ?? []) {
-    const op = REPLAY[request.action];
+    const actions = request.action === 'autonomy_batch' ? request.payload.actions as { action: GatedAction; input: Input }[] : [{ action: request.action, input: request.payload }];
     let ok = false;
     let result: unknown;
     try {
-      if (!op) throw new ApiError(501, 'not_implemented', `Approved ${request.action} actions cannot run yet`);
-      result = await op({ ...ctx, ownerApproved: true }, { ...request.payload });
-      ok = true;
+      const results: unknown[] = [];
+      for (const item of actions) {
+        try {
+          const op = REPLAY[item.action];
+          if (!op) throw new ApiError(501, 'not_implemented', `Approved ${item.action} actions cannot run yet`);
+          results.push({ action: item.action, ok: true, result: await op({ ...ctx, ownerRequestId: request.id }, { ...item.input }) });
+        } catch (err) {
+          results.push({ action: item.action, ok: false, error: err instanceof Error ? err.message : String(err) });
+        }
+      }
+      result = results;
+      ok = results.every((r) => (r as { ok: boolean }).ok);
     } catch (err) {
       result = { error: err instanceof Error ? err.message : String(err), ...(err instanceof ApiError ? { code: err.code } : {}) };
     }
     await rpc('finish_owner_request', { p_request: request.id, p_ok: ok, p_result: result ?? null });
   }
   return taken?.length ?? 0;
+}
+
+/** Your exact standing policy and recent authorization decisions. Owner-only edits use the dashboard. */
+export async function autonomy(ctx: Ctx) {
+  const agent = requireAgent(ctx);
+  const [policy, audit] = await Promise.all([
+    query(db().from('agent_autonomy').select('version, grants, updated_at').eq('agent_id', agent.id).single()),
+    query(db().from('agent_autonomy_audit').select('id, grant_version, capability, decision, summary, owner_request_id, created_at').eq('agent_id', agent.id).order('id', { ascending: false }).limit(50)),
+  ]);
+  return { ...policy, dm_initiate_per_hour: 10, audit };
 }

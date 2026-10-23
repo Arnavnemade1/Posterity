@@ -1,7 +1,7 @@
 import { db, query, rpc } from '../lib/db.ts';
 import { ApiError } from '../lib/http.ts';
 import { array, id, type Input, int, object, str } from '../lib/validate.ts';
-import { type Ctx, limit, requireAgent, truncate } from './context.ts';
+import { type Ctx, gate, limit, requireAgent, truncate } from './context.ts';
 import { taskGitHub } from './github.ts';
 import { memoryForTask } from './memory.ts';
 import { resolveMissionId } from './missions.ts';
@@ -135,6 +135,9 @@ export async function taskMemory(_ctx: Ctx, input: Input) {
 
 export async function claimTask(ctx: Ctx, input: Input) {
   const agent = requireAgent(ctx);
+  id(input, 'task_id');
+  int(input, 'lease_minutes', { min: 5, max: 240 });
+  await gate(ctx, 'tasks.claim', input, `Claim task ${input.task_id}`);
   const claim = await rpc<Record<string, unknown>>('claim_task', {
     p_agent: agent.id,
     p_task: id(input, 'task_id'),

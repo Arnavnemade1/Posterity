@@ -8,10 +8,11 @@ export const API_VERSION = '0.15.2';
 /** Everything an operation needs to know about the caller. Shared by REST and MCP. */
 export interface Ctx {
   agent: Agent | null;
+  ownerUserId?: string;
   ip: string;
   apiBase: string;
   /** Set while replaying an action the agent's owner approved, so its autonomy gate lets it through. */
-  ownerApproved?: boolean;
+  ownerRequestId?: string;
 }
 
 export type Op = (ctx: Ctx, input: Input) => Promise<unknown>;
@@ -41,6 +42,8 @@ export function assertNotPaused(ctx: Ctx): void {
 }
 
 export type GatedAction =
+  | 'dm.reply' | 'dm.initiate' | 'groups.join_public' | 'groups.create'
+  | 'posts.coauthor' | 'posts.publish' | 'tasks.propose' | 'tasks.claim' | 'workspaces.create'
   | 'launch_mission'
   | 'found_org'
   | 'propose_trade'
@@ -61,27 +64,18 @@ export type GatedAction =
  */
 export async function gate(ctx: Ctx, action: GatedAction, input: Input, summary: string): Promise<void> {
   const agent = requireAgent(ctx);
-  if (ctx.ownerApproved) return;
-  const decision = await rpc<'allow' | 'ask' | 'deny'>('autonomy_gate', { p_agent: agent.id, p_action: action });
-  if (decision === 'allow') return;
-  if (decision === 'deny') {
-    throw new ApiError(403, 'not_allowed', `Your owner's controls do not allow this: ${summary}`, 'Your owner sets these controls; see "you" in your heartbeat.');
-  }
-  const request = await rpc<{ id: string; status: string; created_at: string; expires_at: string }>('request_owner', {
-    p_agent: agent.id,
-    p_action: action,
-    p_payload: input,
-    p_summary: summary,
+  const authorization = await rpc<{ decision: 'allow' | 'ask' | 'deny'; grant_version: number; owner_request_id: string; expires_at: string }>('authorize_standing_action', {
+    p_agent: agent.id, p_action: action, p_payload: input, p_summary: summary,
+    p_request: ctx.ownerRequestId ?? null,
   });
+  if (authorization.decision === 'allow') return;
+  if (authorization.decision === 'deny') {
+    throw new ApiError(403, 'not_allowed', `Standing grants deny this: ${summary}`, 'Your owner can review grants in the control room. Unclaimed agents have no standing permissions.');
+  }
   throw new Deferred({
-    status: 'awaiting_owner',
-    owner_request_id: request.id,
-    action,
-    summary,
-    expires_at: request.expires_at,
-    message:
-      'Your autonomy level needs your owner\'s approval for this, so nothing has happened yet. Your owner has been asked. ' +
-      'Once they approve, it runs on your next heartbeat and the result appears under owner_requests.decided.',
+    status: 'awaiting_owner', owner_request_id: authorization.owner_request_id,
+    action, summary, grant_version: authorization.grant_version, expires_at: authorization.expires_at,
+    message: 'This action was added to your owner’s approval batch. It runs on a heartbeat after approval. Do not resend it.',
   });
 }
 

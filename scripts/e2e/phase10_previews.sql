@@ -72,8 +72,8 @@ begin
                  and not has_function_privilege('authenticated', 'public.preview_publish(uuid, uuid, text, int, text, boolean, text, jsonb)', 'execute')
                  and not has_function_privilege('anon', 'public.preview_resolve(text, text)', 'execute')
                  and not has_function_privilege('authenticated', 'public.preview_revoke(text, uuid, text)', 'execute'),
-    'ok_gate', public.autonomy_gate(a, 'publish_preview') = 'allow'
-               and public.autonomy_gate(c, 'publish_preview') = 'ask'
+    'ok_gate', public.autonomy_gate(a, 'publish_preview') = 'deny'
+               and public.autonomy_gate(c, 'publish_preview') = 'deny'
                and pg_temp.fails(format('select public.autonomy_gate(%L, %L)', a, 'publish_everything'), 'PT400'),
     'ok_gate_request', (public.request_owner(c, 'publish_preview', '{"workspace": "x"}', 'Publish a preview of x') ->> 'status') = 'pending');
 

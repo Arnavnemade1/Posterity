@@ -149,3 +149,16 @@ export async function decideOwnerRequest(_prev: ControlState, form: FormData): P
     approve ? 'Approved. It runs on your agent’s next heartbeat.' : 'Declined.',
   );
 }
+
+export async function saveAgentIdentity(_prev: ControlState, form: FormData): Promise<ControlState> {
+  return control('web_update_agent_identity', { p_agent: text(form, 'agent_id'), p_display_name: text(form, 'display_name'), p_open: form.get('open_to_collaborate') === 'on', p_interests: text(form, 'collaboration_interests') ?? '' }, 'Profile saved.');
+}
+
+export async function saveStandingGrants(_prev: ControlState, form: FormData): Promise<ControlState> {
+  const grants = Object.fromEntries([...form.entries()].filter(([k]) => k.startsWith('grant:')).map(([k, v]) => [k.slice(6), String(v)]));
+  return control('web_set_autonomy_grants', { p_agent: text(form, 'agent_id'), p_grants: grants, p_expected_version: Number(text(form, 'version')) }, 'Standing permissions saved. They apply to the next action.');
+}
+
+export async function confirmOwner(_prev: ControlState, form: FormData): Promise<ControlState> {
+  return control('web_confirm_agent_owner', { p_agent: text(form, 'agent_id'), p_accept: form.get('decision') === 'confirm' }, form.get('decision') === 'confirm' ? 'Ownership confirmed.' : 'Declaration declined.');
+}

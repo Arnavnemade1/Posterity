@@ -2,6 +2,7 @@
 // and every relationship embed names its foreign key: junction tables such as
 // review_requests and task_invitations make bare embeds ambiguous in PostgREST.
 // Memory search is the exception: it needs the API's embedding model (see lib/api.ts).
+import type { AgentOwner } from '@/lib/agent-identity';
 import { apiGet, ApiRequestError } from '@/lib/api';
 import { resolveFleetDirectory } from '@/lib/fleet-rollout';
 import { isUuid } from '@/lib/format';
@@ -413,6 +414,9 @@ export async function getTask(id: string, userId: string | null) {
 }
 
 export interface AgentCard {
+  owner?: AgentOwner | null;
+  open_to_collaborate?: boolean;
+  collaboration_interests?: string;
   id: string;
   handle: string;
   display_name: string;
@@ -439,11 +443,30 @@ export interface AgentCard {
 }
 
 const AGENT_CARD =
-  'id, handle, display_name, bio, avatar_url, capabilities, models, availability, owner_id, last_seen_at, created_at, autonomy, paused_at, stats:agent_stats!agent_stats_agent_id_fkey(reputation, trust, tasks_completed, submissions_accepted, reviews_given, missions_completed)';
+  'id, handle, display_name, bio, avatar_url, capabilities, models, availability, owner_id, last_seen_at, created_at, autonomy, paused_at, open_to_collaborate, collaboration_interests, owner:agent_public_owner, stats:agent_stats!agent_stats_agent_id_fkey(reputation, trust, tasks_completed, submissions_accepted, reviews_given, missions_completed)';
 
-export async function listAgents(opts: { q?: string; capability?: string; sort?: string; offset?: number; limit?: number } = {}): Promise<AgentCard[]> {
+export async function listAgents(opts: { q?: string; capability?: string; sort?: string; offset?: number; limit?: number; owner?: string; viewerId?: string; open?: boolean; operator?: string } = {}): Promise<AgentCard[]> {
   const supabase = await db();
   let query = supabase.from('agents').select(AGENT_CARD).eq('status', 'active');
+  if (opts.owner === 'mine') {
+    if (!opts.viewerId) return [];
+    query = query.eq('owner_id', opts.viewerId);
+  }
+  if (opts.owner === 'independent') query = query.is('agent_owner_key', null);
+  if (opts.owner === 'external') {
+    query = query.not('agent_owner_key', 'is', null);
+    if (opts.viewerId) query = query.filter('agent_owner_key', 'neq', opts.viewerId);
+  }
+  if (opts.open) query = query.eq('open_to_collaborate', true);
+  if (opts.operator) {
+    const [kind, handle] = opts.operator.split(':');
+    if (!['user','agent'].includes(kind) || !handle) return [];
+    const { data: operator } = kind === 'user'
+      ? await supabase.from('profiles').select('id').eq('username', handle).maybeSingle()
+      : await supabase.from('agents').select('id').eq('handle', handle).maybeSingle();
+    if (!operator) return [];
+    query = query.filter('agent_owner_key', 'eq', operator.id);
+  }
   if (opts.capability) query = query.contains('capabilities', [opts.capability.toLowerCase()]);
   if (opts.q) query = query.textSearch('search', opts.q, { type: 'websearch', config: 'english' });
   query = opts.sort === 'reputation' || !opts.sort
@@ -461,7 +484,7 @@ export async function getAgent(handle: string) {
   const { data: agent } = await supabase
     .from('agents')
     .select(
-      'id, handle, display_name, bio, avatar_url, banner_url, location, runtime, pinned_post_id, capabilities, models, tools, homepage, status, availability, owner_id, claimed_at, last_seen_at, created_at, autonomy, paused_at, owner:profiles!agents_owner_id_fkey(username, display_name), stats:agent_stats!agent_stats_agent_id_fkey(*), expertise:agent_expertise!agent_expertise_agent_id_fkey(capability, score, verified_count)',
+      'id, handle, display_name, bio, avatar_url, banner_url, location, runtime, pinned_post_id, capabilities, models, tools, homepage, status, availability, owner_id, claimed_at, last_seen_at, created_at, autonomy, paused_at, open_to_collaborate, collaboration_interests, owner:agent_public_owner, stats:agent_stats!agent_stats_agent_id_fkey(*), expertise:agent_expertise!agent_expertise_agent_id_fkey(capability, score, verified_count)',
     )
     .eq('handle', handle.toLowerCase().replace(/^@/, ''))
     .maybeSingle();
@@ -475,7 +498,7 @@ export async function getAgent(handle: string) {
     pinned_post_id: string | null;
     status: string;
     claimed_at: string | null;
-    owner: { username: string; display_name: string } | null;
+    owner: AgentOwner | null;
     stats: AgentCard['stats'] & {
       tasks_claimed: number;
       tasks_abandoned: number;
@@ -550,8 +573,9 @@ export async function getDashboard(userId: string, requestedAgent?: string) {
   const supabase = await db();
   const agents = await supabase.from('agents').select(`${AGENT_CARD}, runtime, tools`).eq('owner_id', userId).order('created_at', { ascending: false });
   if (agents.error) throw agents.error;
-  const selected = agents.data?.find((a) => a.id === requestedAgent)?.id ?? agents.data?.[0]?.id;
-  const [profile, keys, fleetSummary, missions, approvals, notifications, controls, directives, requests] = await Promise.all([
+  const ownedAgents = (agents.data ?? []) as unknown as AgentCard[];
+  const selected = ownedAgents.find((a) => a.id === requestedAgent)?.id ?? ownedAgents[0]?.id;
+  const [profile, keys, fleetSummary, missions, approvals, notifications, controls, directives, requests, standing, grantAudit, grantHistory, ownerClaims] = await Promise.all([
     supabase.from('profiles').select('id, username, display_name, bio, created_at').eq('id', userId).maybeSingle(),
     supabase.rpc('web_agent_keys').eq('agent_id', selected ?? '00000000-0000-0000-0000-000000000000'),
     supabase.rpc('web_fleet_summary'),
@@ -569,11 +593,15 @@ export async function getDashboard(userId: string, requestedAgent?: string) {
       .limit(100),
     supabase
       .from('owner_requests')
-      .select('id, agent_id, action, summary, status, decision_note, result, created_at, decided_at, expires_at')
+      .select('id, agent_id, action, summary, payload, status, decision_note, result, created_at, decided_at, expires_at')
       .eq('status', 'pending')
       .gt('expires_at', new Date().toISOString())
       .order('created_at', { ascending: false })
       .limit(1000),
+    supabase.from('agent_autonomy').select('version, grants').eq('agent_id', selected ?? '00000000-0000-0000-0000-000000000000').maybeSingle(),
+    supabase.from('agent_autonomy_audit').select('id, grant_version, capability, decision, summary, created_at').eq('agent_id', selected ?? '00000000-0000-0000-0000-000000000000').order('id', { ascending: false }).limit(30),
+    supabase.from('agent_autonomy_versions').select('version, grants, reason, created_at').eq('agent_id', selected ?? '00000000-0000-0000-0000-000000000000').order('version', { ascending: false }).limit(10),
+    supabase.from('agent_owner_claims').select('agent_id, agent:agents!agent_owner_claims_agent_id_fkey(handle, display_name)').eq('user_id', userId).eq('verification', 'self-declared'),
   ]);
   const directory = await resolveFleetDirectory(fleetSummary, keys.data ?? [], (from, to) => supabase.rpc('web_agent_keys').range(from, to));
   return {
@@ -613,6 +641,10 @@ export async function getDashboard(userId: string, requestedAgent?: string) {
     controls: (controls.data ?? []) as AgentControls[],
     directives: (directives.data ?? []) as Directive[],
     ownerRequests: (requests.data ?? []) as OwnerRequest[],
+    standing: standing.data as unknown as StandingPolicy | null,
+    grantAudit: (grantAudit.data ?? []) as unknown as GrantAudit[],
+    grantHistory: (grantHistory.data ?? []) as unknown as GrantVersion[],
+    ownerClaims: (ownerClaims.data ?? []) as unknown as { agent_id: string; agent: { handle: string; display_name: string } }[],
   };
 }
 
@@ -640,6 +672,7 @@ export interface Directive {
 }
 
 export interface OwnerRequest {
+  payload?: { actions?: { action: string; summary: string; grant_version: number; input?: Record<string, unknown> }[] };
   id: string;
   agent_id: string;
   action: string;
@@ -888,3 +921,7 @@ export async function getMissionRef(slugOrId: string): Promise<{ id: string; slu
     .maybeSingle();
   return data;
 }
+
+export interface StandingPolicy { version: number; grants: Record<string, 'allow' | 'ask' | 'deny'> }
+export interface GrantAudit { id: number; grant_version: number; capability: string; decision: string; summary: string; created_at: string }
+export interface GrantVersion { version: number; grants: StandingPolicy['grants']; reason: string; created_at: string }

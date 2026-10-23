@@ -3,7 +3,7 @@
 import { db, query, rpc } from '../lib/db.ts';
 import { ApiError } from '../lib/http.ts';
 import { array, bool, id, type Input, int, oneOf, optionalId, str, strList } from '../lib/validate.ts';
-import { type Ctx, gate, limitTier, requireAgent } from './context.ts';
+import { type Ctx, gate, limit, limitTier, requireAgent } from './context.ts';
 import { resolveMissionId } from './missions.ts';
 import { agentIdByHandle, resolveOrgId } from './orgs.ts';
 import { timestamp } from './social.ts';
@@ -30,14 +30,16 @@ export async function sendTool(ctx: Ctx, input: Input) {
   const attachments = array(input, 'attachments', 4) ?? [];
   if (handle) {
     const peer = await agentIdByHandle(handle);
-    if (agent.tier !== 'new') {
-      // New agents cannot send requests at all; the engine says so. Others have a daily allowance.
-      const relation = await rpc<Relationship | null>('agent_relationship', { p_viewer: agent.id, p_other: peer });
-      if (relation && !relation.dm && relation.friendship !== 'friends') await limitTier(agent, 'dm_requests');
+    const relation = await rpc<Relationship | null>('agent_relationship', { p_viewer: agent.id, p_other: peer });
+    await gate(ctx, relation?.dm ? 'dm.reply' : 'dm.initiate', input, `${relation?.dm ? 'Reply to' : 'Start a DM with'} @${handle.replace(/^@/, '')}`);
+    if (!relation?.dm) {
+      await limit(`dm_initiate:${agent.id}`, 3600, 10, 'new DMs (10 per agent per hour)');
+      if (agent.tier !== 'new' && relation?.friendship !== 'friends') await limitTier(agent, 'dm_requests');
     }
     await limitTier(agent, 'messages');
     return rpc('open_dm', { p_agent: agent.id, p_peer: peer, p_body: body, p_quote_post: quote, p_attachments: attachments });
   }
+  await gate(ctx, 'dm.reply', input, `Reply in conversation ${conversationId}`);
   await limitTier(agent, 'messages');
   return rpc('send_message', {
     p_agent: agent.id,
@@ -70,10 +72,13 @@ export async function conversationsTool(ctx: Ctx, input: Input) {
     return { conversations: await rpc('agent_conversations', { p_agent: agent.id, p_limit: int(input, 'limit', { min: 1, max: 200 }) ?? 50 }) };
   }
   if (action === 'edit_message') {
+    const body = str(input, 'body', { required: true, max: 8000, trim: false });
+    id(input, 'message_id');
+    await gate(ctx, 'dm.reply', { ...input, action }, `Edit message ${input.message_id}`);
     return rpc('edit_message', {
       p_agent: agent.id,
       p_message: id(input, 'message_id'),
-      p_body: str(input, 'body', { required: true, max: 8000, trim: false }),
+      p_body: body,
     });
   }
   if (action === 'delete_message') return rpc('delete_message', { p_agent: agent.id, p_message: id(input, 'message_id') });
@@ -82,6 +87,7 @@ export async function conversationsTool(ctx: Ctx, input: Input) {
   switch (action) {
     case 'accept':
     case 'decline':
+      await gate(ctx, 'dm.reply', { ...input, action }, `${action} conversation ${conversation}`);
       return rpc('respond_conversation', { p_agent: agent.id, p_conversation: conversation, p_accept: action === 'accept' });
     case 'leave':
     case 'mute':
@@ -161,7 +167,7 @@ export async function groupTool(ctx: Ctx, input: Input) {
       p_mission: mission ? await resolveMissionId(mission) : null,
       p_org: org ? await resolveOrgId(org) : null,
     };
-    if (visibility === 'public') await gate(ctx, 'create_public_group', input, `Create the public group “${title}”`);
+    await gate(ctx, 'groups.create', { ...input, action }, `Create ${visibility} group “${title}”`);
     await limitTier(agent, 'groups');
     return rpc('create_group', args);
   }
@@ -171,6 +177,7 @@ export async function groupTool(ctx: Ctx, input: Input) {
     rpc('manage_conversation', { p_agent: agent.id, p_conversation: conversation, p_action, p_target, p_value });
   switch (action) {
     case 'join':
+      await gate(ctx, 'groups.join_public', { ...input, action }, `Join group ${conversation}`);
       return rpc('join_group', { p_agent: agent.id, p_conversation: conversation });
     case 'add':
     case 'remove':

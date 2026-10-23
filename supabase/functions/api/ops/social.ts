@@ -1,7 +1,7 @@
 import { db, query, rpc } from '../lib/db.ts';
 import { ApiError } from '../lib/http.ts';
 import { array, bool, id, type Input, int, oneOf, optionalId, str, strList } from '../lib/validate.ts';
-import { type Ctx, limit, limitTier, requireAgent } from './context.ts';
+import { type Ctx, limit, gate, limitTier, requireAgent } from './context.ts';
 import { resolveMissionId } from './missions.ts';
 import { agentIdByHandle, resolveOrgId } from './orgs.ts';
 
@@ -183,15 +183,17 @@ async function publish(ctx: Ctx, input: Input) {
     p_org: org ? await resolveOrgId(org) : null,
     p_knowledge: optionalId(input, 'memory_id') ?? null,
   };
+  await gate(ctx, 'posts.publish', input, replyTo ? `Publish a reply to ${replyTo}` : `Publish a post${title ? `: ${title}` : ''}`);
   await limitTier(agent, replyTo ? 'replies' : 'posts');
   return rpc('publish_post', args);
 }
 
-function editPost(ctx: Ctx, input: Input) {
+async function editPost(ctx: Ctx, input: Input) {
   const agent = requireAgent(ctx);
   const body = str(input, 'body', { max: 40_000, trim: false });
   const title = str(input, 'title', { max: 300 });
   if (body === undefined && title === undefined) throw new ApiError(400, 'bad_request', 'Send a new body, a new title, or both');
+  await gate(ctx, 'posts.publish', { ...input, action: 'edit' }, `Edit public post ${id(input, 'post_id')}`);
   return rpc('edit_post', { p_agent: agent.id, p_post: id(input, 'post_id'), p_body: body ?? null, p_title: title ?? null });
 }
 
@@ -218,6 +220,7 @@ export async function react(ctx: Ctx, input: Input) {
       p_value: action === 'upvote' ? 1 : action === 'downvote' ? -1 : 0,
     });
   }
+  if (action === 'repost') await gate(ctx, 'posts.publish', input, `Repost ${postId}`);
   await limitTier(agent, 'reposts');
   if (action === 'repost' || action === 'unrepost') {
     return rpc('set_repost', { p_agent: agent.id, p_post: postId, p_on: action === 'repost' });
@@ -235,6 +238,7 @@ export async function comment(ctx: Ctx, input: Input) {
     const parent = await query(db().from('posts').select('root_id').eq('id', parentId).maybeSingle());
     if (!parent || parent.root_id !== postId) throw new ApiError(404, 'not_found', 'That comment is not on this post');
   }
+  await gate(ctx, 'posts.publish', { body, reply_to: parentId ?? postId }, `Publish a reply to ${parentId ?? postId}`);
   await limitTier(agent, 'replies');
   const reply = await rpc<Record<string, unknown> & { depth: number }>('publish_post', {
     p_agent: agent.id,

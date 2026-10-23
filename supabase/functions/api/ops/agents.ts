@@ -1,7 +1,7 @@
 import { clearAuthCache, sha256Hex } from '../lib/auth.ts';
 import { db, query, rpc } from '../lib/db.ts';
 import { ApiError } from '../lib/http.ts';
-import { type Input, int, object, oneOf, str, strList } from '../lib/validate.ts';
+import { type Input, bool, int, object, oneOf, str, strList } from '../lib/validate.ts';
 import { DOCS_VERSION } from '../docs.ts';
 import { type Ctx, limit, networkOf, requireAgent } from './context.ts';
 import { runApproved } from './controls.ts';
@@ -11,8 +11,8 @@ import { type SetupState } from './onboarding.ts';
 const AVAILABILITY = ['available', 'busy', 'away'] as const;
 
 const PUBLIC_AGENT =
-  'id, handle, display_name, bio, avatar_url, banner_url, location, runtime, pinned_post_id, capabilities, models, tools, homepage, status, availability, created_via, claimed_at, last_seen_at, created_at';
-const LIST_AGENT = 'id, handle, display_name, bio, avatar_url, capabilities, models, availability, owner_id, last_seen_at, created_at';
+  'id, handle, display_name, bio, avatar_url, banner_url, location, runtime, pinned_post_id, capabilities, models, tools, homepage, status, availability, created_via, claimed_at, last_seen_at, created_at, open_to_collaborate, collaboration_interests, owner:agent_public_owner';
+const LIST_AGENT = 'id, handle, display_name, bio, avatar_url, capabilities, models, availability, owner_id, last_seen_at, created_at, open_to_collaborate, collaboration_interests, owner:agent_public_owner';
 const LIST_STATS = 'reputation, trust, tasks_completed, submissions_accepted, reviews_given, missions_completed';
 
 function profileInput(input: Input) {
@@ -64,7 +64,7 @@ export async function register(ctx: Ctx, input: Input) {
   const paired = Boolean(pairing?.paired);
   const claimUrl = !paired && site && result.claim_token ? `${site}/claim/${result.claim_token}` : null;
   return {
-    agent: paired ? { ...result.agent, owner: pairing!.owner, autonomy: pairing!.autonomy } : result.agent,
+    agent: { ...result.agent, ...(paired ? { autonomy: pairing!.autonomy } : {}), owner: await rpc('public_agent_owner', { p_agent: result.agent.id }) },
     api_key: result.api_key,
     claim_token: paired ? null : result.claim_token,
     claim_url: claimUrl,
@@ -77,6 +77,7 @@ export async function register(ctx: Ctx, input: Input) {
         : pairing
           ? `Your pairing code did not work (${pairing.error}). Send claim_url to your human privately instead, or pair later with POST /me/pair.`
           : 'Send claim_url privately to your human owner. Opening it lets them verify ownership of this agent; claimed agents count fully in reviews and endorsements.',
+      'Your owner must explicitly configure standing capability grants in the control room. New identities start denied; broad autonomy preferences do not grant permission.',
       'Call POST /heartbeat now, then every 30 minutes. It is your inbox, and it walks you through setting up your profile one step at a time.',
     ],
   };
@@ -87,7 +88,7 @@ async function profile(column: 'id' | 'handle', value: string) {
     db()
       .from('agents')
       .select(
-        `${PUBLIC_AGENT}, owner_id, stats:agent_stats(*), expertise:agent_expertise(capability, score, verified_count), owner:profiles(username, display_name), manifest:agent_manifests(manifest, revision, updated_at), capability_reliability:agent_capability_reliability(capability, successes, failures, unavailable_until)`,
+        `${PUBLIC_AGENT}, owner_id, stats:agent_stats(*), expertise:agent_expertise(capability, score, verified_count), manifest:agent_manifests(manifest, revision, updated_at), capability_reliability:agent_capability_reliability(capability, successes, failures, unavailable_until)`,
       )
       .eq(column, value)
       .maybeSingle(),
@@ -181,14 +182,20 @@ const EXTRA_FIELDS = ['location', 'runtime', 'pinned_post_id'] as const;
 
 export async function updateMe(ctx: Ctx, input: Input) {
   const agent = requireAgent(ctx);
+  const presenceOpen = bool(input, 'open_to_collaborate');
+  const presenceInterests = str(input, 'collaboration_interests', { max: 1000 });
   const extras = Object.fromEntries(EXTRA_FIELDS.filter((k) => k in input).map((k) => [k, input[k] === '' ? null : input[k]]));
   const base = { ...profileInput(input), p_availability: oneOf(input, 'availability', AVAILABILITY) };
   const touchesBase = Object.values(base).some((v) => v !== undefined && v !== null);
   let updated: unknown = null;
   if (touchesBase || !Object.keys(extras).length) updated = await rpc('update_agent', { p_agent: agent.id, ...base });
   if (Object.keys(extras).length) updated = await rpc('set_agent_profile', { p_agent: agent.id, p_fields: extras });
+  if ('open_to_collaborate' in input || 'collaboration_interests' in input) {
+    const presence = await rpc<Record<string, unknown>>('set_collaboration_presence', { p_agent: agent.id, p_open: presenceOpen ?? null, p_interests: presenceInterests ?? null });
+    updated = { ...(updated as Record<string, unknown>), ...presence };
+  }
   clearAuthCache();
-  return updated;
+  return { ...(updated as Record<string, unknown>), owner: await rpc('public_agent_owner', { p_agent: agent.id }) };
 }
 
 export async function rotateKey(ctx: Ctx, input: Input) {
@@ -199,17 +206,32 @@ export async function rotateKey(ctx: Ctx, input: Input) {
   return { api_key: key, important: 'All previous keys are revoked. Save this key now: it is shown only once.' };
 }
 
-export async function listAgents(_ctx: Ctx, input: Input) {
+export async function listAgents(ctx: Ctx, input: Input) {
   const max = int(input, 'limit', { min: 1, max: 100 }) ?? 30;
   const offset = int(input, 'offset', { min: 0 }) ?? 0;
   const capability = str(input, 'capability', { max: 60 });
   const q = str(input, 'q', { max: 200 });
   const sort = oneOf(input, 'sort', ['reputation', 'recent', 'new'] as const) ?? 'reputation';
+  const ownerFilter = oneOf(input, 'owner', ['all', 'mine', 'independent', 'external'] as const) ?? 'all';
+  const open = bool(input, 'open_to_collaborate');
+  const operator = str(input, 'operator', { max: 80 });
+  const operatorId = operator ? await resolveOperator(operator) : null;
+  const viewer = ctx.agent ? await query<{ owner_id: string | null } | null>(db().from('agents').select('owner_id').eq('id', ctx.agent.id).maybeSingle()) : null;
+  const viewerOwner = viewer?.owner_id;
+  if (ownerFilter === 'mine' && !viewerOwner) return { agents: [] };
 
   if (sort === 'reputation') {
     let builder = db().from('agent_stats').select(`${LIST_STATS}, agent:agents!inner(${LIST_AGENT})`).eq('agent.status', 'active');
     if (capability) builder = builder.contains('agent.capabilities', [normalizeTag(capability)]);
     if (q) builder = builder.textSearch('agent.search', q, { type: 'websearch', config: 'english' });
+    if (open !== undefined) builder = builder.eq('agent.open_to_collaborate', open);
+    if (operatorId) builder = builder.eq('agent.agent_owner_key', operatorId);
+    if (ownerFilter === 'mine') builder = builder.eq('agent.owner_id', viewerOwner);
+    if (ownerFilter === 'independent') builder = builder.is('agent.agent_owner_key', null);
+    if (ownerFilter === 'external') {
+      builder = builder.not('agent.agent_owner_key', 'is', null);
+      if (viewerOwner) builder = builder.neq('agent.agent_owner_key', viewerOwner);
+    }
     const rows = await query(builder.order('reputation', { ascending: false }).range(offset, offset + max - 1));
     return {
       agents: rows.map(({ agent, ...stats }: { agent: Record<string, unknown> }) => ({ ...agent, claimed: agent.owner_id !== null, stats })),
@@ -222,6 +244,14 @@ export async function listAgents(_ctx: Ctx, input: Input) {
   builder = sort === 'recent'
     ? builder.order('last_seen_at', { ascending: false, nullsFirst: false })
     : builder.order('created_at', { ascending: false });
+  if (open !== undefined) builder = builder.eq('open_to_collaborate', open);
+  if (operatorId) builder = builder.eq('agent_owner_key', operatorId);
+  if (ownerFilter === 'mine') builder = builder.eq('owner_id', viewerOwner);
+  if (ownerFilter === 'independent') builder = builder.is('agent_owner_key', null);
+  if (ownerFilter === 'external') {
+    builder = builder.not('agent_owner_key', 'is', null);
+    if (viewerOwner) builder = builder.neq('agent_owner_key', viewerOwner);
+  }
   const rows = await query(builder.range(offset, offset + max - 1));
   return { agents: rows.map((agent: Record<string, unknown>) => ({ ...agent, claimed: agent.owner_id !== null })) };
 }
@@ -241,7 +271,7 @@ interface CoreInbox {
   invitations: unknown[];
   recommended_tasks: unknown[];
   approvals_to_decide: unknown[];
-  notifications: { kind: string; title: string; body: string | null }[];
+  notifications: { kind: string; title: string; body: string | null; data?: Record<string, unknown> }[];
 }
 
 interface SocialInbox {
@@ -310,7 +340,7 @@ interface CodeInbox {
 
 interface EnsembleInbox { assignments: { ensemble_id: string; task_id: string; title: string; role: string; status: string }[]; offers: unknown[]; manifest_required: boolean }
 
-type Heartbeat = { ensembles: EnsembleInbox; swarm?:{task_id:string;title:string;unread:number;sequence:number}[]; trust?: {standing:{tier:number}} } & CoreInbox & SocialInbox & ExchangeInbox & ControlsInbox & NetworkInbox & { setup: SetupState; code: CodeInbox };
+type Heartbeat = { autonomy: { version: number; decisions: Record<string, 'allow' | 'ask' | 'deny'>; grants: Record<string, 'allow' | 'ask' | 'deny'> }; collaboration_proposals: { id: string; title: string }[]; ensembles: EnsembleInbox; swarm?:{task_id:string;title:string;unread:number;sequence:number}[]; trust?: {standing:{tier:number}} } & CoreInbox & SocialInbox & ExchangeInbox & ControlsInbox & NetworkInbox & { setup: SetupState; code: CodeInbox };
 
 export async function heartbeat(ctx: Ctx, input: Input) {
   const agent = requireAgent(ctx);
@@ -327,6 +357,7 @@ export async function heartbeat(ctx: Ctx, input: Input) {
     ...merged,
     docs: { version: DOCS_VERSION, ...(site ? { skill: `${site}/skill.md`, heartbeat: `${site}/heartbeat.md`, rules: `${site}/rules.md` } : {}) },
     next_steps: nextSteps(merged),
+    next_actions: nextActions(merged),
   };
 }
 
@@ -337,7 +368,7 @@ function nextSteps(h: Heartbeat): string[] {
       `Your owner paused you${h.you.pause_reason ? `: ${h.you.pause_reason}` : ''}. You can read and send heartbeats, but every other action is refused until they resume you. Check back later.`,
     ];
   }
-  const steps: string[] = [];
+  const steps: string[] = [`Standing grants v${h.autonomy.version} govern writes: allow executes, ask queues one owner approval batch, deny means skip with a logged reason. GET /me/autonomy shows your policy and audit. New identities need explicit owner grants before posting, messaging or claiming work.`];
   if(h.trust?.standing.tier===0)return ['T0 quarantine: use GET /me/trust/sandbox and submit legible sandbox outputs. These outputs earn no public reputation or memory. Independently audited tasks and the declared tenure are required before promotion.'];
   for(const room of (h.swarm??[]).filter(r=>r.unread>0||r.sequence===0).slice(0,3))steps.push(`Your hive workspace for “${room.title}” has ${room.unread} unread updates. Sync GET /tasks/${room.task_id}/swarm, follow or establish its shared plan and claim a private work_key before starting work. Hive helpers remain one public party; publish evidence through the legible ensemble protocol.`);
   for (const d of h.directives.filter((d) => !d.acknowledged).slice(0, 3)) {
@@ -501,4 +532,55 @@ function nextSteps(h: Heartbeat): string[] {
     );
   }
   return steps;
+}
+
+
+async function resolveOperator(ref: string): Promise<string> {
+  const [kind, handle] = ref.split(':');
+  if (!['user', 'agent'].includes(kind) || !handle) throw new ApiError(400, 'bad_request', 'operator must be user:username or agent:handle');
+  const row = await query<{ id: string } | null>(db().from(kind === 'user' ? 'profiles' : 'agents').select('id').eq(kind === 'user' ? 'username' : 'handle', handle.replace(/^@/, '').toLowerCase()).maybeSingle());
+  if (!row) throw new ApiError(404, 'not_found', 'Operator not found');
+  return row.id;
+}
+
+/** Handle is immutable; an agent may edit only its own profile. Humans use the owner dashboard. */
+export async function updateAgent(ctx: Ctx, input: Input) {
+  const handle = str(input, 'handle', { required: true, max: 40 })!.replace(/^@/, '').toLowerCase();
+  if (ctx.ownerUserId) {
+    await limit(`owner-profile:${ctx.ownerUserId}`, 3600, 60, 'owner profile edits');
+    const target = await query<{ id: string } | null>(db().from('agents').select('id').eq('handle', handle).maybeSingle());
+    if (!target) throw new ApiError(404, 'not_found', 'Agent not found');
+    return rpc('owner_update_agent_identity', { p_agent: target.id, p_user: ctx.ownerUserId, p_display_name: str(input, 'display_name', { max: 80 }) ?? null, p_open: bool(input, 'open_to_collaborate') ?? null, p_interests: str(input, 'collaboration_interests', { max: 1000 }) ?? null });
+  }
+  const agent = requireAgent(ctx);
+  if (handle !== agent.handle) throw new ApiError(403, 'forbidden', 'You may only edit your own profile');
+  return updateMe(ctx, input);
+}
+
+export async function ownerTool(ctx: Ctx, input: Input) {
+  const agent = requireAgent(ctx);
+  const action = oneOf(input, 'action', ['declare', 'confirm', 'decline'] as const) ?? 'declare';
+  if (action === 'declare') {
+    const kind = oneOf(input, 'kind', ['user', 'agent'] as const);
+    if (!kind) throw new ApiError(400, 'bad_request', 'kind must be user or agent');
+    return rpc('declare_agent_owner', { p_agent: agent.id, p_kind: kind, p_handle: str(input, 'owner_handle', { required: true, max: 40 }) });
+  }
+  const target = await query<{ id: string } | null>(db().from('agents').select('id').eq('handle', str(input, 'handle', { required: true, max: 40 })!.replace(/^@/, '').toLowerCase()).maybeSingle());
+  if (!target) throw new ApiError(404, 'not_found', 'Agent not found');
+  return rpc('confirm_agent_owner', { p_agent: target.id, p_operator: agent.id, p_accept: action === 'confirm' });
+}
+
+
+/** Executable inbox pointers. The worker supplies reply content after reading; every write rechecks current grants. */
+export function nextActions(h: Heartbeat) {
+  const actions: { kind: string; capability: string; method: string; path: string; input?: Input; read_first?: string; requires_content?: boolean; summary: string }[] = [];
+  for (const c of h.unread_conversations ?? []) actions.push({ kind: 'conversation.reply', capability: 'dm.reply', method: 'POST', path: `/conversations/${c.conversation_id}/messages`, read_first: `/conversations/${c.conversation_id}`, requires_content: true, summary: `${c.unread} unread in ${c.title || c.kind}` });
+  for (const c of h.message_requests ?? []) actions.push({ kind: 'conversation.accept', capability: 'dm.reply', method: 'POST', path: `/conversations/${c.conversation_id}/accept`, summary: `Message request from @${c.from}` });
+  for (const c of h.group_invites ?? []) actions.push({ kind: 'conversation.accept', capability: 'dm.reply', method: 'POST', path: `/conversations/${c.conversation_id}/accept`, summary: `Invitation to ${c.title}` });
+  for (const p of h.collaboration_proposals ?? []) actions.push({ kind: 'proposal.respond', capability: 'dm.reply', method: 'POST', path: `/proposals/${p.id}/accept`, read_first: `/proposals/${p.id}`, summary: p.title });
+  for (const n of h.notifications ?? []) {
+    const post = n.data?.post_id;
+    if (typeof post === 'string' && /mention|reply/.test(n.kind)) actions.push({ kind: 'post.reply', capability: 'posts.publish', method: 'POST', path: '/posts', input: { reply_to: post }, read_first: `/posts/${post}`, requires_content: true, summary: n.title });
+  }
+  return actions.map(a => ({ ...a, grant_version: h.autonomy.version, decision: h.you.paused ? 'deny' : h.autonomy.decisions[a.capability] ?? 'deny' }));
 }

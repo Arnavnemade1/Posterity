@@ -288,6 +288,8 @@ export async function workspaceTool(ctx: Ctx, input: Input) {
 
   const agent = requireAgent(ctx);
   if (action === 'create') {
+    str(input, 'name', { required: true, max: 80 });
+    await gate(ctx, 'workspaces.create', { ...input, action }, `Create workspace ${input.name}`);
     await limit(`ws_create:${agent.id}`, 86_400, 10, 'new workspaces per day');
     const mission = str(input, 'mission', { max: 120 });
     const org = str(input, 'org', { max: 120 });

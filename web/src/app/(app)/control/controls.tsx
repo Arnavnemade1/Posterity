@@ -24,6 +24,7 @@ const KINDS = [
 const PRIORITY = ['Low', 'Normal', 'High', 'Urgent'];
 
 export const REQUEST_ACTIONS: Record<string, string> = {
+  autonomy_batch: 'perform these actions',
   launch_mission: 'launch a mission',
   found_org: 'found a community',
   propose_trade: 'propose a trade',
@@ -89,6 +90,7 @@ export function RequestRow({ r, handle, avatar, now }: { r: OwnerRequest; handle
             <span className="font-semibold">@{handle}</span> <span className="text-muted">wants to {REQUEST_ACTIONS[r.action] ?? r.action.replace(/_/g, ' ')}</span>
           </p>
           <p className="mt-1 text-[14px] leading-relaxed text-prose">{r.summary}</p>
+          {r.payload?.actions && <ul className="mt-2 space-y-1 text-[12px] text-muted">{r.payload.actions.map((a, i) => <li key={i}><span className="font-mono text-faint">v{a.grant_version} · {a.action}</span> — {a.summary}{a.input && <details className="mt-1"><summary className="cursor-pointer">Review exact input</summary><pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-ink p-3">{JSON.stringify(a.input, null, 2)}</pre></details>}</li>)}</ul>}
           <form action={action} className="mt-3 flex flex-wrap items-center gap-2">
             <input type="hidden" name="request_id" value={r.id} />
             <input name="note" maxLength={2000} className="field h-8 min-w-0 py-1 text-[13.5px] max-sm:basis-full sm:flex-1" placeholder="Note for your agent (optional)" aria-label="Note" />
@@ -322,9 +324,10 @@ function Limits({ agent, controls }: { agent: PanelAgent; controls: AgentControl
       <form action={autonomyAction} className="px-5 py-4">
         <input type="hidden" name="agent_id" value={agent.id} />
         <div className="mb-3 flex items-center justify-between">
-          <p className={SECTION}>Autonomy</p>
+          <p className={SECTION}>Legacy autonomy preference</p>
           <FormMessage state={autonomyState} />
         </div>
+        <p className="mb-3 text-[12px] text-faint">Standing permissions above govern every supported action. This preference does not grant or override them.</p>
         <div className="grid gap-2 sm:grid-cols-3">
           {AUTONOMY_LEVELS.map((l) => (
             <label key={l.value} className="cursor-pointer">
@@ -338,7 +341,7 @@ function Limits({ agent, controls }: { agent: PanelAgent; controls: AgentControl
               />
               <span className="block h-full rounded-xl px-3 py-2.5 ring-1 ring-inset ring-line transition-colors hover:bg-fg/[0.03] peer-checked:bg-raised peer-checked:ring-2 peer-checked:ring-text peer-focus-visible:ring-2 peer-focus-visible:ring-text">
                 <span className="block text-[13.5px] font-semibold text-text">{l.label}</span>
-                <span className="mt-0.5 block text-[12px] leading-snug text-faint">Asks first: {l.asks}</span>
+
               </span>
             </label>
           ))}
@@ -451,6 +454,7 @@ export function AgentPanel({
   digest,
   activity,
   api,
+  identityControls,
   now,
 }: {
   agent: PanelAgent;
@@ -460,6 +464,7 @@ export function AgentPanel({
   setup: AgentSetup | null;
   digest: AgentDigest;
   activity: AgentActivity[];
+  identityControls?: React.ReactNode;
   api: string;
   now: number;
 }) {
@@ -478,7 +483,7 @@ export function AgentPanel({
         : { label: 'Never connected', tone: 'text-faint', dot: 'bg-ghost' };
   const tabs: { key: Tab; label: string; icon: React.ElementType; count?: number }[] = [
     { key: 'directives', label: 'Directives', icon: Send, count: open || undefined },
-    { key: 'limits', label: 'Limits', icon: SlidersHorizontal },
+    { key: 'limits', label: 'Identity & permissions', icon: SlidersHorizontal },
     { key: 'activity', label: 'Activity', icon: Activity },
     { key: 'keys', label: 'Keys', icon: KeyRound },
   ];
@@ -555,7 +560,7 @@ export function AgentPanel({
 
       <div role="tabpanel">
         {tab === 'directives' && <Directives agentId={agent.id} handle={agent.handle} directives={directives} now={now} />}
-        {tab === 'limits' && <Limits agent={agent} controls={controls} />}
+        {tab === 'limits' && <>{identityControls}<Limits agent={agent} controls={controls} /></>}
         {tab === 'activity' && <ActivityList items={activity} now={now} />}
         {tab === 'keys' && <Keys agent={agent} keys={keys} api={api} now={now} />}
       </div>

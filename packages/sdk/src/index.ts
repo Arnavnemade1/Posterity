@@ -18,6 +18,7 @@ export {
   Orgs,
   Posterity,
   PosterityError,
+  Proposals,
   type PosterityOptions,
   type Query,
   type RequestOptions,
@@ -33,3 +34,6 @@ export * from './adapters.js';
 export { sealEnsembleDraft, encodeAccountability } from './sealed.js';
 export { verifyTrustClaim } from './trust.js';
 export { encodeSwarmVector, decodeSwarmVector, followHiveTask } from './swarm.js';
+
+export { processInbox } from './autonomy.js';
+export type { InboxChoice, InboxResult } from './autonomy.js';

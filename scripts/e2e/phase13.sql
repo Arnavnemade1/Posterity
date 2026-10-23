@@ -4,6 +4,7 @@ create function pg_temp.fails(q text, expected text) returns boolean language pl
 begin execute q; return false; exception when others then return sqlstate=expected; end $$;
 do $test$
 declare
+  fixture_agent uuid; fixture_owner uuid;
   a uuid; b uuid; c uuid; d uuid; replacement uuid; stranger uuid; m uuid; t uuid; e uuid; solo uuid;
   draft uuid; objection uuid; synthesis uuid; sub uuid; j jsonb; mf jsonb; budget numeric; total numeric; code_task uuid; ce uuid; writing_task uuid; writing_ensemble uuid;
 begin
@@ -14,6 +15,14 @@ begin
   d:=(public.register_manifest_agent('192.0.2.4','p13-reviewer',p_manifest=>mf||'{"lab":"lab-d","roles":["critic"]}'::jsonb)->'agent'->>'id')::uuid;
   replacement:=(public.register_manifest_agent('192.0.2.5','p13-replacement',p_manifest=>mf||'{"lab":"lab-e","roles":["critic"]}'::jsonb)->'agent'->>'id')::uuid;
   stranger:=(public.register_manifest_agent('192.0.2.6','p13-poet',p_manifest=>mf||'{"lab":"lab-f","roles":["critic"],"capabilities":["writing"]}'::jsonb)->'agent'->>'id')::uuid;
+  -- Manifest-based autoassignment requires an explicit owner grant.
+  foreach fixture_agent in array array[a,b,c,d,replacement,stranger] loop
+    fixture_owner:=gen_random_uuid();
+    insert into auth.users(id,email) values(fixture_owner,fixture_owner||'@fixture.invalid');
+    update public.agents set owner_id=fixture_owner where id=fixture_agent;
+    perform set_config('request.jwt.claim.sub',fixture_owner::text,true);
+    perform public.web_set_autonomy_grants(fixture_agent,'{"tasks.claim":"allow"}',2);
+  end loop;
   assert public.verified_agent_lab(a) is null,'manifest lab is unverified';
   assert not has_function_privilege('authenticated','public.record_lab_verification(uuid,text,jsonb,text,text,text,timestamptz)','EXECUTE'),'agents cannot attest provider identity';
   perform public.record_lab_verification(am.agent_id,am.manifest->>'lab',am.manifest->'models',
@@ -59,7 +68,8 @@ begin
   assert pg_temp.fails(format('select public.review_submission(%L,%L,null,%L,5,%L)',sub,a,'approve','I authored part of this submission'),'PT403'),'participant cannot final-review';
   assert pg_temp.fails(format('select public.review_submission(%L,%L,null,%L,5,%L)',sub,b,'approve','I previously participated in this task'),'PT403'),'former participant cannot final-review';
   assert not public.ensemble_reviewer_eligible(sub,a),'member not offered final review';
-  update public.agent_origins set network=(select network from public.agent_origins where agent_id=a) where agent_id=stranger;
+  -- Explicit known owners supersede registration-network heuristics; simulate the same operator.
+  update public.agents set owner_id=(select owner_id from public.agents where id=a) where id=stranger;
   assert not public.ensemble_reviewer_eligible(sub,stranger),'reviewer related only to proposer is excluded';
   assert pg_temp.fails(format('select public.review_submission(%L,%L,null,%L,5,%L)',sub,stranger,'approve','Related to proposer rather than synthesizer'),'PT403'),'independence covers every participant';
   perform public.review_submission(sub,d,null,'approve',5,'Checked the task criteria and verified the objection correction','peer_review',jsonb_build_array(jsonb_build_object('objection_id',objection,'upheld',true,'passed',true)));

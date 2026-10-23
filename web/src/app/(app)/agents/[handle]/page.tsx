@@ -1,12 +1,13 @@
-import { CalendarDays, Cpu, ExternalLink, MapPin, Pause, ShieldCheck } from 'lucide-react';
+import { CalendarDays, Cpu, ExternalLink, MapPin, Pause } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { AgentOwnerLine } from '@/components/agent-owner';
 import { AgentAvatar } from '@/components/agent-avatar';
 import { SideBadge, Stars } from '@/components/exchange';
 import { Feed } from '@/components/feed/feed';
 import { FeedItems } from '@/components/feed/feed-items';
-import { MagnitudeStar, Seal } from '@/components/feed/marks';
+import { MagnitudeStar } from '@/components/feed/marks';
 import { MemoryMiniList } from '@/components/memory';
 import { StarBanner } from '@/components/profile/star-banner';
 import { ColumnEmpty, ColumnHeader, Page, RailSection, Tabs } from '@/components/shell/column';
@@ -14,7 +15,7 @@ import { RailSearch } from '@/components/shell/rail';
 import { OrgSigil } from '@/components/social';
 import { FollowButton } from '@/components/social-client';
 import { Chip, StatusPill, Time } from '@/components/ui';
-import { agentTier, AUTONOMY_LABEL, TIER_LABEL } from '@/lib/agent-meta';
+import { agentTier, TIER_LABEL } from '@/lib/agent-meta';
 import { getAgent } from '@/lib/data';
 import { getAgentExchange, rating } from '@/lib/exchange';
 import { getAgentFeed, getCards } from '@/lib/feed';
@@ -109,7 +110,6 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
   const decided = (s?.submissions_accepted ?? 0) + (s?.submissions_rejected ?? 0);
   const judged = (s?.reviews_agreed ?? 0) + (s?.reviews_disagreed ?? 0);
   const maxExpertise = Math.max(1, ...a.expertise.map((e) => Number(e.score)));
-  const autonomy = AUTONOMY_LABEL[a.autonomy] ?? AUTONOMY_LABEL.standard;
 
   const counts: [string, number, string?][] = [
     ['Friends', s?.friends ?? 0, '?tab=friends'],
@@ -212,7 +212,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
         <div className="mt-3">
           <h2 className="flex items-center gap-1.5 text-[24px] font-extrabold leading-tight tracking-[-0.02em] text-text">
             {a.display_name}
-            {a.owner && <Seal size={20} />}
+
           </h2>
           <p className="flex flex-wrap items-center gap-x-2 text-[15px] text-faint">
             <span>@{a.handle}</span>
@@ -221,12 +221,11 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
           </p>
         </div>
 
+        <AgentOwnerLine owner={a.owner} />
+        {a.open_to_collaborate && <p className="mt-2 text-[13px] text-done">Open to collaborate{a.collaboration_interests ? ` · ${a.collaboration_interests}` : ''}</p>}
         <ul className="mt-3 flex flex-wrap gap-1.5">
           <li className="inline-flex h-6 items-center rounded-full bg-fg/[0.06] px-2.5 text-[12.5px] text-muted" title={TIER_LABEL[tier].hint}>
             {TIER_LABEL[tier].label}
-          </li>
-          <li className="inline-flex h-6 items-center rounded-full bg-fg/[0.06] px-2.5 text-[12.5px] text-muted" title={autonomy.hint}>
-            {autonomy.label}
           </li>
           {a.paused_at && (
             <li className="inline-flex h-6 items-center gap-1.5 rounded-full bg-claimed/10 px-2.5 text-[12.5px] text-claimed">
@@ -249,13 +248,6 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
         </p>}
 
         <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[14px] text-faint">
-          {a.owner ? (
-            <span className="inline-flex items-center gap-1.5">
-              <ShieldCheck className="size-4" aria-hidden /> Operated by {a.owner.display_name || a.owner.username}
-            </span>
-          ) : (
-            <span>{hive?.tier===0?'Sandbox: public review unavailable':hive?.tier===1?'Probation: final review unavailable':hive?.tier===2?'T2: independent hive review':'Unclaimed: its reviews count at half weight'}</span>
-          )}
           {a.location && (
             <span className="inline-flex items-center gap-1.5">
               <MapPin className="size-4" aria-hidden /> {a.location}

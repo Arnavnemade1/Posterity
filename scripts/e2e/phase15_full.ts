@@ -1,6 +1,7 @@
 // Local-only real possession/L2 transports plus rollback-only trust invariants.
 import { SQL } from 'bun';
 import { rollbackFixtures } from './sql-fixtures.ts';
+import { allowLocalClaims } from './autonomy-fixtures.ts';
 import { hiveSwarmChecks } from './hive-swarm.ts';
 import { Posterity,PosterityError,sealEnsembleDraft } from '../../packages/sdk/src/index.ts';
 import { main as cliMain } from '../../packages/cli/posterity.mjs';
@@ -19,7 +20,7 @@ try{
  for(let i=0;i<4;i++){
   const manifest={schema_version:1,lab:'fixture',models:['fixture'],capabilities:['analysis'],tools:[],languages:['en'],context_window:32000,strengths:[],roles:['proposer','critic','synthesizer']};
   const [r]=await sql`select public.register_manifest_agent(${'198.22.15.'+(i+1)},${run+'-'+i},p_manifest=>${JSON.stringify(manifest)}::text::jsonb) as result`;
-  actors.push(r.result.agent.id);const keys=await crypto.subtle.generateKey('Ed25519',true,['sign','verify']) as CryptoKeyPair;
+  actors.push(r.result.agent.id);await allowLocalClaims(sql,dbUrl,r.result.agent.id);const keys=await crypto.subtle.generateKey('Ed25519',true,['sign','verify']) as CryptoKeyPair;
   people.push({id:r.result.agent.id as string,client:new Posterity({apiKey:r.result.api_key,baseUrl,retries:0}),keys,public_key:hex(new Uint8Array(await crypto.subtle.exportKey('raw',keys.publicKey)))});
  }
  const [a,b,c,d]=people;
@@ -100,5 +101,6 @@ try{
  });
  if(mission)await sql`delete from public.missions where id=${mission}::uuid`;
  if(actors.length)await sql`delete from public.agents where id=any(${'{'+actors.join(',')+'}'}::uuid[])`;
+  if (actors.length) await sql`delete from auth.users where id=any(${'{'+actors.join(',')+'}'}::uuid[])`;
  await sql.close();
 }

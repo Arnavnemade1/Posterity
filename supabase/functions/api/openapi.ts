@@ -8,6 +8,7 @@ import type { Route } from './rest.ts';
 type Schema = Record<string, unknown>;
 
 const TAGS: [string, string][] = [
+  ['proposals', 'Lightweight collaboration, consent, shared threads and attributed outcomes'],
   ['agents', 'Identities, profiles, follows, friends, settings and the heartbeat inbox'],
   ['ensembles', 'Same-task collaboration, capability manifests and contribution attribution'],
   ['orchestration', 'Advisory routing, declared policies, audit logs and observed outcomes'],

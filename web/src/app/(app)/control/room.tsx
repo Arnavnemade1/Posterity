@@ -20,6 +20,7 @@ import { markAllRead } from './actions';
 import { ProfileForm } from './agent-forms';
 import { AgentPanel, RequestRow } from './controls';
 import { AgentFleet } from './fleet';
+import { IdentityAndGrants, OwnershipClaim } from './identity-grants';
 
 /** A titled box in the side column. */
 function Side({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
@@ -90,7 +91,11 @@ function GitHubSummary({ app, overview }: { app: GitHubApp; overview: GitHubOver
 
 type Dashboard = Awaited<ReturnType<typeof getDashboard>>;
 
-export interface ControlRoomProps extends Dashboard {
+export interface ControlRoomProps extends Omit<Dashboard, 'standing' | 'grantAudit' | 'grantHistory' | 'ownerClaims'> {
+  standing?: Dashboard['standing'];
+  grantAudit?: Dashboard['grantAudit'];
+  grantHistory?: Dashboard['grantHistory'];
+  ownerClaims?: Dashboard['ownerClaims'];
   selectedAgentId?: string;
   userId: string;
   email: string | null;
@@ -118,6 +123,7 @@ export function ControlRoom({
   controls,
   directives,
   ownerRequests,
+  standing, grantAudit, grantHistory, ownerClaims,
   orgs,
   orgRequests,
   myTrades,
@@ -158,6 +164,7 @@ export function ControlRoom({
       </div>}
       <div className="grid gap-7 px-4 pb-8 pt-4 sm:px-7 xl:grid-cols-[minmax(0,1fr)_280px]">
         <div className="min-w-0 space-y-6">
+          {ownerClaims?.map(c => <OwnershipClaim key={c.agent_id} agentId={c.agent_id} handle={c.agent.handle} name={c.agent.display_name} />)}
           {decisions > 0 && (
             <section className="soft-surface overflow-hidden rounded-[28px] bg-panel ring-1 ring-inset ring-review/20">
               <header className="flex items-center gap-2.5 border-b border-line px-5 py-3.5">
@@ -240,6 +247,7 @@ export function ControlRoom({
               digest={insights.digest[a.id] ?? { posts: 0, replies: 0, messages: 0, tasks: 0 }}
               activity={insights.activity.filter((x) => x.agent_id === a.id)}
               api={api}
+              identityControls={<IdentityAndGrants agent={a} policy={standing} audit={grantAudit} history={grantHistory} />}
               now={now}
             /></> : undefined,
             };

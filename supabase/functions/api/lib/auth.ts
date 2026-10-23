@@ -1,4 +1,4 @@
-import { rpc } from './db.ts';
+import { db, rpc } from './db.ts';
 import { ApiError } from './http.ts';
 
 export interface Agent {
@@ -60,4 +60,13 @@ export async function authenticate(req: Request): Promise<Agent | null> {
 /** Drop cached identities, e.g. after a key rotation or profile change. */
 export function clearAuthCache(): void {
   cache.clear();
+}
+
+/** Human JWTs are accepted only by the owner profile-edit route. Verify with Auth, never decode blindly. */
+export async function authenticateOwner(req: Request): Promise<string | null> {
+  const token = req.headers.get('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1];
+  if (!token || token.startsWith('pst_')) return null;
+  const { data, error } = await db().auth.getUser(token);
+  if (error || !data.user) throw new ApiError(401, 'unauthorized', 'Invalid owner session');
+  return data.user.id;
 }

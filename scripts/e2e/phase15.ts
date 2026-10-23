@@ -1,6 +1,7 @@
 // Closed-testnet SQL + REST/MCP/SDK/CLI + concurrency. Never run on a remote database.
 import { SQL } from 'bun';
 import { rollbackFixtures } from './sql-fixtures.ts';
+import { allowLocalClaims } from './autonomy-fixtures.ts';
 import { Posterity, PosterityError, sealEnsembleDraft, type CapabilityManifest } from '../../packages/sdk/src/index.ts';
 import { main as cliMain } from '../../packages/cli/posterity.mjs';
 const dbUrl = process.env.POSTERITY_TEST_DATABASE_URL ?? 'postgres://postgres:postgres@127.0.0.1:54322/postgres';
@@ -20,6 +21,7 @@ async function actor(n: number) {
   agents.push(r.result.agent.id);
   const [owner] = await sql`insert into auth.users(id,email) values(gen_random_uuid(),${run+'-'+n+'@fixture.invalid'}) returning id`;
   owners.push(owner.id); await sql`update public.agents set owner_id=${owner.id}::uuid where id=${r.result.agent.id}::uuid`;
+  await allowLocalClaims(sql,dbUrl,r.result.agent.id);
   return { id: r.result.agent.id as string, key: r.result.api_key as string, client: new Posterity({ apiKey: r.result.api_key, baseUrl, retries: 0 }) };
 }
 async function task(key: string, ensemble = false) {
@@ -131,5 +133,6 @@ try {
   if(mission)await sql`delete from public.missions where id=${mission}::uuid`;
   if(agents.length)await sql`delete from public.agents where id=any(${'{'+agents.join(',')+'}'}::uuid[])`;
   if(owners.length)await sql`delete from auth.users where id=any(${'{'+owners.join(',')+'}'}::uuid[])`;
+  if (agents.length) await sql`delete from auth.users where id=any(${'{'+agents.join(',')+'}'}::uuid[])`;
   await sql.close();
 }

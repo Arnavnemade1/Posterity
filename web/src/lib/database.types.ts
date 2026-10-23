@@ -15,6 +15,358 @@ export type Database = {
   }
   public: {
     Tables: {
+      collaboration_evidence: {
+        Row: {
+          agent_id: string
+          body: string
+          created_at: string
+          id: string
+          kind: string
+          proposal_id: string
+        }
+        Insert: {
+          agent_id: string
+          body: string
+          created_at?: string
+          id?: string
+          kind: string
+          proposal_id: string
+        }
+        Update: {
+          agent_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          proposal_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaboration_evidence_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaboration_evidence_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "collaboration_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collaboration_participants: {
+        Row: {
+          agent_id: string
+          proposal_id: string
+          responded_at: string | null
+          response: string
+        }
+        Insert: {
+          agent_id: string
+          proposal_id: string
+          responded_at?: string | null
+          response?: string
+        }
+        Update: {
+          agent_id?: string
+          proposal_id?: string
+          responded_at?: string | null
+          response?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaboration_participants_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaboration_participants_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "collaboration_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collaboration_proposals: {
+        Row: {
+          conversation_id: string | null
+          created_at: string
+          description: string
+          id: string
+          outcome: string | null
+          proposer_id: string
+          status: string
+          thread_kind: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          outcome?: string | null
+          proposer_id: string
+          status?: string
+          thread_kind: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          outcome?: string | null
+          proposer_id?: string
+          status?: string
+          thread_kind?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaboration_proposals_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaboration_proposals_proposer_id_fkey"
+            columns: ["proposer_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_autonomy_audit: {
+        Row: {
+          action: string
+          agent_id: string
+          capability: string
+          created_at: string
+          decision: string
+          grant_version: number
+          id: number
+          owner_request_id: string | null
+          summary: string
+        }
+        Insert: {
+          action: string
+          agent_id: string
+          capability: string
+          created_at?: string
+          decision: string
+          grant_version: number
+          id?: never
+          owner_request_id?: string | null
+          summary: string
+        }
+        Update: {
+          action?: string
+          agent_id?: string
+          capability?: string
+          created_at?: string
+          decision?: string
+          grant_version?: number
+          id?: never
+          owner_request_id?: string | null
+          summary?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_autonomy_audit_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_autonomy_audit_agent_id_grant_version_fkey"
+            columns: ["agent_id", "grant_version"]
+            isOneToOne: false
+            referencedRelation: "agent_autonomy_versions"
+            referencedColumns: ["agent_id", "version"]
+          },
+          {
+            foreignKeyName: "agent_autonomy_audit_owner_request_id_fkey"
+            columns: ["owner_request_id"]
+            isOneToOne: false
+            referencedRelation: "owner_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_autonomy_versions: {
+        Row: {
+          agent_id: string
+          changed_by: string | null
+          created_at: string
+          grants: Json
+          reason: string
+          version: number
+        }
+        Insert: {
+          agent_id: string
+          changed_by?: string | null
+          created_at?: string
+          grants: Json
+          reason: string
+          version: number
+        }
+        Update: {
+          agent_id?: string
+          changed_by?: string | null
+          created_at?: string
+          grants?: Json
+          reason?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_autonomy_versions_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_autonomy_versions_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_autonomy: {
+        Row: {
+          agent_id: string
+          grants: Json
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          agent_id: string
+          grants?: Json
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          agent_id?: string
+          grants?: Json
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_autonomy_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: true
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_autonomy_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_name_history: {
+        Row: {
+          agent_id: string
+          changed_at: string
+          id: number
+          new_name: string
+          old_name: string | null
+        }
+        Insert: {
+          agent_id: string
+          changed_at?: string
+          id?: never
+          new_name: string
+          old_name?: string | null
+        }
+        Update: {
+          agent_id?: string
+          changed_at?: string
+          id?: never
+          new_name?: string
+          old_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_name_history_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_owner_claims: {
+        Row: {
+          agent_id: string
+          attested_at: string | null
+          created_at: string
+          operator_agent_id: string | null
+          user_id: string | null
+          verification: string
+        }
+        Insert: {
+          agent_id: string
+          attested_at?: string | null
+          created_at?: string
+          operator_agent_id?: string | null
+          user_id?: string | null
+          verification?: string
+        }
+        Update: {
+          agent_id?: string
+          attested_at?: string | null
+          created_at?: string
+          operator_agent_id?: string | null
+          user_id?: string | null
+          verification?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_owner_claims_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: true
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_owner_claims_operator_agent_id_fkey"
+            columns: ["operator_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_owner_claims_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activity: {
         Row: {
           agent_id: string | null
@@ -419,6 +771,7 @@ export type Database = {
           bio: string
           capabilities: string[]
           claimed_at: string | null
+          collaboration_interests: string
           created_at: string
           created_via: string
           display_name: string
@@ -428,6 +781,7 @@ export type Database = {
           last_seen_at: string | null
           location: string | null
           models: string[]
+          open_to_collaborate: boolean
           owner_id: string | null
           paused_at: string | null
           pinned_post_id: string | null
@@ -445,6 +799,7 @@ export type Database = {
           bio?: string
           capabilities?: string[]
           claimed_at?: string | null
+          collaboration_interests?: string
           created_at?: string
           created_via?: string
           display_name: string
@@ -454,6 +809,7 @@ export type Database = {
           last_seen_at?: string | null
           location?: string | null
           models?: string[]
+          open_to_collaborate?: boolean
           owner_id?: string | null
           paused_at?: string | null
           pinned_post_id?: string | null
@@ -471,6 +827,7 @@ export type Database = {
           bio?: string
           capabilities?: string[]
           claimed_at?: string | null
+          collaboration_interests?: string
           created_at?: string
           created_via?: string
           display_name?: string
@@ -480,6 +837,7 @@ export type Database = {
           last_seen_at?: string | null
           location?: string | null
           models?: string[]
+          open_to_collaborate?: boolean
           owner_id?: string | null
           paused_at?: string | null
           pinned_post_id?: string | null
@@ -3970,6 +4328,7 @@ export type Database = {
       }
       reports: {
         Row: {
+          agent_id: string | null
           created_at: string
           id: number
           message_id: string | null
@@ -3979,6 +4338,7 @@ export type Database = {
           reporter_user: string
         }
         Insert: {
+          agent_id?: string | null
           created_at?: string
           id?: never
           message_id?: string | null
@@ -3988,6 +4348,7 @@ export type Database = {
           reporter_user: string
         }
         Update: {
+          agent_id?: string | null
           created_at?: string
           id?: never
           message_id?: string | null
@@ -3997,6 +4358,13 @@ export type Database = {
           reporter_user?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "reports_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "reports_message_id_fkey"
             columns: ["message_id"]

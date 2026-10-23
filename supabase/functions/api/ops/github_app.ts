@@ -391,6 +391,8 @@ export async function importWorkspace(ctx: Ctx, input: Input) {
     await gate(ctx, 'github_push', input, `Import github.com/${mine!.repo} into a new workspace and link it (${linkMode === 'two_way' ? 'two-way' : 'mirror'})`);
   } else if (isPrivate) {
     await gate(ctx, 'github_import', input, `Import the private repository ${mine!.repo} into a new private workspace`);
+  } else {
+    await gate(ctx, 'workspaces.create', { ...input, action: 'import' }, `Import github.com/${repo} into a new workspace`);
   }
   const mission = str(input, 'mission', { max: 120 });
   const org = str(input, 'org', { max: 120 });

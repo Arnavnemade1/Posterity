@@ -1,6 +1,7 @@
 // Disposable localhost integration: real SQL, REST, MCP discovery, and native adapters.
 import { SQL } from 'bun';
 import { rollbackFixtures } from './sql-fixtures.ts';
+import { allowLocalClaims } from './autonomy-fixtures.ts';
 import { main as cliMain } from '../../packages/cli/posterity.mjs';
 import { Posterity, PosterityError, responsesEnsembleAdapter, mcpEnsembleAdapter, cliEnsembleAdapter, type CapabilityManifest, type EnsembleRole } from '../../packages/sdk/src/index.ts';
 const dbUrl = process.env.POSTERITY_TEST_DATABASE_URL ?? 'postgres://postgres:postgres@127.0.0.1:54322/postgres';
@@ -14,6 +15,7 @@ const manifest = (lab: string,roles: EnsembleRole[]): CapabilityManifest => ({ s
 async function agent(n: number,role: EnsembleRole) {
   const [r] = await sql`select public.register_manifest_agent(${`198.51.${Math.floor(n/200)}.${n%200+1}`},${run+'-'+n},p_manifest=>${JSON.stringify(manifest('lab-'+n,[role]))}::text::jsonb) as result`;
   const id=r.result.agent.id as string; ids.push(id);
+  await allowLocalClaims(sql,dbUrl,id);
   await sql`select public.record_lab_verification(${id}::uuid,${'lab-'+n},${JSON.stringify(['unknown-future-model'])}::text::jsonb,'https://fixtures.invalid/evidence',${'a'.repeat(64)},'local-test-operator',now()+interval '1 day')`;
   return { id, key:r.result.api_key as string, client: new Posterity({ apiKey:r.result.api_key, baseUrl,retries:0 }) };
 }
@@ -29,6 +31,7 @@ try {
   check(true,'transactional engine assertions');
   const nativeRegistration = await Posterity.register({ handle: run+'-native', manifest: manifest('new-lab',['specialist']) }, { baseUrl });
   ids.push(nativeRegistration.result.agent.id);
+  await allowLocalClaims(sql,dbUrl,nativeRegistration.result.agent.id);
   const published=await nativeRegistration.client.agents.manifest();
   check(published.manifest?.lab === 'new-lab','new agent registers using only a manifest');
   check(published.lab_identity?.status === 'self_declared','REST reports unverified provider claims honestly');
@@ -42,7 +45,7 @@ try {
   const contested=await task('contested'); // Keep the mission active for contention probes.
   const nativeRole=await task('native-manifest',{roles:[...spec.roles,{role:'specialist'}],distinct_labs:false});
   const nativeInbox=await nativeRegistration.client.heartbeat();
-  check(nativeInbox.ensembles?.assignments.some((r)=>r.ensemble_id===nativeRole.eid&&r.role==='specialist'),'manifest-only REST registration receives a role in one heartbeat');
+  check(nativeInbox.ensembles?.assignments.some((r)=>r.ensemble_id===nativeRole.eid&&r.role==='specialist'),'manifest registration with an owner grant receives a role in one heartbeat');
   for (const [actor,role] of [[a,'proposer'],[b,'critic'],[c,'synthesizer']] as const) {
     const h=await actor.client.heartbeat();
     check(h.ensembles?.assignments.some((r)=>r.ensemble_id===t.eid&&r.role===role),'first HTTP heartbeat assigns '+role);
@@ -109,5 +112,6 @@ try {
     await sql`delete from public.missions where id=${mission}::uuid`;
   }
   if(ids.length) await sql`delete from public.agents where id=any(${'{'+ids.join(',')+'}'}::uuid[])`;
+  if (ids.length) await sql`delete from auth.users where id=any(${'{'+ids.join(',')+'}'}::uuid[])`;
   await sql.close();
 }
