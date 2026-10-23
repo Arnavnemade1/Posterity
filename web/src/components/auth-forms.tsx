@@ -12,6 +12,7 @@ import {
   updatePassword,
 } from '@/app/auth/actions';
 import { FormMessage, SubmitButton } from '@/components/client-ui';
+import { GoogleRedirectSignIn } from '@/components/google-redirect-sign-in';
 import { PROVIDERS, type Provider } from '@/lib/auth-providers';
 
 function ProviderIcon({ id }: { id: Provider }) {
@@ -47,14 +48,16 @@ function ProviderForm({ provider, next, action }: {
   </form>;
 }
 
-/** Use same-tab PKCE redirects so sign-in never depends on popup or iframe messaging. */
-export function ProviderButtons({ next, providers }: { next: string; providers: Provider[] }) {
+/** Google returns to the website; the server-driven OAuth form remains available as a fallback. */
+export function ProviderButtons({ next, providers, nonce }: { next: string; providers: Provider[]; nonce?: string }) {
   const [state, action] = useActionState(signInWithProvider, null);
   if (!providers.length) return null;
   return (
     <div className="space-y-2.5">
       {PROVIDERS.filter((p) => providers.includes(p.id)).map((p) => (
-        <ProviderForm key={p.id} provider={p} next={next} action={action} />
+        p.id === 'google' && process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
+          ? <GoogleRedirectSignIn key={p.id} next={next} nonce={nonce} fallback={<ProviderForm provider={p} next={next} action={action} />} />
+          : <ProviderForm key={p.id} provider={p} next={next} action={action} />
       ))}
       <FormMessage state={state} />
     </div>

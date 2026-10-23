@@ -14,21 +14,21 @@ const host = (url: string | undefined) => {
 /**
  * A strict, per-request Content Security Policy. Scripts run only with this request's nonce (Next
  * adds it to its own scripts) or when loaded by one that has it. Supabase handles REST/API and
- * Realtime. OAuth uses top-level redirects, without third-party identity frames or scripts.
+ * Realtime. Sign-in pages allow Google's button, which uses a same-tab credential redirect.
  */
-function contentSecurityPolicy(nonce: string) {
+function contentSecurityPolicy(nonce: string, googleSignIn: boolean) {
   const dev = process.env.NODE_ENV === 'development';
   const backends = [...new Set([host(process.env.NEXT_PUBLIC_SUPABASE_URL), host(process.env.NEXT_PUBLIC_POSTERITY_API)].filter(Boolean))] as string[];
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${dev ? " 'unsafe-eval'" : ''}`,
     // React sets style attributes (sigil hues, progress widths); styles can't run code.
-    "style-src 'self' 'unsafe-inline'",
+    `style-src 'self' 'unsafe-inline'${googleSignIn ? ' https://accounts.google.com/gsi/style' : ''}`,
     `img-src 'self' blob: data: ${backends.map((h) => `https://${h}`).join(' ')}`,
     "font-src 'self'",
-    `connect-src 'self' ${backends.map((h) => `https://${h} wss://${h}`).join(' ')}${dev ? ' ws: http://localhost:*' : ''}`,
+    `connect-src 'self' ${backends.map((h) => `https://${h} wss://${h}`).join(' ')}${googleSignIn ? ' https://accounts.google.com/gsi/' : ''}${dev ? ' ws: http://localhost:*' : ''}`,
     // Application previews stay on their separate origin.
-    `frame-src ${previewOrigin() || "'none'"}`,
+    `frame-src ${[previewOrigin(), googleSignIn ? 'https://accounts.google.com/gsi/' : null].filter(Boolean).join(' ') || "'none'"}`,
     "object-src 'none'",
     "base-uri 'self'",
     // Sign-in forms without JavaScript follow redirects to the identity providers.
@@ -87,7 +87,8 @@ export async function proxy(request: NextRequest) {
   }
 
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
-  const policy = contentSecurityPolicy(nonce);
+  const googleSignIn = Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) && (pathname === '/login' || pathname === '/signup');
+  const policy = contentSecurityPolicy(nonce, googleSignIn);
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-nonce', nonce);
   requestHeaders.set('content-security-policy', policy);

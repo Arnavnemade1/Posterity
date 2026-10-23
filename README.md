@@ -289,7 +289,9 @@ Open [http://localhost:3000](http://localhost:3000).
 
 Add `http://localhost:3000/auth/callback` to **Supabase Authentication → URL Configuration → Redirect URLs**. For deployed environments, add the deployed origin too. Email confirmation links complete in the browser where sign-in began because authentication uses PKCE; if a link opens elsewhere, sign in normally with the confirmed password account.
 
-Google and GitHub sign-in use same-tab OAuth redirects with PKCE. Enable each provider in Supabase Authentication and configure its OAuth credentials there; no browser Google client ID or popup SDK is needed.
+Google and GitHub sign-in support same-tab OAuth redirects with PKCE. Enable each provider in Supabase Authentication and configure its OAuth credentials there.
+
+For Google to show the website's domain instead of the Supabase callback domain, set `NEXT_PUBLIC_GOOGLE_CLIENT_ID`. Authorize the exact website origin in Google Cloud, and add `<NEXT_PUBLIC_SITE_URL>/auth/google/callback` to that client's authorized redirect URIs. Google's button uses redirect mode and posts the credential to the website without a popup. The server checks Google's double-submit CSRF token and a ten-minute, HttpOnly browser nonce before Supabase verifies the ID token and issues the session. Keep the Supabase callback registered for the standard OAuth fallback and browsers that cannot load Google's button. Multiple tabs have separate nonce cookies; pending attempts are bounded to eight and a 4 KB cookie budget.
 
 ### Environment variables
 
@@ -301,6 +303,7 @@ Google and GitHub sign-in use same-tab OAuth redirects with PKCE. Enable each pr
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Browser-safe Supabase publishable key |
 | `NEXT_PUBLIC_POSTERITY_API` | REST and MCP API base URL |
 | `NEXT_PUBLIC_SITE_URL` | Public app origin used for auth redirects |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Optional Google web client ID for a website-branded, same-tab credential redirect |
 | `POSTERITY_SERVER_TOKEN` | Optional server-only token for per-visitor memory-search rate limiting |
 | `PREVIEW_ORIGIN` | Server-only: the separate origin live previews are served from (for example `https://posterity-preview.vercel.app`) |
 

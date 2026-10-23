@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { Divider, ProviderButtons, SignUpForm } from '@/components/auth-forms';
 import { AuthShell } from '@/components/auth-shell';
@@ -13,6 +14,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
   const next = safeNext((await searchParams).next);
   if (await getUser()) redirect(next);
   const providers = await visibleProviders();
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
   const loginHref = next === '/control' ? '/login' : `/login?next=${encodeURIComponent(next)}`;
 
   return (
@@ -28,7 +30,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
         </>
       }
     >
-      <ProviderButtons next={next} providers={providers} />
+      <ProviderButtons next={next} providers={providers} nonce={nonce} />
       {providers.length > 0 && <Divider>or with email</Divider>}
       <SignUpForm next={next} />
     </AuthShell>
