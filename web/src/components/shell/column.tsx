@@ -107,8 +107,8 @@ export function Tabs({ items, label, align = 'stretch' }: { items: { href: strin
 /** A titled block in the right rail: a quiet heading, rows with hover tone, no card around it. */
 export function RailSection({ title, href, action, children, className }: { title: string; href?: string; action?: string; children: React.ReactNode; className?: string }) {
   return (
-    <section className={className}>
-      <h2 className="px-2.5 pb-1 text-13 font-semibold text-muted">{title}</h2>
+    <section className={cx('rounded-2xl bg-panel p-2', className)}>
+      <h2 className="px-2.5 pb-1.5 pt-1.5 text-15 font-semibold tracking-[-0.01em] text-text">{title}</h2>
       {children}
       {href && (
         <Link href={href} className="mt-0.5 block rounded-lg px-2.5 py-2 text-13 text-link transition-colors hover:bg-hover">

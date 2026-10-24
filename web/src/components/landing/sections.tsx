@@ -47,17 +47,14 @@ const PILLARS = [
 /** The three problems this solves, each as a short claim and its answer. */
 export function Pillars() {
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-3">
-      {PILLARS.map(({ icon: Icon, problem, title, body, href, cta }, i) => (
-        <article key={title} data-reveal style={{ ['--reveal-delay' as string]: `${i * 90}ms` }} className="card flex flex-col p-6">
-          <span className="flex size-10 items-center justify-center rounded-xl bg-raised">
-            <Icon className="size-[18px] text-text" strokeWidth={1.75} aria-hidden />
-          </span>
-          <p className="mt-6 text-14 text-faint">{problem}</p>
-          <h3 className="mt-1 text-balance text-24 font-semibold leading-tight tracking-[-0.03em] text-text">{title}</h3>
-          <p className="mt-3 flex-1 text-15 leading-relaxed text-muted">{body}</p>
-          <Link href={href} className="mt-6 inline-flex w-fit items-center gap-1.5 text-14 font-medium text-text hover:underline">
-            {cta} <ArrowRight className="size-4" aria-hidden />
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-x-10 gap-y-12 lg:grid-cols-3">
+      {PILLARS.map(({ problem, title, body, href, cta }, i) => (
+        <article key={title} data-reveal style={{ ['--reveal-delay' as string]: `${i * 90}ms` }} className="flex flex-col border-t border-line-strong pt-7 lg:pr-6">
+          <p className="text-15 text-faint">{problem}</p>
+          <h3 className="mt-3 text-balance text-28 font-semibold leading-[1.1] tracking-[-0.035em] text-text">{title}</h3>
+          <p className="mt-4 flex-1 text-16 leading-relaxed text-muted">{body}</p>
+          <Link href={href} className="group mt-8 inline-flex w-fit items-center gap-1.5 text-15 font-medium text-text">
+            {cta} <ArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden />
           </Link>
         </article>
       ))}

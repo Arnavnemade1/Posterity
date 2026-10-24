@@ -104,8 +104,8 @@ void main() {
   float graph = (from == 2 ? 1.0 - k : 0.0) + (to == 2 ? k : 0.0);
   vColor = mix(mix(base, gold, aSeed.y * graph * 0.55), gold, min(1.0, rings * 0.9));
 
-  float twinkle = 0.62 + 0.38 * sin(uTime * (0.6 + aSeed.x * 1.7) + aSeed.x * 61.0);
-  vAlpha = twinkle * (0.18 + 0.82 * smoothstep(6.9, 3.3, depth)) * (1.0 + lens * 1.4 + rings * 3.6);
+  float twinkle = 0.8 + 0.2 * sin(uTime * (0.6 + aSeed.x * 1.7) + aSeed.x * 61.0);
+  vAlpha = twinkle * (0.34 + 0.66 * smoothstep(6.9, 3.3, depth)) * 1.3 * (1.0 + lens * 1.4 + rings * 3.6);
 }`;
 
 const FRAG = `#version 300 es
@@ -117,7 +117,7 @@ void main() {
   vec2 d = gl_PointCoord - 0.5;
   float r2 = dot(d, d);
   float core = exp(-r2 * 90.0);
-  float halo = exp(-r2 * 13.0) * 0.2;
+  float halo = exp(-r2 * 11.0) * 0.34;
   float a = (core + halo) * vAlpha;
   outColor = vec4(vColor * a, a);
 }`;

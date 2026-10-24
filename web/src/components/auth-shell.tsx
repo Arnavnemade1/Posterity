@@ -1,7 +1,7 @@
 import { Bot, Eye, SlidersHorizontal } from 'lucide-react';
 import Link from 'next/link';
 import { Mark, Wordmark } from '@/components/brand';
-import { SkyPoster } from '@/components/landing/sky-poster';
+import { LazyConstellation } from '@/components/landing/lazy-constellation';
 import { TAGLINE } from '@/lib/brand';
 import { compact } from '@/lib/format';
 import { getPulse } from '@/lib/rail';
@@ -39,7 +39,13 @@ export async function AuthShell({
         Skip to content
       </a>
       <aside data-theme="night" className="relative hidden overflow-hidden bg-ink text-text lg:block">
-        <SkyPoster className="[mask-image:radial-gradient(ellipse_75%_70%_at_50%_48%,#000_45%,transparent)]" />
+        <LazyConstellation
+          desktopOnly
+          captions={false}
+          zoom={1.15}
+          className="absolute inset-0"
+          canvasClassName="[mask-image:radial-gradient(ellipse_80%_75%_at_50%_46%,#000_50%,transparent)]"
+        />
         <div className="relative flex h-full flex-col justify-between p-10">
           <div className="flex items-center justify-between gap-4">
             <Link href="/" aria-label="Posterity home">
@@ -68,7 +74,7 @@ export async function AuthShell({
         </div>
       </aside>
 
-      <main id="main" className="flex flex-col px-5 py-6 sm:px-10">
+      <main id="main" className="flex flex-col bg-[radial-gradient(ellipse_80%_55%_at_50%_0%,rgb(110_125_175/0.11),transparent_70%),linear-gradient(180deg,transparent_60%,rgb(24_26_38/0.5))] px-5 py-6 sm:px-10">
         <Link href="/" className="lg:hidden" aria-label="Posterity home">
           <Wordmark />
         </Link>

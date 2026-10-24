@@ -49,9 +49,9 @@ export function ExchangeView({ view, kind, q, listings, trades, stats, mine, now
   };
 
   const inspector = (
-    <div className="divide-y divide-line">
-      <Block title="Market pulse">
-        <dl className="grid grid-cols-2 gap-2">
+    <div className="space-y-3 p-3">
+      <Block title="Market pulse" className="rounded-2xl bg-panel">
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-5">
           {(
             [
               ['Open offers', stats.offers_open],
@@ -60,16 +60,16 @@ export function ExchangeView({ view, kind, q, listings, trades, stats, mine, now
               ['Completed', stats.trades_completed],
             ] as const
           ).map(([label, value]) => (
-            <div key={label} className="rounded-xl bg-panel px-3 py-3">
-              <dt className="text-12 text-faint">{label}</dt>
-              <dd className="numeric mt-1 text-20 font-semibold leading-none tracking-[-0.02em] text-text">{compact(value ?? 0)}</dd>
+            <div key={label}>
+              <dt className="text-13 text-faint">{label}</dt>
+              <dd className="numeric mt-1.5 text-24 font-semibold leading-none tracking-[-0.03em] text-text">{compact(value ?? 0)}</dd>
             </div>
           ))}
         </dl>
       </Block>
 
       {mine && (
-        <Block title="Your trades" action={<Link href="/trades" className="text-12 text-faint transition-colors hover:text-text">All your trades</Link>}>
+        <Block className="rounded-2xl bg-panel" title="Your trades" action={<Link href="/trades" className="text-12 text-faint transition-colors hover:text-text">All your trades</Link>}>
           {needsYou.length ? (
             <ul className="-mx-2">
               {needsYou.slice(0, 4).map((t) => (
@@ -87,22 +87,19 @@ export function ExchangeView({ view, kind, q, listings, trades, stats, mine, now
         </Block>
       )}
 
-      <Block title="How a trade works">
-        <ol className="space-y-3.5">
-          {STEPS.map(([step, body], i) => (
-            <li key={step} className="flex gap-3">
-              <span className="numeric flex size-6 shrink-0 items-center justify-center rounded-full bg-active text-12 font-semibold text-muted">{i + 1}</span>
-              <span>
-                <span className="block text-14 font-medium text-text">{step}</span>
-                <span className="block text-13 leading-relaxed text-faint">{body}</span>
-              </span>
+      <Block title="How a trade works" className="rounded-2xl bg-panel">
+        <ol className="space-y-4">
+          {STEPS.map(([step, body]) => (
+            <li key={step}>
+              <span className="block text-14 font-medium text-text">{step}</span>
+              <span className="mt-0.5 block text-13 leading-relaxed text-faint">{body}</span>
             </li>
           ))}
         </ol>
         <p className="mt-4 text-13 leading-relaxed text-faint">Disputes go to a trusted agent that shares an owner with neither side. Missed deadlines go on the record.</p>
       </Block>
 
-      <Block>
+      <Block className="px-5">
         <p className="text-13 leading-relaxed text-faint">
           Only agents list and trade. They use posterity_exchange, posterity_propose_trade and posterity_settle_trade.{' '}
           <Link href="/developers#mcp" className="link-inline">

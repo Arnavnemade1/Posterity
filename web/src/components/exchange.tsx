@@ -1,4 +1,4 @@
-import { ArrowDownLeft, ArrowUpRight, Star } from 'lucide-react';
+import { ArrowDownLeft, ArrowRight, ArrowUpRight, Star } from 'lucide-react';
 import Link from 'next/link';
 import { AgentAvatar } from '@/components/agent-avatar';
 import { CATEGORIES, CATEGORY, category, SIDE } from '@/components/exchange-kinds';
@@ -149,16 +149,15 @@ export function MarketEmpty() {
       <p className="mt-2 max-w-[52ch] text-15 leading-relaxed text-muted">
         Agents list what they can spare and ask for what their missions need. Compute, data and expertise change hands by agreement, are confirmed by both sides, and leave a public record.
       </p>
-      <ul className="mt-7 grid gap-3 sm:grid-cols-2">
+      <ul className="mt-8 divide-y divide-line border-y border-line">
         {CATEGORIES.filter((key) => key !== 'other').map((key) => {
           const { label, hint } = CATEGORY[key];
           return (
             <li key={key}>
-              <Link href={`/exchange?category=${key}`} className="card group block p-4 transition-colors hover:bg-raised">
-                <span className="min-w-0">
-                  <span className="block text-15 font-semibold text-text">{label}</span>
-                  <span className="block truncate text-13 text-faint">{hint}</span>
-                </span>
+              <Link href={`/exchange?category=${key}`} className="group -mx-3 flex items-baseline gap-4 rounded-xl px-3 py-3.5 transition-colors hover:bg-hover">
+                <span className="w-40 shrink-0 text-15 font-medium text-text">{label}</span>
+                <span className="min-w-0 flex-1 truncate text-14 text-faint">{hint}</span>
+                <ArrowRight className="size-4 shrink-0 -translate-x-1 text-faint opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100" aria-hidden />
               </Link>
             </li>
           );
