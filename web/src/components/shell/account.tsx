@@ -1,14 +1,15 @@
 'use client';
 
-import { Ellipsis, LogOut, Plus, SlidersHorizontal } from 'lucide-react';
-import Link from 'next/link';
+import { ChevronsUpDown, Keyboard, LogOut, Plus, SlidersHorizontal, Terminal } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { AgentAvatar, HumanAvatar } from '@/components/agent-avatar';
+import { GitHubMark } from '@/components/icons';
 import { type Anchor, ANCHOR_ATTR, anchorOf, FloatingMenu } from '@/components/shell/floating';
 import { ThemeSwitch } from '@/components/shell/theme-switch';
 import { cx } from '@/components/ui';
+import { MenuItem, MenuLabel, MenuSeparator } from '@/components/ui/menu';
 
-/** The signed-in human at the foot of the rail, with the sky switch and the way out. */
+/** The signed-in human at the foot of the rail: their agents, the theme, the places that are not in the rail, and the way out. */
 export function AccountMenu({
   name,
   email,
@@ -18,7 +19,7 @@ export function AccountMenu({
   name: string;
   email: string | null;
   agents: { handle: string; display_name: string }[];
-  /** 'rail' is the wide button at the foot of the left rail; 'bar' is just the face, for the phone's top bar. */
+  /** 'rail' is the row at the foot of the left rail; 'bar' is just the face, for the phone's top bar. */
   variant?: 'rail' | 'bar';
 }) {
   const [anchor, setAnchor] = useState<Anchor | null>(null);
@@ -26,37 +27,55 @@ export function AccountMenu({
 
   return (
     <div>
-      <FloatingMenu anchor={anchor} onClose={close} width={290} prefer={variant === 'bar' ? 'below' : 'above'} align={variant === 'bar' ? 'end' : 'start'} label="Account">
-        <div className="border-b border-line px-4 pb-3 pt-2">
-          <div className="truncate text-[14.5px] font-semibold text-text">{name}</div>
-          {email && <div className="truncate text-[13px] text-faint">{email}</div>}
+      <FloatingMenu anchor={anchor} onClose={close} width={272} prefer={variant === 'bar' ? 'below' : 'above'} align={variant === 'bar' ? 'end' : 'start'} label="Account">
+        <div className="px-2.5 pb-2 pt-1.5">
+          <div className="truncate text-14 font-semibold text-text">{name}</div>
+          {email && <div className="truncate text-13 text-faint">{email}</div>}
         </div>
         {agents.length > 0 && (
-          <div className="border-b border-line py-1.5">
-            <div className="px-4 pb-1 pt-1.5 text-[12px] font-medium text-faint">Your agents</div>
+          <>
+            <MenuSeparator />
+            <MenuLabel>Your agents</MenuLabel>
             {agents.slice(0, 4).map((a) => (
-              <Link key={a.handle} href={`/agents/${a.handle}`} role="menuitem" onClick={close} className="flex items-center gap-2.5 px-4 py-2 transition-colors hover:bg-fg/[0.06] focus-visible:bg-fg/[0.06] focus-visible:outline-none">
-                <AgentAvatar handle={a.handle} size={24} />
-                <span className="min-w-0 truncate text-[14px] text-text">{a.display_name}</span>
-                <span className="ml-auto truncate pl-2 text-[12.5px] text-faint">@{a.handle}</span>
-              </Link>
+              <MenuItem key={a.handle} href={`/agents/${a.handle}`} onClick={close} icon={<AgentAvatar handle={a.handle} size={20} />} hint={`@${a.handle}`}>
+                {a.display_name}
+              </MenuItem>
             ))}
-          </div>
+          </>
         )}
-        <div className="border-b border-line px-4 py-3">
-          <div className="mb-2 text-[12px] font-medium text-faint">Theme</div>
+        <MenuSeparator />
+        <div className="px-1.5 pb-1 pt-0.5">
+          <div className="mb-1.5 text-11 font-medium uppercase tracking-[0.06em] text-faint">Theme</div>
           <ThemeSwitch className="w-full" />
         </div>
-        <Link href="/onboard" role="menuitem" onClick={close} className="flex items-center gap-3 px-4 py-2.5 text-[14.5px] text-text transition-colors hover:bg-fg/[0.06] focus-visible:bg-fg/[0.06] focus-visible:outline-none">
-          <Plus className="size-[18px] text-faint" aria-hidden /> Connect an agent
-        </Link>
-        <Link href="/control" role="menuitem" onClick={close} className="flex items-center gap-3 px-4 py-2.5 text-[14.5px] text-text transition-colors hover:bg-fg/[0.06] focus-visible:bg-fg/[0.06] focus-visible:outline-none">
-          <SlidersHorizontal className="size-[18px] text-faint" aria-hidden /> Control room
-        </Link>
+        <MenuSeparator />
+        <MenuItem href="/onboard" onClick={close} icon={<Plus />}>
+          Connect an agent
+        </MenuItem>
+        <MenuItem href="/control" onClick={close} icon={<SlidersHorizontal />}>
+          Control room
+        </MenuItem>
+        <MenuItem href="/github" onClick={close} icon={<GitHubMark />}>
+          GitHub
+        </MenuItem>
+        <MenuItem href="/developers" onClick={close} icon={<Terminal />}>
+          Developers
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            close();
+            window.dispatchEvent(new Event('posterity:shortcuts'));
+          }}
+          icon={<Keyboard />}
+          hint="?"
+        >
+          Keyboard shortcuts
+        </MenuItem>
+        <MenuSeparator />
         <form action="/auth/signout" method="post">
-          <button type="submit" role="menuitem" className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-[14.5px] text-text transition-colors hover:bg-fg/[0.06] focus-visible:bg-fg/[0.06] focus-visible:outline-none">
-            <LogOut className="size-[18px] text-faint" aria-hidden /> Sign out
-          </button>
+          <MenuItem type="submit" icon={<LogOut />}>
+            Sign out
+          </MenuItem>
         </form>
       </FloatingMenu>
       <button
@@ -67,19 +86,21 @@ export function AccountMenu({
         onClick={(e) => setAnchor(anchor ? null : anchorOf(e.currentTarget))}
         {...ANCHOR_ATTR}
         className={cx(
-          'flex items-center transition-colors hover:bg-fg/[0.06]',
-          variant === 'bar' ? 'rounded-full p-0.5' : 'w-full justify-center gap-3 rounded-full p-2 xl:justify-start',
-          anchor && 'bg-fg/[0.06]',
+          'flex items-center transition-colors hover:bg-hover',
+          variant === 'bar'
+            ? 'rounded-full p-0.5'
+            : 'w-full justify-center gap-2.5 rounded-lg p-1.5 xl:justify-start xl:group-data-[rail=collapsed]/shell:justify-center',
+          anchor && 'bg-hover',
         )}
       >
-        <HumanAvatar name={name} size={variant === 'bar' ? 32 : 36} />
+        <HumanAvatar name={name} size={variant === 'bar' ? 32 : 28} />
         {variant === 'rail' && (
           <>
-            <span className="hidden min-w-0 flex-1 text-left xl:block">
-              <span className="block truncate text-[14px] font-semibold text-text">{name}</span>
-              <span className="block truncate text-[12.5px] text-faint">{email ?? 'Watching'}</span>
+            <span className="hidden min-w-0 flex-1 text-left xl:block xl:group-data-[rail=collapsed]/shell:hidden">
+              <span className="block truncate text-13 font-medium text-text">{name}</span>
+              <span className="block truncate text-12 text-faint">{email ?? 'Watching'}</span>
             </span>
-            <Ellipsis className="hidden size-[18px] text-faint xl:block" aria-hidden />
+            <ChevronsUpDown className="hidden size-3.5 text-faint xl:block xl:group-data-[rail=collapsed]/shell:hidden" aria-hidden />
           </>
         )}
       </button>

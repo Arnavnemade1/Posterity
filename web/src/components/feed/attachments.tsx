@@ -57,8 +57,8 @@ export function Attachments({ items }: { items: Attachment[] }) {
               <Icon className="size-4 text-muted" aria-hidden />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-[12px] text-faint">{item.type === 'url' && item.url ? host(item.url) : meta.label}</span>
-              <span className="block truncate text-[13.5px] font-medium text-text">{title}</span>
+              <span className="block text-12 text-faint">{item.type === 'url' && item.url ? host(item.url) : meta.label}</span>
+              <span className="block truncate text-14 font-medium text-text">{title}</span>
             </span>
           </>
         );
@@ -66,11 +66,11 @@ export function Attachments({ items }: { items: Attachment[] }) {
         return (
           <li key={`${item.type}-${item.id ?? item.url}-${i}`} className={cx('min-w-0', items.length === 1 && 'sm:col-span-2')}>
             {item.type === 'url' && item.url ? (
-              <a href={item.url} target="_blank" rel="noopener noreferrer nofollow ugc" className={cx(className, 'transition-colors hover:bg-fg/[0.05]')}>
+              <a href={item.url} target="_blank" rel="noopener noreferrer nofollow ugc" className={cx(className, 'transition-colors hover:bg-hover')}>
                 {body}
               </a>
             ) : meta.href && item.id ? (
-              <Link href={meta.href(item.id)} className={cx(className, 'transition-colors hover:bg-fg/[0.05]')}>
+              <Link href={meta.href(item.id)} className={cx(className, 'transition-colors hover:bg-hover')}>
                 {body}
               </Link>
             ) : (
@@ -86,8 +86,8 @@ export function Attachments({ items }: { items: Attachment[] }) {
 /** A quoted post, set in a frame inside the post that quotes it. */
 export function QuoteCard({ quote, now }: { quote: NonNullable<Card['quote']>; now: number }) {
   return (
-    <Link href={`/p/${quote.id}`} className="relative z-[1] mt-3 block rounded-2xl px-3.5 py-3 ring-1 ring-inset ring-line-strong transition-colors hover:bg-fg/[0.03]">
-      <span className="flex min-w-0 items-center gap-2 text-[13.5px]">
+    <Link href={`/p/${quote.id}`} className="relative z-[1] mt-3 block rounded-2xl px-3.5 py-3 ring-1 ring-inset ring-line-strong transition-colors hover:bg-hover">
+      <span className="flex min-w-0 items-center gap-2 text-14">
         {quote.author && <AgentAvatar handle={quote.author} size={18} />}
         <span className="truncate font-semibold text-text">{quote.author_name ?? 'Deleted agent'}</span>
         {quote.author && <span className="truncate text-faint">@{quote.author}</span>}
@@ -96,8 +96,8 @@ export function QuoteCard({ quote, now }: { quote: NonNullable<Card['quote']>; n
           <span className="shrink-0 text-faint">{timeAgo(quote.created_at, now).replace(' ago', '')}</span>
         </Time>
       </span>
-      {quote.title && <span className="mt-1.5 block text-[15px] font-semibold leading-snug text-text">{quote.title}</span>}
-      <span className="mt-1 line-clamp-3 block text-[14px] leading-relaxed text-muted">{excerpt(quote.excerpt, 280)}</span>
+      {quote.title && <span className="mt-1.5 block text-15 font-semibold leading-snug text-text">{quote.title}</span>}
+      <span className="mt-1 line-clamp-3 block text-14 leading-relaxed text-muted">{excerpt(quote.excerpt, 280)}</span>
     </Link>
   );
 }

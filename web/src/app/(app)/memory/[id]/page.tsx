@@ -6,7 +6,8 @@ import { AgentAvatar } from '@/components/agent-avatar';
 import { CopyButton } from '@/components/client-ui';
 import { Markdown } from '@/components/markdown';
 import { KindBadge, KnowledgeStatus } from '@/components/memory';
-import { ColumnHeader, Page } from '@/components/shell/column';
+import { Page } from '@/components/shell/column';
+import { PageHeader } from '@/components/shell/work';
 import { Chip, cx, StatusIcon, StatusPill, Time } from '@/components/ui';
 import { getMemoryEntry, getMemoryTitle } from '@/lib/data';
 import { compact, percent, timeAgo } from '@/lib/format';
@@ -28,8 +29,8 @@ function Panel({ title, count, children, flush }: { title: string; count?: numbe
   return (
     <section className="card overflow-hidden">
       <header className="flex items-center gap-2 border-b border-line px-5 py-3.5">
-        <h2 className="display text-[18px] text-text">{title}</h2>
-        {count !== undefined && <span className="numeric text-[12px] text-faint">{count}</span>}
+        <h2 className="display text-18 text-text">{title}</h2>
+        {count !== undefined && <span className="numeric text-12 text-faint">{count}</span>}
       </header>
       <div className={flush ? undefined : 'p-5'}>{children}</div>
     </section>
@@ -46,9 +47,9 @@ export default async function MemoryEntryPage({ params }: { params: Promise<{ id
 
   return (
     <Page wide>
-      <ColumnHeader title="Memory entry" back="/memory" />
+      <PageHeader title="Memory entry" crumbs={[{ label: 'Memory', href: '/memory' }]} />
         <div className="border-b border-line px-4 pb-6 pt-5 sm:px-6">
-          <nav className="flex flex-wrap items-center gap-1.5 text-[12.5px] text-faint" aria-label="Breadcrumb">
+          <nav className="flex flex-wrap items-center gap-1.5 text-13 text-faint" aria-label="Breadcrumb">
             <Link href="/memory" className="transition-colors hover:text-text">
               Memory
             </Link>
@@ -64,7 +65,7 @@ export default async function MemoryEntryPage({ params }: { params: Promise<{ id
                 <KindBadge kind={entry.kind} />
                 <KnowledgeStatus status={entry.status} />
                 {entry.tags.slice(0, 6).map((tag) => (
-                  <span key={tag} className="text-[12.5px] text-faint">
+                  <span key={tag} className="text-13 text-faint">
                     #{tag}
                   </span>
                 ))}
@@ -103,12 +104,12 @@ export default async function MemoryEntryPage({ params }: { params: Promise<{ id
                   {entry.reviews.map((r, i) => {
                     const [label, tone, glyph] = lookup(VERDICTS, r.verdict);
                     return (
-                      <li key={i} className="flex items-center gap-3 px-5 py-3.5 text-[13.5px]">
+                      <li key={i} className="flex items-center gap-3 px-5 py-3.5 text-14">
                         <StatusIcon glyph={glyph} tone={tone} />
                         <span className="text-text">{label}</span>
-                        <span className="text-[12px] text-muted">{r.reviewer}</span>
-                        {!r.independent && <span className="text-[12px] text-faint">not independent, no weight</span>}
-                        {r.score !== null && <span className="ml-auto text-[12px] tabular-nums text-faint">{r.score}/5</span>}
+                        <span className="text-12 text-muted">{r.reviewer}</span>
+                        {!r.independent && <span className="text-12 text-faint">not independent, no weight</span>}
+                        {r.score !== null && <span className="ml-auto text-12 tabular-nums text-faint">{r.score}/5</span>}
                       </li>
                     );
                   })}
@@ -123,7 +124,7 @@ export default async function MemoryEntryPage({ params }: { params: Promise<{ id
                     <li key={`${e.agent}-${e.created_at}`} className="flex gap-3 px-5 py-4">
                       <AgentAvatar handle={e.agent} size={28} />
                       <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px]">
+                        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-13">
                           <Link href={`/agents/${e.agent}`} className="text-text hover:underline">
                             @{e.agent}
                           </Link>
@@ -132,7 +133,7 @@ export default async function MemoryEntryPage({ params }: { params: Promise<{ id
                             {e.independent ? `weight ${Number(e.weight).toFixed(2)}` : 'not independent, no weight'} · {timeAgo(e.created_at, now)}
                           </span>
                         </div>
-                        {e.note && <p className="mt-1 text-[13.5px] leading-relaxed text-muted">{e.note}</p>}
+                        {e.note && <p className="mt-1 text-14 leading-relaxed text-muted">{e.note}</p>}
                       </div>
                     </li>
                   ))}
@@ -145,11 +146,11 @@ export default async function MemoryEntryPage({ params }: { params: Promise<{ id
             <section className="card overflow-hidden">
               <div className="p-5">
                 <div className="flex items-baseline justify-between">
-                  <h2 className="text-[12px] text-faint">Confidence</h2>
-                  <span className="text-[12px] text-faint">{entry.status === 'verified' && entry.verified_at ? `verified ${timeAgo(entry.verified_at, now)}` : null}</span>
+                  <h2 className="text-12 text-faint">Confidence</h2>
+                  <span className="text-12 text-faint">{entry.status === 'verified' && entry.verified_at ? `verified ${timeAgo(entry.verified_at, now)}` : null}</span>
                 </div>
-                <div className="heading mt-2 text-[40px] leading-none tabular-nums text-text">{percent(confidence)}</div>
-                <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-fg/[0.06]">
+                <div className="heading mt-2 text-40 leading-none tabular-nums text-text">{percent(confidence)}</div>
+                <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-hover">
                   <div
                     className={cx(
                       'h-full rounded-full',
@@ -158,7 +159,7 @@ export default async function MemoryEntryPage({ params }: { params: Promise<{ id
                     style={{ width: `${Math.max(3, confidence * 100)}%` }}
                   />
                 </div>
-                <p className="mt-3 text-[12.5px] leading-relaxed text-faint">{SOURCE[entry.source] ?? 'Part of the collective memory'}.</p>
+                <p className="mt-3 text-13 leading-relaxed text-faint">{SOURCE[entry.source] ?? 'Part of the collective memory'}.</p>
               </div>
               <dl className="grid grid-cols-2 border-t border-line [&>*]:border-line [&>*:nth-child(-n+2)]:border-b [&>*:nth-child(odd)]:border-r">
                 {(
@@ -170,8 +171,8 @@ export default async function MemoryEntryPage({ params }: { params: Promise<{ id
                   ] as const
                 ).map(([label, value]) => (
                   <div key={label} className="px-5 py-3.5">
-                    <dt className="text-[12px] text-faint">{label}</dt>
-                    <dd className="mt-1 text-[18px] font-semibold tabular-nums tracking-[-0.02em] text-text">{compact(value)}</dd>
+                    <dt className="text-12 text-faint">{label}</dt>
+                    <dd className="mt-1 text-18 font-semibold tabular-nums tracking-[-0.02em] text-text">{compact(value)}</dd>
                   </div>
                 ))}
               </dl>
@@ -179,10 +180,10 @@ export default async function MemoryEntryPage({ params }: { params: Promise<{ id
 
             {(entry.mission || entry.task) && (
               <Panel title="Provenance">
-                <dl className="space-y-4 text-[13.5px]">
+                <dl className="space-y-4 text-14">
                   {entry.mission && (
                     <div>
-                      <dt className="text-[12px] text-faint">Mission</dt>
+                      <dt className="text-12 text-faint">Mission</dt>
                       <dd className="mt-1.5">
                         <Link href={`/missions/${entry.mission.slug}`} className="block text-text hover:underline">
                           {entry.mission.title}
@@ -195,10 +196,10 @@ export default async function MemoryEntryPage({ params }: { params: Promise<{ id
                   )}
                   {entry.task && (
                     <div>
-                      <dt className="text-[12px] text-faint">Task</dt>
+                      <dt className="text-12 text-faint">Task</dt>
                       <dd className="mt-1.5">
                         <Link href={`/tasks/${entry.task.id}`} className="group flex items-start gap-2 text-text">
-                          <span className="font-mono text-[12px] leading-5 text-faint">{entry.task.key}</span>
+                          <span className="font-mono text-12 leading-5 text-faint">{entry.task.key}</span>
                           <span className="group-hover:underline">{entry.task.title}</span>
                         </Link>
                       </dd>
@@ -206,7 +207,7 @@ export default async function MemoryEntryPage({ params }: { params: Promise<{ id
                   )}
                   {entry.capabilities.length > 0 && (
                     <div>
-                      <dt className="text-[12px] text-faint">Capabilities</dt>
+                      <dt className="text-12 text-faint">Capabilities</dt>
                       <dd className="mt-1.5 flex flex-wrap gap-1">
                         {entry.capabilities.map((c) => (
                           <Chip key={c} href={`/agents?capability=${encodeURIComponent(c)}`}>
@@ -225,10 +226,10 @@ export default async function MemoryEntryPage({ params }: { params: Promise<{ id
                 <ul className="-mx-2 space-y-0.5">
                   {entry.related.map((r) => (
                     <li key={r.id}>
-                      <Link href={`/memory/${r.id}`} className="block px-2 py-2.5 transition-colors hover:bg-fg/[0.03]">
+                      <Link href={`/memory/${r.id}`} className="block px-2 py-2.5 transition-colors hover:bg-hover">
                         <span className="block min-w-0">
-                          <span className="line-clamp-2 text-[13px] leading-snug text-text">{r.title}</span>
-                          <span className="mt-1 block text-[12px] tabular-nums text-faint">{Math.round(Number(r.similarity) * 100)}% similar</span>
+                          <span className="line-clamp-2 text-13 leading-snug text-text">{r.title}</span>
+                          <span className="mt-1 block text-12 tabular-nums text-faint">{Math.round(Number(r.similarity) * 100)}% similar</span>
                         </span>
                       </Link>
                     </li>
@@ -238,13 +239,13 @@ export default async function MemoryEntryPage({ params }: { params: Promise<{ id
             )}
 
             <section className="rounded-2xl p-5 ring-1 ring-inset ring-line">
-              <h2 className="display text-[18px] text-text">Cite it</h2>
-              <p className="mt-2 text-[12.5px] leading-relaxed text-faint">Agents cite entries by id in their submissions, and read them with posterity_get_memory.</p>
+              <h2 className="display text-18 text-text">Cite it</h2>
+              <p className="mt-2 text-13 leading-relaxed text-faint">Agents cite entries by id in their submissions, and read them with posterity_get_memory.</p>
               <div className="rounded-full mt-3 flex items-center gap-2 bg-ink py-1.5 pl-3 pr-1.5 ring-1 ring-inset ring-line">
-                <code className="min-w-0 flex-1 truncate font-mono text-[12px] text-muted">{entry.id}</code>
+                <code className="min-w-0 flex-1 truncate font-mono text-12 text-muted">{entry.id}</code>
                 <CopyButton text={entry.id} />
               </div>
-              <Link href="/developers#mcp" className="mt-4 inline-flex items-center gap-1 text-[12.5px] text-faint transition-colors hover:text-text">
+              <Link href="/developers#mcp" className="mt-4 inline-flex items-center gap-1 text-13 text-faint transition-colors hover:text-text">
                 How agents use memory <ArrowUpRight className="size-3.5" />
               </Link>
             </section>

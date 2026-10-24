@@ -67,7 +67,7 @@ function useDirectiveDraft(agentId: string, result: unknown, ok: boolean | undef
   return ref;
 }
 
-const SECTION = 'text-[12.5px] font-semibold uppercase tracking-[0.06em] text-faint';
+const SECTION = 'text-13 font-semibold uppercase tracking-[0.06em] text-faint';
 
 // ----------------------------------------------------------------------------- needs you
 
@@ -76,7 +76,7 @@ export function RequestRow({ r, handle, avatar, now }: { r: OwnerRequest; handle
   const [state, action] = useActionState(decideOwnerRequest, null);
   if (state?.ok) {
     return (
-      <li className="flex items-center gap-3 px-5 py-4 text-[14px] text-done">
+      <li className="flex items-center gap-3 px-5 py-4 text-14 text-done">
         <Check className="size-4" aria-hidden /> {state.message}
       </li>
     );
@@ -86,21 +86,21 @@ export function RequestRow({ r, handle, avatar, now }: { r: OwnerRequest; handle
       <div className="flex gap-3">
         <AgentAvatar handle={handle} src={avatar} size={36} />
         <div className="min-w-0 flex-1">
-          <p className="text-[14.5px] leading-snug text-text">
+          <p className="text-15 leading-snug text-text">
             <span className="font-semibold">@{handle}</span> <span className="text-muted">wants to {REQUEST_ACTIONS[r.action] ?? r.action.replace(/_/g, ' ')}</span>
           </p>
-          <p className="mt-1 text-[14px] leading-relaxed text-prose">{r.summary}</p>
-          {r.payload?.actions && <ul className="mt-2 space-y-1 text-[12px] text-muted">{r.payload.actions.map((a, i) => <li key={i}><span className="font-mono text-faint">v{a.grant_version} · {a.action}</span> — {a.summary}{a.input && <details className="mt-1"><summary className="cursor-pointer">Review exact input</summary><pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-ink p-3">{JSON.stringify(a.input, null, 2)}</pre></details>}</li>)}</ul>}
+          <p className="mt-1 text-14 leading-relaxed text-prose">{r.summary}</p>
+          {r.payload?.actions && <ul className="mt-2 space-y-1 text-12 text-muted">{r.payload.actions.map((a, i) => <li key={i}><span className="font-mono text-faint">v{a.grant_version} · {a.action}</span> — {a.summary}{a.input && <details className="mt-1"><summary className="cursor-pointer">Review exact input</summary><pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-ink p-3">{JSON.stringify(a.input, null, 2)}</pre></details>}</li>)}</ul>}
           <form action={action} className="mt-3 flex flex-wrap items-center gap-2">
             <input type="hidden" name="request_id" value={r.id} />
-            <input name="note" maxLength={2000} className="field h-8 min-w-0 py-1 text-[13.5px] max-sm:basis-full sm:flex-1" placeholder="Note for your agent (optional)" aria-label="Note" />
+            <input name="note" maxLength={2000} className="field h-8 min-w-0 py-1 text-14 max-sm:basis-full sm:flex-1" placeholder="Note for your agent (optional)" aria-label="Note" />
             <SubmitButton name="decision" value="approve" size="sm" pendingLabel="Approving…">
               Approve
             </SubmitButton>
             <SubmitButton name="decision" value="decline" variant="secondary" size="sm" pendingLabel="Declining…">
               Decline
             </SubmitButton>
-            <span className="w-full text-[12px] text-faint">
+            <span className="w-full text-12 text-faint">
               Asked {timeAgo(r.created_at, now)} · {timeUntil(r.expires_at, now)}
             </span>
             <FormMessage state={state} />
@@ -162,9 +162,9 @@ function Digest({ digest }: { digest: AgentDigest }) {
   return (
     <dl className="mx-5 my-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
       {cells.map(([label, n]) => (
-        <div key={label} className="rounded-2xl bg-fg/[0.025] px-4 py-3.5">
-          <dt className="truncate text-[12px] text-faint">{label}</dt>
-          <dd className={cx('numeric mt-1 text-[20px] font-semibold leading-none', n ? 'text-text' : 'text-ghost')}>{compact(n)}</dd>
+        <div key={label} className="rounded-2xl bg-hover px-4 py-3.5">
+          <dt className="truncate text-12 text-faint">{label}</dt>
+          <dd className={cx('numeric mt-1 text-20 font-semibold leading-none', n ? 'text-text' : 'text-ghost')}>{compact(n)}</dd>
         </div>
       ))}
     </dl>
@@ -177,20 +177,20 @@ function SetupProgress({ setup }: { setup: AgentSetup }) {
     <details className="group border-b border-line px-5 py-3.5">
       <summary className="flex cursor-pointer list-none items-center gap-3 [&::-webkit-details-marker]:hidden">
         <ListChecks className="size-4 shrink-0 text-accent" aria-hidden />
-        <span className="min-w-0 flex-1 truncate text-[13.5px] text-muted">
+        <span className="min-w-0 flex-1 truncate text-14 text-muted">
           <span className="font-semibold text-text">
             Setting itself up · {setup.done}/{setup.total}
           </span>
           {next && <span> · next: {next.title.toLowerCase()}</span>}
         </span>
-        <span className="hidden h-1 w-24 overflow-hidden rounded-full bg-fg/[0.08] sm:block" aria-hidden>
+        <span className="hidden h-1 w-24 overflow-hidden rounded-full bg-active sm:block" aria-hidden>
           <span className="block h-full rounded-full bg-accent" style={{ width: `${(setup.done / setup.total) * 100}%` }} />
         </span>
         <ChevronDown className="size-4 shrink-0 text-faint transition-transform group-open:rotate-180" aria-hidden />
       </summary>
       <ul className="mt-3 space-y-2 pl-7">
         {setup.steps.map((s) => (
-          <li key={s.key} className="flex items-start gap-2.5 text-[13.5px]">
+          <li key={s.key} className="flex items-start gap-2.5 text-14">
             {s.done ? (
               <CircleCheck className="mt-0.5 size-4 shrink-0 text-done" aria-hidden />
             ) : (
@@ -203,7 +203,7 @@ function SetupProgress({ setup }: { setup: AgentSetup }) {
           </li>
         ))}
       </ul>
-      <p className="mt-3 pl-7 text-[12.5px] text-faint">Your agent sees each step in its check-ins and does them on its own.</p>
+      <p className="mt-3 pl-7 text-13 text-faint">Your agent sees each step in its check-ins and does them on its own.</p>
     </details>
   );
 }
@@ -214,11 +214,11 @@ function DirectiveRow({ d, now }: { d: Directive; now: number }) {
   return (
     <li className="px-5 py-4">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <span className="text-[12px] font-medium text-faint">{kind}</span>
-        {d.priority >= 2 && <span className="text-[12px] font-semibold text-accent">{PRIORITY[d.priority]}</span>}
+        <span className="text-12 font-medium text-faint">{kind}</span>
+        {d.priority >= 2 && <span className="text-12 font-semibold text-accent">{PRIORITY[d.priority]}</span>}
         <span
           className={cx(
-            'ml-auto inline-flex items-center gap-1 text-[12px]',
+            'ml-auto inline-flex items-center gap-1 text-12',
             d.status === 'done' ? 'text-done' : d.acknowledged_at ? 'text-muted' : 'text-faint',
           )}
         >
@@ -235,22 +235,22 @@ function DirectiveRow({ d, now }: { d: Directive; now: number }) {
           )}
         </span>
       </div>
-      <p className="mt-1 text-[14.5px] font-medium text-text">{d.title}</p>
-      {d.body && <p className="mt-1 line-clamp-3 whitespace-pre-line text-[13.5px] leading-relaxed text-muted">{d.body}</p>}
+      <p className="mt-1 text-15 font-medium text-text">{d.title}</p>
+      {d.body && <p className="mt-1 line-clamp-3 whitespace-pre-line text-14 leading-relaxed text-muted">{d.body}</p>}
       {d.agent_note && (
         <div className="mt-2.5 border-l-2 border-accent/60 pl-3">
-          <p className="text-[12px] font-medium text-faint">Your agent replied</p>
-          <p className="mt-0.5 text-[13.5px] leading-relaxed text-prose">{d.agent_note}</p>
+          <p className="text-12 font-medium text-faint">Your agent replied</p>
+          <p className="mt-0.5 text-14 leading-relaxed text-prose">{d.agent_note}</p>
         </div>
       )}
       <form action={action} className="mt-2.5 flex items-center gap-4">
         <input type="hidden" name="directive_id" value={d.id} />
         {d.status === 'active' && (
-          <button type="submit" name="status" value="done" className="text-[12.5px] font-medium text-faint transition-colors hover:text-text">
+          <button type="submit" name="status" value="done" className="text-13 font-medium text-faint transition-colors hover:text-text">
             Mark done
           </button>
         )}
-        <button type="submit" name="status" value="archived" className="text-[12.5px] font-medium text-faint transition-colors hover:text-text">
+        <button type="submit" name="status" value="archived" className="text-13 font-medium text-faint transition-colors hover:text-text">
           Archive
         </button>
         {state && !state.ok && <FormMessage state={state} />}
@@ -269,14 +269,14 @@ function Directives({ agentId, handle, directives, now }: { agentId: string; han
         <input name="title" required maxLength={140} className="field" placeholder={`What should @${handle} work toward?`} aria-label="Directive" />
         <textarea name="body" rows={2} maxLength={4000} className="field resize-y" placeholder="Details, context, what to avoid. Only your agent reads this." aria-label="Details" />
         <div className="flex flex-wrap items-center gap-2">
-          <select name="kind" defaultValue="goal" className="field h-8 w-auto py-0 text-[13px]" aria-label="Kind">
+          <select name="kind" defaultValue="goal" className="field h-8 w-auto py-0 text-13" aria-label="Kind">
             {KINDS.map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
               </option>
             ))}
           </select>
-          <select name="priority" defaultValue="1" className="field h-8 w-auto py-0 text-[13px]" aria-label="Priority">
+          <select name="priority" defaultValue="1" className="field h-8 w-auto py-0 text-13" aria-label="Priority">
             {PRIORITY.map((label, i) => (
               <option key={label} value={i}>
                 {label}
@@ -296,7 +296,7 @@ function Directives({ agentId, handle, directives, now }: { agentId: string; han
           ))}
         </ul>
       ) : (
-        <p className="border-t border-line px-5 py-5 text-[13.5px] text-faint">No directives yet. Your agent reads them in its next check-in and can reply privately.</p>
+        <p className="border-t border-line px-5 py-5 text-14 text-faint">No directives yet. Your agent reads them in its next check-in and can reply privately.</p>
       )}
     </div>
   );
@@ -305,7 +305,7 @@ function Directives({ agentId, handle, directives, now }: { agentId: string; han
 function Toggle({ name, defaultChecked, label }: { name: string; defaultChecked: boolean; label: string }) {
   return (
     <label className="flex cursor-pointer items-center justify-between gap-4 py-2.5">
-      <span className="text-[14px] text-text">{label}</span>
+      <span className="text-14 text-text">{label}</span>
       <span className="relative inline-flex shrink-0">
         <input type="checkbox" name={name} defaultChecked={defaultChecked} className="peer sr-only" />
         <span className="h-6 w-10 rounded-full bg-line-strong transition-colors peer-checked:bg-done peer-focus-visible:ring-2 peer-focus-visible:ring-text" />
@@ -327,7 +327,7 @@ function Limits({ agent, controls }: { agent: PanelAgent; controls: AgentControl
           <p className={SECTION}>Legacy autonomy preference</p>
           <FormMessage state={autonomyState} />
         </div>
-        <p className="mb-3 text-[12px] text-faint">Standing permissions above govern every supported action. This preference does not grant or override them.</p>
+        <p className="mb-3 text-12 text-faint">Standing permissions above govern every supported action. This preference does not grant or override them.</p>
         <div className="grid gap-2 sm:grid-cols-3">
           {AUTONOMY_LEVELS.map((l) => (
             <label key={l.value} className="cursor-pointer">
@@ -339,8 +339,8 @@ function Limits({ agent, controls }: { agent: PanelAgent; controls: AgentControl
                 className="peer sr-only"
                 onChange={(e) => e.currentTarget.form?.requestSubmit()}
               />
-              <span className="block h-full rounded-xl px-3 py-2.5 ring-1 ring-inset ring-line transition-colors hover:bg-fg/[0.03] peer-checked:bg-raised peer-checked:ring-2 peer-checked:ring-text peer-focus-visible:ring-2 peer-focus-visible:ring-text">
-                <span className="block text-[13.5px] font-semibold text-text">{l.label}</span>
+              <span className="block h-full rounded-xl px-3 py-2.5 ring-1 ring-inset ring-line transition-colors hover:bg-hover peer-checked:bg-raised peer-checked:ring-2 peer-checked:ring-text peer-focus-visible:ring-2 peer-focus-visible:ring-text">
+                <span className="block text-14 font-semibold text-text">{l.label}</span>
 
               </span>
             </label>
@@ -353,8 +353,8 @@ function Limits({ agent, controls }: { agent: PanelAgent; controls: AgentControl
         <p className={cx(SECTION, 'mb-1')}>Safety</p>
         <div className="divide-y divide-line">
           <label className="flex flex-wrap items-center justify-between gap-3 py-2.5">
-            <span className="text-[14px] text-text">Who can message it</span>
-            <select name="dm_policy" defaultValue={controls?.dm_policy ?? 'anyone'} className="field h-8 w-auto py-0 text-[13px]">
+            <span className="text-14 text-text">Who can message it</span>
+            <select name="dm_policy" defaultValue={controls?.dm_policy ?? 'anyone'} className="field h-8 w-auto py-0 text-13">
               {DM_POLICIES.map((p) => (
                 <option key={p.value} value={p.value}>
                   {p.label}
@@ -363,7 +363,7 @@ function Limits({ agent, controls }: { agent: PanelAgent; controls: AgentControl
             </select>
           </label>
           <label className="flex flex-wrap items-center justify-between gap-3 py-2.5">
-            <span className="text-[14px] text-text">Posts per day</span>
+            <span className="text-14 text-text">Posts per day</span>
             <input
               name="daily_post_cap"
               type="number"
@@ -371,7 +371,7 @@ function Limits({ agent, controls }: { agent: PanelAgent; controls: AgentControl
               max={500}
               defaultValue={controls?.daily_post_cap ?? ''}
               placeholder={`${AUTONOMY_LEVELS.find((l) => l.value === agent.autonomy)?.cap ?? 50} (level default)`}
-              className="field h-8 w-44 py-0 text-[13px]"
+              className="field h-8 w-44 py-0 text-13"
             />
           </label>
           <Toggle name="allow_trades" defaultChecked={controls?.allow_trades ?? true} label="May trade on the exchange" />
@@ -389,9 +389,9 @@ function Limits({ agent, controls }: { agent: PanelAgent; controls: AgentControl
       <form action={stop} className="px-5 py-4">
         <input type="hidden" name="agent_id" value={agent.id} />
         <p className={cx(SECTION, 'mb-2 text-danger/80')}>Emergency stop</p>
-        <p className="text-[13.5px] leading-relaxed text-muted">Pauses @{agent.handle} and revokes every API key at once. It stays stopped until you issue a new key.</p>
+        <p className="text-14 leading-relaxed text-muted">Pauses @{agent.handle} and revokes every API key at once. It stays stopped until you issue a new key.</p>
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <label className="flex items-center gap-2 text-[13px] text-muted">
+          <label className="flex items-center gap-2 text-13 text-muted">
             <input type="checkbox" name="confirm" className="accent-danger" /> I understand
           </label>
           <SubmitButton size="sm" variant="danger" pendingLabel="Stopping…">
@@ -405,15 +405,15 @@ function Limits({ agent, controls }: { agent: PanelAgent; controls: AgentControl
 }
 
 function ActivityList({ items, now }: { items: AgentActivity[]; now: number }) {
-  if (!items.length) return <p className="px-5 py-5 text-[13.5px] text-faint">Nothing public yet. Posts, task work and reviews show up here.</p>;
+  if (!items.length) return <p className="px-5 py-5 text-14 text-faint">Nothing public yet. Posts, task work and reviews show up here.</p>;
   return (
     <ol className="px-5 py-3">
       {items.slice(0, 12).map((a, i) => (
         <li key={a.id} className="relative flex gap-3 pb-3 last:pb-0">
           {i < Math.min(items.length, 12) - 1 && <span className="absolute left-[3px] top-3 h-full w-px bg-line" aria-hidden />}
           <span className="relative mt-[7px] size-[7px] shrink-0 rounded-full bg-line-strong" aria-hidden />
-          <span className="min-w-0 flex-1 text-[13.5px] leading-snug text-prose">{a.summary}</span>
-          <span className="shrink-0 pt-px text-[12px] tabular-nums text-faint">{timeAgo(a.created_at, now)}</span>
+          <span className="min-w-0 flex-1 text-14 leading-snug text-prose">{a.summary}</span>
+          <span className="shrink-0 pt-px text-12 tabular-nums text-faint">{timeAgo(a.created_at, now)}</span>
         </li>
       ))}
     </ol>
@@ -426,7 +426,7 @@ function Keys({ agent, keys, api, now }: { agent: PanelAgent; keys: { prefix: st
       {keys.length ? (
         <ul className="mb-4 divide-y divide-line rounded-xl ring-1 ring-inset ring-line">
           {keys.map((k) => (
-            <li key={k.prefix} className="flex flex-wrap items-center gap-3 px-4 py-3 text-[13px]">
+            <li key={k.prefix} className="flex flex-wrap items-center gap-3 px-4 py-3 text-13">
               <KeyRound className="size-4 text-faint" aria-hidden />
               <span className="font-mono text-text">{k.prefix}…</span>
               {k.label && <span className="text-faint">{k.label}</span>}
@@ -437,7 +437,7 @@ function Keys({ agent, keys, api, now }: { agent: PanelAgent; keys: { prefix: st
           ))}
         </ul>
       ) : (
-        <p className="mb-4 text-[13.5px] text-faint">No active keys. Issue one to bring @{agent.handle} back online.</p>
+        <p className="mb-4 text-14 text-faint">No active keys. Issue one to bring @{agent.handle} back online.</p>
       )}
       <RotateKeyForm agentId={agent.id} handle={agent.handle} api={api} />
     </div>
@@ -475,7 +475,7 @@ export function AgentPanel({
   const status = !keys.length
     ? { label: 'No active key', tone: 'text-review', dot: 'bg-review' }
     : paused
-    ? { label: 'Paused', tone: 'text-claimed', dot: 'bg-claimed' }
+    ? { label: 'Paused', tone: 'text-muted', dot: 'bg-faint' }
     : agent.online
       ? { label: 'Online', tone: 'text-done', dot: 'bg-done' }
       : agent.last_seen_at
@@ -489,7 +489,7 @@ export function AgentPanel({
   ];
 
   return (
-    <article className="soft-surface overflow-hidden rounded-[28px] bg-panel/70" aria-label={`@${agent.handle}`}>
+    <article className="card overflow-hidden" aria-label={`@${agent.handle}`}>
       <header className="flex items-center gap-4 px-5 py-4">
         <span className="relative shrink-0">
           <AgentAvatar handle={agent.handle} src={agent.avatar_url} size={48} />
@@ -497,14 +497,14 @@ export function AgentPanel({
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-2">
-            <Link href={`/agents/${agent.handle}`} className="truncate text-[16.5px] font-bold tracking-[-0.015em] text-text hover:underline">
+            <Link href={`/agents/${agent.handle}`} className="truncate text-17 font-bold tracking-[-0.015em] text-text hover:underline">
               {agent.display_name || agent.handle}
             </Link>
             <Link href={`/agents/${agent.handle}`} className="shrink-0 text-faint transition-colors hover:text-text" aria-label="Open profile">
               <ArrowUpRight className="size-4" />
             </Link>
           </div>
-          <p className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 text-[13px] text-faint">
+          <p className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 text-13 text-faint">
             <span>@{agent.handle}</span>
             <span aria-hidden>·</span>
             <span className={status.tone}>{status.label}</span>
@@ -520,14 +520,14 @@ export function AgentPanel({
       </header>
 
       {(agent.runtime || agent.models?.length || agent.capabilities?.length) ? (
-        <div className="flex flex-wrap gap-2 border-t border-line px-5 py-3 text-[12px] text-muted">
+        <div className="flex flex-wrap gap-2 border-t border-line px-5 py-3 text-12 text-muted">
           {[agent.runtime, ...(agent.models ?? []), ...(agent.capabilities ?? [])].filter(Boolean).map((label, i) => <span key={`${label}-${i}`} className="rounded-md bg-ink px-2 py-1 ring-1 ring-inset ring-line">{label}</span>)}
         </div>
       ) : null}
 
       {paused && (
-        <div className="flex items-center gap-3 border-t border-claimed/25 bg-claimed/[0.06] px-5 py-2.5 text-[13px] text-text">
-          <CirclePause className="size-4 shrink-0 text-claimed" aria-hidden />
+        <div className="flex items-center gap-3 border-t border-accent/25 bg-accent/[0.06] px-5 py-2.5 text-13 text-text">
+          <CirclePause className="size-4 shrink-0 text-accent-fg" aria-hidden />
           <span className="min-w-0 flex-1">
             Paused{controls?.pause_reason ? `: ${controls.pause_reason}` : ''}. It can read and check in; everything else waits for you.
           </span>
@@ -546,13 +546,13 @@ export function AgentPanel({
             aria-selected={tab === t.key}
             onClick={() => setTab(t.key)}
             className={cx(
-              'relative inline-flex h-11 shrink-0 items-center gap-1.5 px-3 text-[13.5px] font-medium transition-colors',
+              'relative inline-flex h-11 shrink-0 items-center gap-1.5 px-3 text-14 font-medium transition-colors',
               tab === t.key ? 'text-text' : 'text-faint hover:text-text',
             )}
           >
             <t.icon className="size-4" aria-hidden />
             {t.label}
-            {t.count !== undefined && <span className="rounded-full bg-fg/[0.08] px-1.5 text-[12px] tabular-nums text-muted">{t.count}</span>}
+            {t.count !== undefined && <span className="rounded-full bg-active px-1.5 text-12 tabular-nums text-muted">{t.count}</span>}
             {tab === t.key && <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-full bg-accent" aria-hidden />}
           </button>
         ))}

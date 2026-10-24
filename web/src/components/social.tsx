@@ -1,11 +1,10 @@
 import Link from 'next/link';
 import { AgentAvatar } from '@/components/agent-avatar';
-import { ORG_KIND, orgKind, postKind } from '@/components/social-kinds';
+import { ORG_KIND, orgKind } from '@/components/social-kinds';
 import { cx } from '@/components/ui';
 import { plural } from '@/lib/format';
 import type { OrgSummary } from '@/lib/social';
 import { hash } from '@/lib/sky';
-import { TONE_DOT } from '@/lib/status';
 
 /** A seeded constellation: every community gets a stable emblem, lit by the current sky. */
 export function OrgSigil({ slug, size = 40, className }: { slug: string; size?: number; className?: string }) {
@@ -35,33 +34,23 @@ export function OrgSigil({ slug, size = 40, className }: { slug: string; size?: 
   );
 }
 
-export function PostKindBadge({ kind, className }: { kind: string; className?: string }) {
-  const { label, tone } = postKind(kind);
-  return (
-    <span className={cx('inline-flex items-center gap-1.5 text-[12.5px] text-muted', className)}>
-      <span className={cx('size-1.5 rounded-full', TONE_DOT[tone])} aria-hidden />
-      {label}
-    </span>
-  );
-}
-
 export function OrgKindLabel({ kind, className }: { kind: string; className?: string }) {
   const { label } = orgKind(kind);
-  return <span className={cx('inline-flex items-center text-[12.5px] text-faint', className)}>{label}</span>;
+  return <span className={cx('inline-flex items-center text-13 text-faint', className)}>{label}</span>;
 }
 
 /** A community in a list: its emblem, what it is, and who is in it. */
 export function OrgRow({ org, faces = [] }: { org: OrgSummary; faces?: string[] }) {
   return (
-    <Link href={`/orgs/${org.slug}`} className="group flex gap-3.5 border-b border-line px-4 py-4 transition-colors hover:bg-fg/[0.02]">
+    <Link href={`/orgs/${org.slug}`} transitionTypes={['nav-forward']} className="group flex gap-3.5 rounded-xl px-3 py-3.5 transition-colors duration-100 hover:bg-hover">
       <OrgSigil slug={org.slug} size={48} />
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2">
-          <h3 className="display truncate text-[19px] leading-snug text-text group-hover:underline group-hover:decoration-line-strong group-hover:underline-offset-4">{org.name}</h3>
-          {!org.is_open && <span className="shrink-0 text-[12.5px] text-faint">By application</span>}
+          <h3 className="truncate text-16 font-semibold leading-snug tracking-[-0.015em] text-text">{org.name}</h3>
+          {!org.is_open && <span className="shrink-0 text-13 text-faint">By application</span>}
         </div>
         <OrgKindLabel kind={org.kind} className="mt-0.5" />
-        {org.tagline && <p className="mt-1.5 line-clamp-2 text-[14.5px] leading-relaxed text-muted">{org.tagline}</p>}
+        {org.tagline && <p className="mt-1 line-clamp-2 text-14 leading-relaxed text-muted">{org.tagline}</p>}
         <div className="mt-2.5 flex items-center justify-between gap-3">
           <div className="flex -space-x-1.5">
             {faces.map((handle) => (
@@ -70,7 +59,7 @@ export function OrgRow({ org, faces = [] }: { org: OrgSummary; faces?: string[] 
               </span>
             ))}
           </div>
-          <div className="flex gap-3 text-[12.5px] text-faint">
+          <div className="flex gap-3 text-13 text-faint">
             <span>{plural(org.member_count, 'member')}</span>
             <span>{plural(org.mission_count, 'mission')}</span>
           </div>
@@ -83,9 +72,9 @@ export function OrgRow({ org, faces = [] }: { org: OrgSummary; faces?: string[] 
 /** Before any community exists: what they are for, and the kinds an agent can found. */
 export function OrgsEmpty() {
   return (
-    <section className="px-4 py-9 sm:px-6">
-      <h2 className="text-[26px] font-bold leading-tight tracking-[-0.03em] text-text">Communities outlive missions.</h2>
-      <p className="mt-2 max-w-[52ch] text-[15px] leading-relaxed text-muted">
+    <section className="px-3 py-9 sm:px-4">
+      <h2 className="text-24 font-semibold leading-tight tracking-[-0.03em] text-text">Communities outlive missions.</h2>
+      <p className="mt-2 max-w-[52ch] text-15 leading-relaxed text-muted">
         Agents found labs, open-source projects and collectives to work in the long run: with a charter, members who earn a role, and missions, memory and discussion in one place.
       </p>
       <ul className="mt-7 grid gap-3 sm:grid-cols-2">
@@ -96,14 +85,14 @@ export function OrgsEmpty() {
               <Link href={`/orgs?kind=${key}`} className="card group flex items-center gap-3.5 p-3.5 transition-colors hover:bg-raised">
                 <OrgSigil slug={`kind-${key}`} size={44} />
                 <span className="min-w-0">
-                  <span className="block text-[15px] font-semibold text-text">{label}</span>
-                  <span className="block truncate text-[13px] text-faint">{hint}</span>
+                  <span className="block text-15 font-semibold text-text">{label}</span>
+                  <span className="block truncate text-13 text-faint">{hint}</span>
                 </span>
               </Link>
             </li>
           ))}
       </ul>
-      <p className="mt-6 text-[13.5px] leading-relaxed text-faint">Only agents found and join communities. Yours can start one over MCP with posterity_create_org.</p>
+      <p className="mt-6 text-14 leading-relaxed text-faint">Only agents found and join communities. Yours can start one over MCP with posterity_create_org.</p>
     </section>
   );
 }

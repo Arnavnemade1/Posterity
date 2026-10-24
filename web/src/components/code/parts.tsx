@@ -38,9 +38,9 @@ export function CheckPill({ status }: { status: CrCheck['status'] }) {
 export function RefMenu({ base, current, branches, search = '' }: { base: string; current: string; branches: BranchRow[]; search?: string }) {
   return (
     <details className="group relative">
-      <summary className="flex h-9 cursor-pointer list-none items-center gap-2 rounded-lg px-3 text-[13.5px] text-text ring-1 ring-inset ring-line-strong transition-colors hover:bg-fg/[0.04] [&::-webkit-details-marker]:hidden">
+      <summary className="flex h-9 cursor-pointer list-none items-center gap-2 rounded-lg px-3 text-14 text-text ring-1 ring-inset ring-line-strong transition-colors hover:bg-hover [&::-webkit-details-marker]:hidden">
         <GitBranch className="size-4 text-faint" aria-hidden />
-        <span className="max-w-[200px] truncate font-mono text-[12.5px]">{current}</span>
+        <span className="max-w-[200px] truncate font-mono text-13">{current}</span>
         <ChevronDown className="size-3.5 text-faint transition-transform group-open:rotate-180" aria-hidden />
       </summary>
       <div className="glass absolute left-0 top-full z-30 mt-1.5 max-h-72 w-72 overflow-y-auto rounded-xl py-1.5">
@@ -48,12 +48,12 @@ export function RefMenu({ base, current, branches, search = '' }: { base: string
           <Link
             key={b.name}
             href={`${base}?ref=${encodeURIComponent(b.name)}${search}`}
-            className="flex items-center gap-2 px-3.5 py-2 text-[13.5px] transition-colors hover:bg-fg/[0.06]"
+            className="flex items-center gap-2 px-3.5 py-2 text-14 transition-colors hover:bg-hover"
           >
             <span className="w-4">{b.name === current && <Check className="size-4 text-done" aria-hidden />}</span>
-            <span className="min-w-0 flex-1 truncate font-mono text-[12.5px] text-text">{b.name}</span>
+            <span className="min-w-0 flex-1 truncate font-mono text-13 text-text">{b.name}</span>
             {b.protected && <Lock className="size-3.5 text-faint" aria-label="Protected" />}
-            {b.frozen_reason && <Snowflake className="size-3.5 text-open" aria-label="Frozen for review" />}
+            {b.frozen_reason && <Snowflake className="size-3.5 text-claimed" aria-label="Frozen for review" />}
           </Link>
         ))}
       </div>
@@ -66,8 +66,8 @@ export function Crumbs({ base, name, path, refName }: { base: string; name: stri
   const parts = path ? path.split('/') : [];
   const suffix = refName ? `?ref=${encodeURIComponent(refName)}` : '';
   return (
-    <nav aria-label="Path" className="flex min-w-0 flex-wrap items-center gap-1 text-[14px]">
-      <Link href={`${base}${suffix}`} className={cx('font-medium hover:underline', parts.length ? 'text-open' : 'text-text')}>
+    <nav aria-label="Path" className="flex min-w-0 flex-wrap items-center gap-1 text-14">
+      <Link href={`${base}${suffix}`} className={cx('font-medium hover:underline', parts.length ? 'text-link' : 'text-text')}>
         {name}
       </Link>
       {parts.map((part, i) => {
@@ -77,9 +77,9 @@ export function Crumbs({ base, name, path, refName }: { base: string; name: stri
           <span key={to} className="flex items-center gap-1">
             <span className="text-faint">/</span>
             {last ? (
-              <span className="font-mono text-[13px] font-medium text-text">{part}</span>
+              <span className="font-mono text-13 font-medium text-text">{part}</span>
             ) : (
-              <Link href={`${base}/files/${to.split('/').map(encodeURIComponent).join('/')}${suffix}`} className="font-mono text-[13px] text-open hover:underline">
+              <Link href={`${base}/files/${to.split('/').map(encodeURIComponent).join('/')}${suffix}`} className="font-mono text-13 text-link hover:underline">
                 {part}
               </Link>
             )}

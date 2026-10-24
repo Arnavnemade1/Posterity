@@ -35,14 +35,14 @@ export default async function ChangesPage({ params, searchParams }: { params: Pr
             const Icon = c.status === 'merged' ? GitMerge : c.status === 'closed' ? GitPullRequestClosed : GitPullRequest;
             return (
               <li key={c.id}>
-                <Link href={`${base}/changes/${c.number}`} className="flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-fg/[0.03]">
-                  <Icon className={`mt-0.5 size-4 shrink-0 ${c.status === 'merged' ? 'text-done' : c.status === 'closed' ? 'text-faint' : 'text-open'}`} aria-hidden />
+                <Link href={`${base}/changes/${c.number}`} className="flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-hover">
+                  <Icon className={`mt-0.5 size-4 shrink-0 ${c.status === 'merged' ? 'text-done' : c.status === 'closed' ? 'text-faint' : 'text-claimed'}`} aria-hidden />
                   <span className="min-w-0 flex-1">
                     <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <span className="break-words text-[15px] font-semibold leading-snug text-text">{c.title}</span>
+                      <span className="break-words text-15 font-semibold leading-snug text-text">{c.title}</span>
                       <CrStatus cr={c} />
                     </span>
-                    <span className="mt-1 block text-[12.5px] text-faint">
+                    <span className="mt-1 block text-13 text-faint">
                       #{c.number} · {c.author ? <span>@{c.author.handle}</span> : 'the system'} · <span className="font-mono">{c.source_branch}</span> →{' '}
                       <span className="font-mono">{c.target_branch}</span> · {timeAgo(c.updated_at, now)}
                     </span>

@@ -10,7 +10,7 @@ import { CodeBlock } from '@/components/code-block';
 function WebhookReveal({ state, payloadUrl }: { state: NonNullable<GitHubState>; payloadUrl: string }) {
   return (
     <div className="rounded-xl relative animate-[rise_600ms_var(--ease-out-expo)_both] space-y-3 overflow-hidden bg-accent/[0.05] p-4 ring-1 ring-inset ring-accent/35">
-      <p className="relative flex items-start gap-2.5 text-[13px] leading-relaxed text-text">
+      <p className="relative flex items-start gap-2.5 text-13 leading-relaxed text-text">
         <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-accent/15 ring-1 ring-accent/30">
           <Webhook className="size-3.5 text-accent" />
         </span>
@@ -21,7 +21,7 @@ function WebhookReveal({ state, payloadUrl }: { state: NonNullable<GitHubState>;
       </p>
       <CodeBlock code={payloadUrl} label="Payload URL" />
       <CodeBlock code={state.secret!} label="Secret" />
-      <ul className="relative space-y-1 text-[12.5px] text-muted">
+      <ul className="relative space-y-1 text-13 text-muted">
         <li>
           Content type: <span className="font-mono text-text">application/json</span>
         </li>
@@ -31,7 +31,7 @@ function WebhookReveal({ state, payloadUrl }: { state: NonNullable<GitHubState>;
         href={`https://github.com/${state.repo}/settings/hooks/new`}
         target="_blank"
         rel="noopener noreferrer"
-        className="relative inline-flex items-center gap-1.5 text-[13px] font-medium text-open hover:underline"
+        className="relative inline-flex items-center gap-1.5 text-13 font-medium text-link hover:underline"
       >
         Open the repository’s webhook settings <ExternalLink className="size-3.5" />
       </a>
@@ -63,7 +63,7 @@ export function GitHubControls({
           name="repo"
           required
           defaultValue={suggested ?? ''}
-          className="field font-mono text-[13px]"
+          className="field font-mono text-13"
           placeholder="owner/name or the repository URL"
           aria-label="Repository"
         />
@@ -79,7 +79,7 @@ export function GitHubControls({
 
   return (
     <details className="group">
-      <summary className="flex cursor-pointer list-none items-center gap-2 text-[13px] text-muted transition-colors hover:text-text [&::-webkit-details-marker]:hidden">
+      <summary className="flex cursor-pointer list-none items-center gap-2 text-13 text-muted transition-colors hover:text-text [&::-webkit-details-marker]:hidden">
         <ChevronRight className="size-3.5 text-faint transition-transform group-open:rotate-90" /> Manage the connection
       </summary>
       <div className="mt-3 flex flex-wrap items-center gap-2">

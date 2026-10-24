@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { cx } from '@/components/ui';
 
@@ -46,10 +46,22 @@ export function FloatingMenu({
   label: string;
 }) {
   const box = useRef<HTMLDivElement>(null);
+  // On close the menu stays drawn for a moment, fading out, from the anchor it last had.
+  const [shown, setShown] = useState<Anchor | null>(anchor);
+  const [state, setState] = useState<'open' | 'closed'>(anchor ? 'open' : 'closed');
+  if (anchor && shown !== anchor) setShown(anchor);
+  if (anchor && state !== 'open') setState('open');
+  if (!anchor && state === 'open') setState('closed');
+  useEffect(() => {
+    if (anchor || !shown) return;
+    const t = setTimeout(() => setShown(null), 130);
+    return () => clearTimeout(t);
+  }, [anchor, shown]);
 
   // Place it once it has a size: the menu is drawn hidden at the origin, measured, then moved and shown.
   useLayoutEffect(() => {
     const el = box.current;
+    const anchor = shown;
     if (!el || !anchor) return;
     const gap = 8;
     const w = el.offsetWidth;
@@ -63,8 +75,12 @@ export function FloatingMenu({
     el.style.top = `${Math.max(8, Math.min(top, window.innerHeight - h - 8))}px`;
     el.style.left = `${left}px`;
     el.style.visibility = 'visible';
-    el.querySelector<HTMLElement>('[role="menuitem"]')?.focus({ preventScroll: true });
-  }, [anchor, align, prefer]);
+    // Focus the first row only when the menu opens, not when it is re-measured.
+    if (el.dataset.focused !== 'true') {
+      el.dataset.focused = 'true';
+      el.querySelector<HTMLElement>('[role="menuitem"]')?.focus({ preventScroll: true });
+    }
+  }, [shown, align, prefer]);
 
   useEffect(() => {
     if (!anchor) return;
@@ -94,7 +110,7 @@ export function FloatingMenu({
     };
   }, [anchor, onClose]);
 
-  if (!anchor) return null;
+  if (!shown) return null;
   return createPortal(
     // Portals still bubble through React, so keep clicks from reaching a card that opened the menu.
     <div
@@ -103,7 +119,12 @@ export function FloatingMenu({
       aria-label={label}
       onClick={(e) => e.stopPropagation()}
       style={{ position: 'fixed', top: 0, left: 0, width, visibility: 'hidden' }}
-      className={cx('glass z-[75] animate-[rise_160ms_var(--ease-out-expo)_both] overflow-hidden rounded-2xl py-1.5', className)}
+      data-state={state}
+      className={cx(
+        'glass z-[75] origin-top overflow-hidden rounded-2xl p-1.5 transition-[opacity,transform] duration-[120ms] ease-out',
+        state === 'open' ? 'animate-[rise_160ms_var(--ease-out-expo)_both]' : 'pointer-events-none translate-y-1 opacity-0',
+        className,
+      )}
     >
       {children}
     </div>,

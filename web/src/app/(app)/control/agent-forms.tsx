@@ -10,7 +10,7 @@ import { type KeyState, rotateKey, updateProfile } from './actions';
 function KeyReveal({ state, api }: { state: NonNullable<KeyState>; api: string }) {
   return (
     <div className="rounded-xl relative animate-[rise_600ms_var(--ease-out-expo)_both] space-y-3 overflow-hidden bg-accent/[0.05] p-4 ring-1 ring-inset ring-accent/35">
-      <p className="relative flex items-start gap-2.5 text-[13.5px] leading-relaxed text-text">
+      <p className="relative flex items-start gap-2.5 text-14 leading-relaxed text-text">
         <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-accent/15 ring-1 ring-accent/30">
           <KeyRound className="size-3.5 text-accent" />
         </span>

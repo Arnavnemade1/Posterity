@@ -10,7 +10,7 @@ export { kindMeta };
 
 export function KindBadge({ kind, href }: { kind: string; href?: string }) {
   const { label, tone } = kindMeta(kind);
-  const className = cx('inline-flex items-center text-[12px] font-medium', TONE_TEXT[tone]);
+  const className = cx('inline-flex items-center text-12 font-medium', TONE_TEXT[tone]);
   return href ? (
     <Link href={href} className={cx(className, 'hover:underline')}>
       {label}
@@ -23,7 +23,7 @@ export function KindBadge({ kind, href }: { kind: string; href?: string }) {
 export function KnowledgeStatus({ status }: { status: string }) {
   const [label] = lookup(KNOWLEDGE_STATUS, status);
   return (
-    <span className="inline-flex items-center gap-1.5 text-[12px] text-muted">
+    <span className="inline-flex items-center gap-1.5 text-12 text-muted">
       {label}
     </span>
   );
@@ -36,9 +36,9 @@ export function MatchMeter({ similarity, matched }: { similarity?: number | null
   if (!matched) return null;
   const sim = similarity === null || similarity === undefined ? null : Number(similarity);
   return (
-    <span className="inline-flex items-center gap-2 text-[12px] text-faint">
+    <span className="inline-flex items-center gap-2 text-12 text-faint">
       {sim !== null && (
-        <span className="relative h-1 w-10 overflow-hidden rounded-full bg-fg/[0.07]" aria-hidden>
+        <span className="relative h-1 w-10 overflow-hidden rounded-full bg-active" aria-hidden>
           <span
             className="absolute inset-y-0 left-0 bg-accent"
             style={{ width: `${Math.round(Math.min(1, Math.max(0.08, (sim - 0.7) / 0.3)) * 100)}%` }}
@@ -57,7 +57,7 @@ export function MatchMeter({ similarity, matched }: { similarity?: number | null
 export function MemoryResult({ hit, now, index = 0 }: { hit: MemoryHit; now: number; index?: number }) {
   return (
     <li className="animate-[rise_700ms_var(--ease-out-expo)_both]" style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}>
-      <Link href={`/memory/${hit.id}`} className="group block px-5 py-5 transition-colors hover:bg-fg/[0.02] sm:px-6">
+      <Link href={`/memory/${hit.id}`} transitionTypes={['nav-forward']} className="group block rounded-xl px-3 py-4 transition-colors duration-100 hover:bg-hover">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <KindBadge kind={hit.kind} />
@@ -66,13 +66,13 @@ export function MemoryResult({ hit, now, index = 0 }: { hit: MemoryHit; now: num
               <MatchMeter similarity={hit.similarity} matched={hit.matched} />
             </span>
           </div>
-          <h3 className="mt-2 text-[16px] font-semibold leading-snug tracking-[-0.015em] text-text transition-colors group-hover:text-text">{hit.title}</h3>
-          {hit.snippet && <p className="mt-1.5 line-clamp-2 text-[13.5px] leading-relaxed text-muted">{plainText(hit.snippet)}</p>}
-          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12px] text-faint">
+          <h3 className="mt-2 text-16 font-semibold leading-snug tracking-[-0.015em] text-text transition-colors group-hover:text-text">{hit.title}</h3>
+          {hit.snippet && <p className="mt-1.5 line-clamp-2 text-14 leading-relaxed text-muted">{plainText(hit.snippet)}</p>}
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-12 text-faint">
             {hit.agent_handle && (
               <span className="flex items-center gap-1.5">
                 <AgentAvatar handle={hit.agent_handle} size={16} />
-                <span className="text-[12px] text-muted">@{hit.agent_handle}</span>
+                <span className="text-12 text-muted">@{hit.agent_handle}</span>
               </span>
             )}
             {hit.mission_title && hit.mission_title !== hit.title && <span className="max-w-[32ch] truncate">{hit.mission_title}</span>}
@@ -92,10 +92,10 @@ export function MemoryMiniList({ items, now, hideAuthor }: { items: MemoryHit[];
     <ul className="-mx-2 space-y-0.5">
       {items.map((hit) => (
         <li key={hit.id}>
-          <Link href={`/memory/${hit.id}`} className="block px-2 py-2.5 transition-colors hover:bg-fg/[0.03]">
+          <Link href={`/memory/${hit.id}`} className="block px-2 py-2.5 transition-colors hover:bg-hover">
             <span className="block min-w-0">
-              <span className="line-clamp-2 text-[13px] leading-snug text-text">{hit.title}</span>
-              <span className="mt-1 flex flex-wrap items-center gap-x-2 text-[12px] text-faint">
+              <span className="line-clamp-2 text-13 leading-snug text-text">{hit.title}</span>
+              <span className="mt-1 flex flex-wrap items-center gap-x-2 text-12 text-faint">
                 <span className={TONE_TEXT[kindMeta(hit.kind).tone]}>{kindMeta(hit.kind).label}</span>
                 {!hideAuthor && hit.agent_handle && <span>@{hit.agent_handle}</span>}
                 <span>{timeAgo(hit.created_at, now)}</span>

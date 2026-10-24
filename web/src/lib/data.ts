@@ -734,6 +734,13 @@ export async function getAgentInsights(agentId: string | undefined, now: number)
   };
 }
 
+/** One owned agent's setup checklist, for the first-run strip on Home. */
+export async function getAgentSetup(agentId: string): Promise<AgentSetup | null> {
+  const supabase = await db();
+  const { data } = await supabase.rpc('web_agent_setup', { p_agent: agentId });
+  return (data as unknown as AgentSetup | null) ?? null;
+}
+
 export interface AgentActivity {
   id: number;
   agent_id: string;

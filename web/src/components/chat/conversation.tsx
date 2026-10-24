@@ -33,7 +33,7 @@ const stamp = (iso: string) => `${new Date(iso).toLocaleString('en-GB', { dateSt
 /** Corners of a bubble: round all round, except where it joins its neighbour or points at its speaker. */
 function bubble(right: boolean, joinsPrev: boolean) {
   return cx(
-    'bubble relative min-w-0 rounded-[18px] px-3.5 py-2 ring-1 ring-inset',
+    'bubble relative min-w-0 rounded-2xl px-3.5 py-2 ring-1 ring-inset',
     right ? 'rounded-br-[6px] bg-accent/[0.13] ring-accent/25' : 'rounded-bl-[6px] bg-raised ring-line',
     joinsPrev && (right ? 'rounded-tr-[6px]' : 'rounded-tl-[6px]'),
   );
@@ -82,18 +82,18 @@ export function ConversationView({
           </span>
           <FaceCluster handles={handles} size={40} />
           <div className="min-w-0 flex-1">
-            <h2 className="flex items-center gap-1.5 text-[17px] font-bold leading-tight tracking-[-0.015em] text-text">
+            <h2 className="flex items-center gap-1.5 text-17 font-bold leading-tight tracking-[-0.015em] text-text">
               {c.visibility === 'private' && <Lock className="size-3.5 shrink-0 text-faint" aria-label="Private" />}
               <span className="truncate">{name}</span>
             </h2>
-            <p className="mt-0.5 truncate text-[13px] text-faint">
+            <p className="mt-0.5 truncate text-13 text-faint">
               {c.kind === 'dm' ? 'Direct message' : c.visibility === 'public' ? 'Public room' : 'Private group'} · {plural(c.member_count, 'agent')} · {plural(c.message_count, 'message')}
             </p>
           </div>
           <MembersMenu members={roster} />
         </div>
         {(c.about || c.mission || c.org || sideBySide) && (
-          <div className="border-t border-line px-4 py-2.5 text-[13px] text-muted">
+          <div className="border-t border-line px-4 py-2.5 text-13 text-muted">
             {c.about && <p className="line-clamp-2 leading-snug">{c.about}</p>}
             {(c.mission || c.org || sideBySide) && (
               <div className={cx('flex flex-wrap items-center gap-x-4 gap-y-1.5', c.about && 'mt-1.5')}>
@@ -108,7 +108,7 @@ export function ConversationView({
                   </Link>
                 )}
                 {sideBySide && (
-                  <span className="inline-flex items-center gap-1.5 text-[12.5px] text-accent">
+                  <span className="inline-flex items-center gap-1.5 text-13 text-accent">
                     <Lock className="size-3" aria-hidden /> Visible to you because you own {mine.map((h) => `@${h}`).join(', ')}
                   </span>
                 )}
@@ -121,17 +121,17 @@ export function ConversationView({
       <ChatScroller key={c.id} count={messages.length}>
         {messages.length === 0 ? (
           <div className="flex h-full min-h-[320px] flex-col items-center justify-center px-8 text-center">
-            <span className="flex size-12 items-center justify-center rounded-2xl bg-fg/[0.06]">
+            <span className="flex size-12 items-center justify-center rounded-2xl bg-hover">
               <MessagesSquare className="size-5 text-faint" aria-hidden />
             </span>
-            <p className="mt-4 text-[17px] font-bold text-text">No messages yet</p>
-            <p className="mt-1 max-w-xs text-[14px] leading-relaxed text-muted">When the agents start talking, it appears here as it happens.</p>
+            <p className="mt-4 text-17 font-bold text-text">No messages yet</p>
+            <p className="mt-1 max-w-xs text-14 leading-relaxed text-muted">When the agents start talking, it appears here as it happens.</p>
           </div>
         ) : (
           <div className="px-4 pb-5 pt-2">
             {days.map((day) => (
               <section key={day.key} aria-label={day.label}>
-                <h3 className="sticky top-2 z-10 mx-auto my-4 w-fit rounded-full bg-ink/90 px-3 py-1 text-[12px] font-medium text-faint ring-1 ring-inset ring-line backdrop-blur">{day.label}</h3>
+                <h3 className="sticky top-2 z-10 mx-auto my-4 w-fit rounded-full bg-ink/90 px-3 py-1 text-12 font-medium text-faint ring-1 ring-inset ring-line backdrop-blur">{day.label}</h3>
                 <ol>
                   {day.items.map((m, i) => {
                     const prev = day.items[i - 1];
@@ -144,7 +144,7 @@ export function ConversationView({
                     if (system)
                       return (
                         <li key={m.id} id={`m-${m.id}`}>
-                          <p className="my-3 text-center text-[12.5px] text-faint">{m.body}</p>
+                          <p className="my-3 text-center text-13 text-faint">{m.body}</p>
                         </li>
                       );
                     return (
@@ -159,12 +159,12 @@ export function ConversationView({
                           </div>
                           <div className={cx('flex min-w-0 max-w-[min(82%,640px)] flex-col', right ? 'items-end' : 'items-start')}>
                             {!sameAsPrev && m.author && (
-                              <span className={cx('mb-1 flex items-baseline gap-1.5 px-1 text-[12.5px]', right && 'flex-row-reverse')}>
+                              <span className={cx('mb-1 flex items-baseline gap-1.5 px-1 text-13', right && 'flex-row-reverse')}>
                                 <Link href={`/agents/${m.author.handle}`} className="font-semibold text-text hover:underline">
                                   {m.author.display_name}
                                 </Link>
-                                <span className="text-[12px] text-faint">@{m.author.handle}</span>
-                                <time dateTime={m.created_at} title={stamp(m.created_at)} className="numeric text-[12px] text-faint">
+                                <span className="text-12 text-faint">@{m.author.handle}</span>
+                                <time dateTime={m.created_at} title={stamp(m.created_at)} className="numeric text-12 text-faint">
                                   {clock(m.created_at)}
                                 </time>
                               </span>
@@ -174,26 +174,26 @@ export function ConversationView({
                                 <a
                                   href={`#m-${reply.id}`}
                                   className={cx(
-                                    'mb-1.5 block rounded-lg border-l-2 px-2.5 py-1.5 text-[12.5px] leading-snug transition-colors',
-                                    right ? 'border-accent/60 bg-accent/10 hover:bg-accent/[0.16]' : 'border-line-strong bg-fg/[0.05] hover:bg-fg/[0.09]',
+                                    'mb-1.5 block rounded-lg border-l-2 px-2.5 py-1.5 text-13 leading-snug transition-colors',
+                                    right ? 'border-accent/60 bg-accent/10 hover:bg-accent/[0.16]' : 'border-line-strong bg-hover hover:bg-active',
                                   )}
                                 >
                                   <span className="block font-semibold text-muted">@{reply.author?.handle ?? 'unknown'}</span>
                                   <span className="line-clamp-2 text-faint">{reply.body}</span>
                                 </a>
                               )}
-                              <PostBody body={m.body} size="sm" className="!text-[14.5px]" />
+                              <PostBody body={m.body} size="sm" className="!text-15" />
                               {m.quote_post_id && (
-                                <Link href={`/p/${m.quote_post_id}`} className="mt-2 flex items-center gap-2 rounded-lg bg-fg/[0.05] px-2.5 py-1.5 text-[12.5px] text-open transition-colors hover:bg-fg/[0.09]">
+                                <Link href={`/p/${m.quote_post_id}`} className="mt-2 flex items-center gap-2 rounded-lg bg-hover px-2.5 py-1.5 text-13 text-link transition-colors hover:bg-active">
                                   <MessageSquareQuote className="size-3.5 shrink-0" aria-hidden /> Quoted a post
                                 </Link>
                               )}
-                              {m.edited_at && <span className="mt-1 block text-right text-[12px] text-faint">edited</span>}
+                              {m.edited_at && <span className="mt-1 block text-right text-12 text-faint">edited</span>}
                             </div>
                           </div>
                           <div className={cx('flex shrink-0 items-center gap-1 self-center opacity-0 transition-opacity focus-within:opacity-100 group-hover/msg:opacity-100 max-md:opacity-50', right && 'flex-row-reverse')}>
                             {sameAsPrev && (
-                              <time dateTime={m.created_at} className="numeric hidden text-[12px] text-faint md:block">
+                              <time dateTime={m.created_at} className="numeric hidden text-12 text-faint md:block">
                                 {clock(m.created_at)}
                               </time>
                             )}
@@ -211,13 +211,13 @@ export function ConversationView({
       </ChatScroller>
 
       <footer className="shrink-0 border-t border-line bg-ink px-4 py-3">
-        <div className="flex items-center gap-3 rounded-full bg-fg/[0.05] px-4 py-2.5 text-[14px] text-muted">
+        <div className="flex items-center gap-3 rounded-full bg-hover px-4 py-2.5 text-14 text-muted">
           <Eye className="size-4 shrink-0 text-faint" aria-hidden />
           <span className="min-w-0 flex-1 truncate">Only agents speak here. You’re reading along.</span>
-          <span className="hidden shrink-0 items-center gap-1.5 text-[12.5px] text-faint sm:inline-flex">
+          <span className="hidden shrink-0 items-center gap-1.5 text-13 text-faint sm:inline-flex">
             <Users className="size-3.5" aria-hidden /> {plural(c.member_count, 'agent')}
           </span>
-          <Watching topic={`conversation:${c.id}`} className="shrink-0 text-[12.5px] font-medium text-accent" />
+          <Watching topic={`conversation:${c.id}`} className="shrink-0 text-13 font-medium text-accent" />
         </div>
       </footer>
     </div>

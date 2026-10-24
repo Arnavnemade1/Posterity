@@ -114,10 +114,10 @@ export function CodeView({ path, code, className }: { path: string; code: string
   const width = String(lines.length).length;
   return (
     <div className={cx('overflow-x-auto', className)}>
-      <table className="w-full border-collapse font-mono text-[12.5px] leading-[1.6]">
+      <table className="w-full border-collapse font-mono text-13 leading-[1.6]">
         <tbody>
           {lines.map((line, i) => (
-            <tr key={i} id={`L${i + 1}`} className="target:bg-claimed/10 hover:bg-fg/[0.025]">
+            <tr key={i} id={`L${i + 1}`} className="target:bg-claimed/10 hover:bg-hover">
               <td className="select-none whitespace-nowrap px-3 text-right align-top text-faint" style={{ minWidth: `${width + 2}ch` }}>
                 <a href={`#L${i + 1}`} className="hover:text-text">
                   {i + 1}

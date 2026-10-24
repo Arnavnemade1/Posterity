@@ -1,6 +1,7 @@
 import { ExternalLink, File as FileIcon, Folder, GitCommitHorizontal, History } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { FileTree } from '@/components/code/file-tree';
 import { CodeView, languageOf } from '@/components/code/highlight';
 import { Crumbs, filePath, RefMenu, shortSha } from '@/components/code/parts';
 import { Markdown } from '@/components/markdown';
@@ -9,6 +10,7 @@ import { apiBase } from '@/lib/api';
 import {
   blobMeta,
   blobTexts,
+  type DirEntry,
   getLog,
   getTreeNode,
   listBranches,
@@ -39,9 +41,9 @@ export async function CodeBrowser({
   if (!resolved) {
     return (
       <div className="px-6 py-14 text-center">
-        <p className="text-[20px] font-bold text-text">No branch or commit “{wanted}”</p>
-        <p className="mt-2 text-[14px] text-faint">
-          It may have been deleted, or never existed. <Link href={base} className="text-open hover:underline">Back to {ws.default_branch}</Link>.
+        <p className="text-20 font-bold text-text">No branch or commit “{wanted}”</p>
+        <p className="mt-2 text-14 text-faint">
+          It may have been deleted, or never existed. <Link href={base} className="text-link hover:underline">Back to {ws.default_branch}</Link>.
         </p>
       </div>
     );
@@ -55,13 +57,30 @@ export async function CodeBrowser({
   const log = await getLog(ws.slug, resolved.branch ?? resolved.commit, null, 1, 0);
   const head = log?.commits[0] ?? null;
 
+  // The tree starts with every folder along the open path already loaded; the rest it fetches as they open.
+  const parts = path ? path.split('/') : [];
+  const dirs = isFile ? parts.slice(0, -1) : parts;
+  const chain = ['', ...dirs.map((_, i) => dirs.slice(0, i + 1).join('/'))];
+  const known = await Promise.all(
+    chain.map(async (p) => [p, !isFile && p === path ? (node.entries ?? []) : ((await getTreeNode(ws.slug, resolved.commit, p))?.entries ?? [])] as const),
+  );
+  const initial: Record<string, DirEntry[]> = Object.fromEntries(known);
+  const frame = (body: React.ReactNode) => (
+    <div className="lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
+      <aside className="sticky top-[calc(var(--column-header-h)+var(--column-tabs-h))] hidden h-[calc(100dvh-var(--column-header-h)-var(--column-tabs-h))] overflow-y-auto border-r border-line px-2 py-3 lg:block">
+        <FileTree base={base} slug={ws.slug} commit={resolved.commit} refParam={refParam} active={path} initial={initial} />
+      </aside>
+      <div className="min-w-0">{body}</div>
+    </div>
+  );
+
   const toolbar = (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line px-4 py-3">
       <RefMenu base={path ? filePath(base, path, null).split('?')[0] : base} current={resolved.label} branches={branches} />
       <Crumbs base={base} name={ws.slug} path={path} refName={refParam} />
       <Link
         href={`${base}/commits?${refParam ? `ref=${encodeURIComponent(refParam)}&` : ''}${path ? `path=${encodeURIComponent(path)}` : ''}`}
-        className="ml-auto inline-flex items-center gap-1.5 text-[13px] text-faint transition-colors hover:text-text"
+        className="ml-auto inline-flex items-center gap-1.5 text-13 text-faint transition-colors hover:text-text"
       >
         <History className="size-4" aria-hidden /> History
       </Link>
@@ -69,8 +88,8 @@ export async function CodeBrowser({
   );
 
   const latest = head && (
-    <div className="flex items-center gap-2.5 border-b border-line bg-panel/40 px-4 py-2.5 text-[13px]">
-      <GitCommitHorizontal className="size-4 shrink-0 text-open" aria-hidden />
+    <div className="flex items-center gap-2.5 border-b border-line bg-panel/40 px-4 py-2.5 text-13">
+      <GitCommitHorizontal className="size-4 shrink-0 text-muted" aria-hidden />
       <Link href={`${base}/commit/${head.id.slice(0, 12)}`} className="min-w-0 flex-1 truncate text-text hover:underline">
         {head.message.split('\n')[0]}
       </Link>
@@ -78,7 +97,7 @@ export async function CodeBrowser({
         {head.author ? `@${head.author} · ` : ''}
         {timeAgo(head.created_at, now)}
       </span>
-      <Link href={`${base}/commit/${head.id.slice(0, 12)}`} className="shrink-0 font-mono text-[12px] text-faint hover:text-text">
+      <Link href={`${base}/commit/${head.id.slice(0, 12)}`} className="shrink-0 font-mono text-12 text-faint hover:text-text">
         {shortSha(head.id)}
       </Link>
     </div>
@@ -91,11 +110,11 @@ export async function CodeBrowser({
     const raw = ws.visibility === 'private' ? null : `${apiBase()}/workspaces/${ws.slug}/files?path=${encodeURIComponent(path)}&ref=${encodeURIComponent(resolved.commit)}&raw=true`;
     const text = meta && !meta.is_binary ? (await blobTexts([sha])).get(sha) ?? '' : null;
     const markdown = text !== null && /^(md|markdown)$/.test(ext) && view !== 'code';
-    return (
+    return frame(
       <div>
         {toolbar}
         {latest}
-        <div className="flex items-center gap-3 border-b border-line px-4 py-2 text-[12.5px] text-faint">
+        <div className="flex items-center gap-3 border-b border-line px-4 py-2 text-13 text-faint">
           <span className="font-mono text-muted">{path.split('/').pop()}</span>
           {meta && <span>{size(meta.size)}</span>}
           {text !== null && <span>{text === '' ? 0 : text.replace(/\n$/, '').split('\n').length} lines</span>}
@@ -128,13 +147,13 @@ export async function CodeBrowser({
               // eslint-disable-next-line @next/next/no-img-element -- a user-supplied image from the API; next/image has nothing to optimise
               <img src={raw} alt={path} className="mx-auto max-h-[480px] max-w-full rounded-lg ring-1 ring-line" />
             ) : (
-              <p className="text-[14px] text-faint">Binary file, {size(meta.size)}.</p>
+              <p className="text-14 text-faint">Binary file, {size(meta.size)}.</p>
             )}
           </div>
         ) : (
-          <p className="px-5 py-8 text-center text-[14px] text-faint">This file’s contents are not available to you.</p>
+          <p className="px-5 py-8 text-center text-14 text-faint">This file’s contents are not available to you.</p>
         )}
-      </div>
+      </div>,
     );
   }
 
@@ -142,7 +161,7 @@ export async function CodeBrowser({
   const readme = entries.find((e) => e.type === 'file' && /^readme(\.md|\.markdown)?$/i.test(e.name));
   const readmeText = readme?.sha && /\.(md|markdown)$/i.test(readme.name) ? (await blobTexts([readme.sha])).get(readme.sha) ?? null : null;
 
-  return (
+  return frame(
     <div>
       {toolbar}
       {latest}
@@ -150,10 +169,10 @@ export async function CodeBrowser({
         <ul className="divide-y divide-line">
           {entries.map((e) => (
             <li key={e.path}>
-              <Link href={filePath(base, e.path, refParam)} className="flex items-center gap-3 px-4 py-2.5 text-[14px] transition-colors hover:bg-fg/[0.03]">
-                {e.type === 'dir' ? <Folder className="size-4 shrink-0 text-open" aria-hidden /> : <FileIcon className="size-4 shrink-0 text-faint" aria-hidden />}
-                <span className={cx('min-w-0 flex-1 truncate', e.type === 'dir' ? 'font-medium text-text' : 'font-mono text-[13px] text-prose')}>{e.name}</span>
-                <span className="numeric shrink-0 text-[12px] text-faint">
+              <Link href={filePath(base, e.path, refParam)} className="flex items-center gap-3 px-4 py-2.5 text-14 transition-colors hover:bg-hover">
+                {e.type === 'dir' ? <Folder className="size-4 shrink-0 text-accent-fg" aria-hidden /> : <FileIcon className="size-4 shrink-0 text-faint" aria-hidden />}
+                <span className={cx('min-w-0 flex-1 truncate', e.type === 'dir' ? 'font-medium text-text' : 'font-mono text-13 text-prose')}>{e.name}</span>
+                <span className="numeric shrink-0 text-12 text-faint">
                   {e.type === 'dir' ? `${(e.files ?? 0).toLocaleString('en')} file${e.files === 1 ? '' : 's'}` : e.size != null ? size(e.size) : ''}
                 </span>
               </Link>
@@ -161,16 +180,16 @@ export async function CodeBrowser({
           ))}
         </ul>
       ) : (
-        <p className="px-6 py-12 text-center text-[14px] text-faint">
+        <p className="px-6 py-12 text-center text-14 text-faint">
           This workspace has no files yet. An agent commits them with <code className="font-mono text-muted">POST /workspaces/{ws.slug}/commits</code>.
         </p>
       )}
       {readmeText && (
         <section className="border-t border-line px-5 py-5">
-          <h2 className="mb-3 font-mono text-[12.5px] text-faint">{readme!.name}</h2>
+          <h2 className="mb-3 font-mono text-13 text-faint">{readme!.name}</h2>
           <Markdown>{readmeText}</Markdown>
         </section>
       )}
-    </div>
+    </div>,
   );
 }

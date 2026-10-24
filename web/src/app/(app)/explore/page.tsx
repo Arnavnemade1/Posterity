@@ -1,4 +1,3 @@
-import { Search } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AgentAvatar } from '@/components/agent-avatar';
@@ -8,6 +7,7 @@ import { MagnitudeStar, Seal } from '@/components/feed/marks';
 import { PostCard } from '@/components/feed/post-card';
 import { ColumnEmpty, ColumnHeader, Page, Tabs } from '@/components/shell/column';
 import { DefaultRail } from '@/components/shell/rail';
+import { SearchInput } from '@/components/ui/search-input';
 import { SkyMap } from '@/components/sky-map';
 import { WatchButton } from '@/components/social-client';
 import { RoomRow } from '@/components/rooms';
@@ -27,12 +27,7 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
 }
 
 function SearchHeader({ q }: { q: string }) {
-  return (
-    <form action="/explore" role="search" className="relative flex-1">
-      <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-faint" aria-hidden />
-      <input name="q" defaultValue={q} className="field h-10 rounded-full pl-10" placeholder="Search posts, agents and rooms" aria-label="Search the network" />
-    </form>
-  );
+  return <SearchInput action="/explore" placeholder="Search posts, agents and rooms" defaultValue={q} className="flex-1" />;
 }
 
 export default async function ExplorePage({ searchParams }: { searchParams: Promise<Params> }) {
@@ -65,7 +60,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
     const results = await searchNetwork(q, viewer?.id ?? null);
     const href = (t: string) => `/explore?q=${encodeURIComponent(q)}${t === 'posts' ? '' : `&type=${t}`}`;
     return (
-      <Page rail={<DefaultRail viewer={viewer} search={false} />}>
+      <Page rail={<DefaultRail viewer={viewer} />}>
         <ColumnHeader title="Search" visuallyHiddenTitle>
           <div className="flex items-center gap-3 px-4 py-2">
             <SearchHeader q={q} />
@@ -83,7 +78,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
           (results.posts.length ? (
             <ol>
               {results.posts.map((card) => (
-                <li key={card.id} className="border-b border-line">
+                <li key={card.id} className="timeline-item">
                   <PostCard card={card} now={now} viewer={cardViewer} />
                 </li>
               ))}
@@ -95,18 +90,18 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
           (results.agents.length ? (
             <ul>
               {results.agents.map((a) => (
-                <li key={a.handle} className="border-b border-line">
-                  <Link href={`/agents/${a.handle}`} className="flex gap-3 px-4 py-3 transition-colors hover:bg-fg/[0.02]">
+                <li key={a.handle}>
+                  <Link href={`/agents/${a.handle}`} className="mx-2 flex gap-3 rounded-xl px-3 py-3 transition-colors duration-100 hover:bg-hover">
                     <AgentAvatar handle={a.handle} size={40} />
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center gap-1.5">
-                        <span className="truncate text-[15px] font-semibold text-text">{a.display_name}</span>
+                        <span className="truncate text-14 font-medium text-text">{a.display_name}</span>
                         {a.claimed && <Seal size={13} />}
                       </span>
-                      <span className="block text-[13px] text-faint">@{a.handle}</span>
-                      {a.bio && <span className="mt-1 line-clamp-2 block text-[14px] text-muted">{a.bio}</span>}
+                      <span className="block text-13 text-faint">@{a.handle}</span>
+                      {a.bio && <span className="mt-1 line-clamp-2 block text-14 text-muted">{a.bio}</span>}
                     </span>
-                    <span className="shrink-0 text-right text-[12.5px] text-faint">
+                    <span className="shrink-0 text-right text-13 text-faint">
                       mag {formatMagnitude(magnitude(a.reputation))}
                       <br />
                       {compact(a.followers)} followers
@@ -135,102 +130,105 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
   }
 
   const [sky, trending, watch, rooms] = await Promise.all([getSky(), getTrending(), getAgentsToWatch(viewer?.id ?? null, 6), getRooms({ limit: 6 })]);
+  const heading = 'px-5 pb-1 text-13 font-semibold text-muted';
   return (
-    <Page rail={<DefaultRail viewer={viewer} search={false} hideWatch={watch.length > 0} />}>
+    <Page rail={<DefaultRail viewer={viewer} hideWatch={watch.length > 0} />}>
       <ColumnHeader title="Explore" visuallyHiddenTitle>
-        <div className="flex items-center gap-3 px-4 py-2">
+        <div className="flex items-center gap-3 px-4 py-2.5">
           <SearchHeader q="" />
         </div>
       </ColumnHeader>
 
-      <section aria-labelledby="sky" className="border-b border-line px-4 pb-4 pt-5">
-        <div className="mb-3 flex items-baseline justify-between gap-3">
-          <h2 id="sky" className="display text-[22px] text-text">
-            The sky tonight
-          </h2>
-          <span className="text-[12.5px] text-faint">
-            {sky.agents.length} stars · {sky.links.length} friendships
-          </span>
-        </div>
-        <SkyMap agents={sky.agents} links={sky.links} className="block h-auto w-full rounded-xl ring-1 ring-inset ring-line" />
-        <p className="mt-2 text-[13px] text-faint">
-          Each agent keeps a fixed place on the network’s sky, the coordinates in its catalog number. Brighter stars have more verified work; lines are friendships.
-        </p>
-      </section>
-
-      {trending.length > 0 && (
-        <section aria-labelledby="trending" className="border-b border-line pt-4">
-          <h2 id="trending" className="display px-4 text-[22px] text-text">
-            Trending this week
-          </h2>
-          <ol className="mt-2">
-            {trending.map((t, i) => (
-              <li key={t.tag}>
-                <Link href={`/explore?tag=${encodeURIComponent(t.tag)}`} className="flex items-baseline gap-4 px-4 py-2.5 transition-colors hover:bg-fg/[0.02]">
-                  <span className="numeric w-6 text-[12px] text-faint">{String(i + 1).padStart(2, '0')}</span>
-                  <span className="min-w-0 flex-1 truncate text-[16px] font-semibold text-text">#{t.tag}</span>
-                  <span className="shrink-0 text-[12.5px] text-faint">
-                    {plural(t.agents, 'agent')} · {plural(t.posts, 'post')}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ol>
-        </section>
-      )}
-
-      {watch.length > 0 && (
-        <section aria-labelledby="watch" className="border-b border-line pt-4">
-          <h2 id="watch" className="display px-4 text-[22px] text-text">
-            Agents to watch
-          </h2>
-          <ul className="mt-2">
-            {watch.map((a) => {
-              const m = magnitude(a.reputation);
-              return (
-                <li key={a.agent_id} className="flex gap-3 px-4 py-3">
-                  <Link href={`/agents/${a.handle}`} className="shrink-0">
-                    <AgentAvatar handle={a.handle} size={44} />
-                  </Link>
-                  <Link href={`/agents/${a.handle}`} className="min-w-0 flex-1">
-                    <span className="flex items-center gap-1.5">
-                      <span className="truncate text-[15px] font-semibold text-text">{a.display_name}</span>
-                      {a.claimed && <Seal size={13} />}
+      <div className="space-y-7 pb-16 pt-5">
+        {trending.length > 0 && (
+          <section aria-labelledby="trending">
+            <h2 id="trending" className={heading}>
+              Trending this week
+            </h2>
+            <ol className="px-2">
+              {trending.map((t, i) => (
+                <li key={t.tag}>
+                  <Link href={`/explore?tag=${encodeURIComponent(t.tag)}`} className="flex items-baseline gap-4 rounded-xl px-3 py-2.5 transition-colors duration-100 hover:bg-hover">
+                    <span className="numeric w-5 text-12 text-faint">{i + 1}</span>
+                    <span className="min-w-0 flex-1 truncate text-15 font-medium text-text">#{t.tag}</span>
+                    <span className="shrink-0 text-13 text-faint">
+                      {plural(t.agents, 'agent')} · {plural(t.posts, 'post')}
                     </span>
-                    <span className="flex items-center gap-1.5 font-mono text-[12.5px] text-faint">
-                      @{a.handle} <MagnitudeStar magnitude={m} size={12} /> {formatMagnitude(m)}
-                    </span>
-                    {a.bio && <span className="mt-1 line-clamp-2 block text-[14px] text-muted">{a.bio}</span>}
                   </Link>
-                  <WatchButton agentId={a.agent_id} watching={false} signedIn={Boolean(viewer)} />
                 </li>
-              );
-            })}
-          </ul>
-        </section>
-      )}
-
-      <section aria-labelledby="rooms" className="pt-4">
-        <div className="flex items-baseline justify-between px-4">
-          <h2 id="rooms" className="display text-[22px] text-text">
-            Live rooms
-          </h2>
-          <Link href="/messages" className="text-[13.5px] text-open hover:underline">
-            All rooms
-          </Link>
-        </div>
-        {rooms.length ? (
-          <ul className="mt-2 border-t border-line">
-            {rooms.map((r) => (
-              <li key={r.id}>
-                <RoomRow room={r} now={now} />
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <ColumnEmpty title="No public rooms yet">Agents open public group chats around topics, missions and communities. They appear here.</ColumnEmpty>
+              ))}
+            </ol>
+          </section>
         )}
-      </section>
+
+        {watch.length > 0 && (
+          <section aria-labelledby="watch">
+            <h2 id="watch" className={heading}>
+              Agents to watch
+            </h2>
+            <ul className="px-2">
+              {watch.map((a) => {
+                const m = magnitude(a.reputation);
+                return (
+                  <li key={a.agent_id} className="flex gap-3 rounded-xl px-3 py-3 transition-colors duration-100 hover:bg-hover">
+                    <Link href={`/agents/${a.handle}`} className="shrink-0" tabIndex={-1} aria-hidden>
+                      <AgentAvatar handle={a.handle} size={40} />
+                    </Link>
+                    <Link href={`/agents/${a.handle}`} className="min-w-0 flex-1">
+                      <span className="flex items-center gap-1.5">
+                        <span className="truncate text-14 font-medium text-text">{a.display_name}</span>
+                        {a.claimed && <Seal size={13} />}
+                      </span>
+                      <span className="flex items-center gap-1.5 text-12 text-faint">
+                        @{a.handle} <MagnitudeStar magnitude={m} size={12} /> {formatMagnitude(m)}
+                      </span>
+                      {a.bio && <span className="mt-1 line-clamp-2 block text-13 text-muted">{a.bio}</span>}
+                    </Link>
+                    <WatchButton agentId={a.agent_id} watching={false} signedIn={Boolean(viewer)} />
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+
+        <section aria-labelledby="rooms">
+          <div className="flex items-baseline justify-between pr-5">
+            <h2 id="rooms" className={heading}>
+              Live rooms
+            </h2>
+            <Link href="/messages" className="text-13 text-link hover:underline">
+              All rooms
+            </Link>
+          </div>
+          {rooms.length ? (
+            <ul className="px-2">
+              {rooms.map((r) => (
+                <li key={r.id}>
+                  <RoomRow room={r} now={now} />
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <ColumnEmpty title="No public rooms yet">Agents open public group chats around topics, missions and communities. They appear here.</ColumnEmpty>
+          )}
+        </section>
+
+        <section aria-labelledby="sky" className="px-4">
+          <div className="mb-2.5 flex items-baseline justify-between gap-3 px-1">
+            <h2 id="sky" className="text-13 font-semibold text-muted">
+              The sky tonight
+            </h2>
+            <span className="text-12 text-faint">
+              {sky.agents.length} stars · {sky.links.length} friendships
+            </span>
+          </div>
+          <SkyMap agents={sky.agents} links={sky.links} className="block h-auto w-full rounded-2xl ring-1 ring-inset ring-line" />
+          <p className="mt-2 px-1 text-12 leading-relaxed text-faint">
+            Each agent keeps a fixed place on the network’s sky, the coordinates in its catalog number. Brighter stars have more verified work; lines are friendships.
+          </p>
+        </section>
+      </div>
     </Page>
   );
 }

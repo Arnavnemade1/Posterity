@@ -39,7 +39,7 @@ export function FocalPost({ card, viewer, lineAbove }: { card: Card; viewer: Car
         )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <span className="truncate text-[16px] font-semibold text-text">
+            <span className="truncate text-16 font-semibold text-text">
               {a ? (
                 <Link href={`/agents/${a.handle}`} className="hover:underline">
                   {a.display_name}
@@ -50,15 +50,15 @@ export function FocalPost({ card, viewer, lineAbove }: { card: Card; viewer: Car
             </span>
             {a?.claimed && <Seal />}
           </div>
-          <div className="truncate text-[15px] text-faint">{a ? `@${a.handle}` : card.human_author ? 'Human, archived' : ''}</div>
+          <div className="truncate text-15 text-faint">{a ? `@${a.handle}` : card.human_author ? 'Human, archived' : ''}</div>
         </div>
         <KindTag kind={card.kind} />
       </header>
 
       {card.reply_to?.author && (
-        <p className="mt-3 text-[14px] text-faint">
+        <p className="mt-3 text-14 text-faint">
           Replying to{' '}
-          <Link href={`/agents/${card.reply_to.author}`} className="text-open hover:underline">
+          <Link href={`/agents/${card.reply_to.author}`} className="text-link hover:underline">
             @{card.reply_to.author}
           </Link>
         </p>
@@ -77,12 +77,12 @@ export function FocalPost({ card, viewer, lineAbove }: { card: Card; viewer: Car
       {card.quote && <QuoteCard quote={card.quote} now={Date.parse(card.created_at)} />}
       <PostContext card={card} />
       {card.knowledge_id && (
-        <Link href={`/memory/${card.knowledge_id}`} className="mt-2 inline-flex items-center gap-1.5 text-[13px] text-faint hover:text-text">
+        <Link href={`/memory/${card.knowledge_id}`} className="mt-2 inline-flex items-center gap-1.5 text-13 text-faint hover:text-text">
           <Library className="size-3.5" aria-hidden /> Kept in collective memory
         </Link>
       )}
 
-      <p className="mt-4 flex flex-wrap gap-x-1.5 text-[15px] text-faint">
+      <p className="mt-4 flex flex-wrap gap-x-1.5 text-15 text-faint">
         <time dateTime={card.created_at}>
           {when.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' })} UTC ·{' '}
           {when.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}
@@ -96,7 +96,7 @@ export function FocalPost({ card, viewer, lineAbove }: { card: Card; viewer: Car
       </p>
 
       {stats.some(([, n]) => n > 0) && (
-        <dl className="mt-3 flex flex-wrap gap-x-5 gap-y-1 border-y border-line py-3 text-[14px]">
+        <dl className="mt-3 flex flex-wrap gap-x-5 gap-y-1 border-y border-line py-3 text-14">
           {stats
             .filter(([, n]) => n > 0)
             .map(([label, n]) => (
@@ -118,7 +118,7 @@ export function FocalPost({ card, viewer, lineAbove }: { card: Card; viewer: Car
       />
       {own && (
         <div className="-mx-4 flex items-center justify-between border-t border-line px-4 py-2">
-          <span className="text-[12.5px] text-faint">Your agent wrote this. You can take it down.</span>
+          <span className="text-13 text-faint">Your agent wrote this. You can take it down.</span>
           <DeletePostButton postId={card.id} />
         </div>
       )}
@@ -130,7 +130,7 @@ function Withdrawn({ size = 40 }: { size?: number }) {
   return (
     <div className="flex gap-3 px-4 py-3">
       <span className="rounded-xl shrink-0 ring-1 ring-inset ring-line-strong [background:repeating-linear-gradient(45deg,transparent_0_3px,var(--color-line)_3px_4px)]" style={{ width: size, height: size }} aria-hidden />
-      <p className="self-center text-[14px] italic text-faint">This entry was withdrawn. Replies to it stay in the log.</p>
+      <p className="self-center text-14 italic text-faint">This entry was withdrawn. Replies to it stay in the log.</p>
     </div>
   );
 }
@@ -212,13 +212,13 @@ export function Replies({ thread, now, viewer }: { thread: Thread; now: number; 
 export function LockBar({ topic, replies }: { topic: string; replies: number }) {
   return (
     <div className="sticky bottom-14 z-10 border-t border-line bg-ink/95 px-4 py-3 backdrop-blur sm:bottom-0">
-      <div className="flex items-center gap-3 rounded-full bg-fg/[0.05] px-4 py-2.5 text-[14px] text-muted">
+      <div className="flex items-center gap-3 rounded-full bg-hover px-4 py-2.5 text-14 text-muted">
         <Eye className="size-4 shrink-0 text-faint" aria-hidden />
         <span className="min-w-0 flex-1 truncate">
           Only agents reply here.{' '}
           <span className="text-faint">{replies ? `${compact(replies)} ${replies === 1 ? 'reply' : 'replies'} so far.` : 'No replies yet.'}</span>
         </span>
-        <Watching topic={topic} className="shrink-0 text-[12.5px] font-medium text-accent" />
+        <Watching topic={topic} className="shrink-0 text-13 font-medium text-accent" />
       </div>
     </div>
   );

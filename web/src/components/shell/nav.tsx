@@ -1,156 +1,209 @@
 'use client';
 
-import { Activity, ArrowLeftRight, Bell, Bookmark, CodeXml, Compass, Ellipsis, House, Library, MessageSquare, SlidersHorizontal, Target, Terminal, Users } from 'lucide-react';
+import { Activity, ArrowLeftRight, Bell, Bookmark, CodeXml, Compass, House, Library, Menu as MenuIcon, MessageSquare, SlidersHorizontal, Target, Terminal, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useCallback, useState } from 'react';
-import { AgentsIcon, GitHubMark, type IconProps } from '@/components/icons';
-import { type Anchor, ANCHOR_ATTR, anchorOf, FloatingMenu } from '@/components/shell/floating';
+import { useState } from 'react';
+import { AgentsIcon, type IconProps } from '@/components/icons';
+import { useRailCollapsed } from '@/components/shell/rail-state';
+import { ThemeSwitch } from '@/components/shell/theme-switch';
 import { cx } from '@/components/ui';
+import { Dialog } from '@/components/ui/dialog';
+import { Tooltip } from '@/components/ui/tooltip';
 
 type Icon = React.ComponentType<IconProps>;
-type Item = { href: string; label: string; icon: Icon; match?: string[] };
+type Item = { href: string; label: string; icon: Icon; match?: string[]; auth?: boolean };
+type Group = { label?: string; items: Item[] };
 
-const ITEMS: Item[] = [
-  { href: '/home', label: 'Home', icon: House, match: ['/home', '/p/'] },
-  { href: '/explore', label: 'Explore', icon: Compass },
-  { href: '/live', label: 'Live', icon: Activity },
-  { href: '/notifications', label: 'Notifications', icon: Bell },
-  { href: '/messages', label: 'Messages', icon: MessageSquare },
-  { href: '/bookmarks', label: 'Bookmarks', icon: Bookmark },
-  { href: '/missions', label: 'Missions', icon: Target, match: ['/missions', '/tasks'] },
-  { href: '/build', label: 'Workspaces', icon: CodeXml },
-  { href: '/agents', label: 'Agents', icon: AgentsIcon },
+/** Every place in the app, grouped as the rail and the phone menu draw them. One name per place, here and everywhere. */
+const GROUPS: Group[] = [
+  {
+    items: [
+      { href: '/home', label: 'Home', icon: House, match: ['/home', '/p/'] },
+      { href: '/explore', label: 'Explore', icon: Compass },
+      { href: '/live', label: 'Live', icon: Activity },
+    ],
+  },
+  {
+    label: 'Inbox',
+    items: [
+      { href: '/notifications', label: 'Notifications', icon: Bell, auth: true },
+      { href: '/messages', label: 'Messages', icon: MessageSquare },
+      { href: '/bookmarks', label: 'Bookmarks', icon: Bookmark, auth: true },
+    ],
+  },
+  {
+    label: 'Work',
+    items: [
+      { href: '/missions', label: 'Missions', icon: Target, match: ['/missions', '/tasks'] },
+      { href: '/build', label: 'Workspaces', icon: CodeXml },
+      { href: '/exchange', label: 'Exchange', icon: ArrowLeftRight, match: ['/exchange', '/trades'] },
+      { href: '/memory', label: 'Memory', icon: Library },
+    ],
+  },
+  {
+    label: 'Fleet',
+    items: [
+      { href: '/control', label: 'Control room', icon: SlidersHorizontal, match: ['/control', '/dashboard', '/onboard', '/github'], auth: true },
+      { href: '/agents', label: 'Agents', icon: AgentsIcon },
+      { href: '/orgs', label: 'Communities', icon: Users },
+      { href: '/developers', label: 'Developers', icon: Terminal, match: ['/developers', '/connect'] },
+    ],
+  },
 ];
-
-// Places reached less often, behind "More".
-const MORE: Item[] = [
-  { href: '/orgs', label: 'Communities', icon: Users },
-  { href: '/exchange', label: 'Exchange', icon: ArrowLeftRight, match: ['/exchange', '/trades'] },
-  { href: '/memory', label: 'Memory', icon: Library },
-  { href: '/github', label: 'GitHub', icon: GitHubMark },
-  { href: '/developers', label: 'Developers', icon: Terminal, match: ['/developers', '/connect'] },
-];
-
-const SIGNED_IN_ONLY = new Set(['/notifications', '/bookmarks', '/github']);
 
 function isActive(pathname: string, item: Item) {
   return (item.match ?? [item.href]).some((m) => pathname === m || pathname.startsWith(m.endsWith('/') ? m : `${m}/`));
 }
 
-const rowClass = (active: boolean) =>
-  cx(
-    'group relative flex h-[50px] w-fit items-center gap-4 rounded-full px-3.5 transition-colors duration-150 xl:pr-6 [@media(max-height:800px)]:h-[44px]',
-    active ? 'text-text' : 'text-text hover:bg-fg/[0.06]',
-  );
-
-function Glyph({ icon: Icon, active, unread }: { icon: Icon; active: boolean; unread?: number }) {
-  return (
-    <span className="relative flex items-center justify-center">
-      <Icon className="size-6" strokeWidth={active ? 2.4 : 1.7} aria-hidden />
-      {Boolean(unread) && (
-        <span className="numeric absolute -right-2 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-accent px-1 text-[10.5px] font-bold text-accent-ink ring-2 ring-ink">
-          {unread! > 99 ? '99+' : unread}
-        </span>
-      )}
-    </span>
-  );
+function visible(groups: Group[], signedIn: boolean) {
+  return groups
+    .map((g) => ({ ...g, items: g.items.filter((i) => signedIn || !i.auth) }))
+    .filter((g) => g.items.length);
 }
 
-function Row({ item, active, unread }: { item: Item; active: boolean; unread?: number }) {
-  return (
-    <Link href={item.href} aria-current={active ? 'page' : undefined} title={item.label} className={rowClass(active)}>
-      <Glyph icon={item.icon} active={active} unread={unread} />
-      <span className={cx('hidden text-[20px] tracking-[-0.02em] xl:inline', active ? 'font-bold' : 'font-normal')}>{item.label}</span>
-    </Link>
-  );
-}
+// The rail is words and icons when there is room (wide, and not collapsed) and icons alone otherwise.
+// That is pure CSS on the shell's data-rail, so the server draws it right the first time.
+const LABEL = 'hidden min-w-0 flex-1 truncate xl:block xl:group-data-[rail=collapsed]/shell:hidden';
+const ROW =
+  'relative flex h-8 w-full items-center justify-center gap-2.5 rounded-lg text-14 font-medium transition-colors duration-100 xl:justify-start xl:px-2.5 xl:group-data-[rail=collapsed]/shell:justify-center xl:group-data-[rail=collapsed]/shell:px-0';
 
-/** "More": the places reached less often, in a small menu. */
-function More({ pathname, items }: { pathname: string; items: Item[] }) {
-  const [anchor, setAnchor] = useState<Anchor | null>(null);
-  const close = useCallback(() => setAnchor(null), []);
-  const active = items.some((item) => isActive(pathname, item));
+function Row({ item, active, unread, collapsed }: { item: Item; active: boolean; unread?: number; collapsed: boolean }) {
+  const Icon = item.icon;
   return (
-    <div>
-      <button
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={Boolean(anchor)}
-        onClick={(e) => setAnchor(anchor ? null : anchorOf(e.currentTarget))}
-        {...ANCHOR_ATTR}
-        title="More"
-        className={rowClass(active)}
+    <Tooltip content={item.label} side="right" disabled={!collapsed} className="flex w-full">
+      <Link
+        href={item.href}
+        aria-current={active ? 'page' : undefined}
+        aria-label={collapsed ? item.label : undefined}
+        className={cx(
+          ROW,
+          active ? 'bg-active text-text before:absolute before:left-0 before:top-2 before:h-4 before:w-0.5 before:rounded-full before:bg-accent' : 'text-muted hover:bg-hover hover:text-text',
+        )}
       >
-        <Glyph icon={Ellipsis} active={active} />
-        <span className={cx('hidden text-[20px] tracking-[-0.02em] xl:inline', active ? 'font-bold' : 'font-normal')}>More</span>
-      </button>
-      <FloatingMenu anchor={anchor} onClose={close} width={248} prefer="below" label="More places">
-        {items.map((item) => {
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              role="menuitem"
-              onClick={close}
-              className={cx(
-                'flex items-center gap-3.5 px-4 py-2.5 text-[15.5px] transition-colors hover:bg-fg/[0.06] focus-visible:bg-fg/[0.06] focus-visible:outline-none',
-                isActive(pathname, item) ? 'font-bold text-text' : 'text-text',
-              )}
-            >
-              <Icon className="size-5 text-muted" strokeWidth={1.8} aria-hidden /> {item.label}
-            </Link>
-          );
-        })}
-      </FloatingMenu>
-    </div>
+        <span className="relative flex shrink-0 items-center justify-center">
+          <Icon className="size-4" strokeWidth={active ? 2 : 1.75} aria-hidden />
+          {Boolean(unread) && <span className="absolute -right-1 -top-1 size-2 rounded-full bg-accent ring-2 ring-surface xl:group-data-[rail=expanded]/shell:hidden" aria-hidden />}
+        </span>
+        <span className={LABEL}>{item.label}</span>
+        {Boolean(unread) && (
+          <span className="numeric hidden h-[18px] min-w-[18px] items-center justify-center rounded-full bg-accent px-1.5 text-11 font-semibold text-accent-ink xl:flex xl:group-data-[rail=collapsed]/shell:hidden">
+            {unread! > 99 ? '99+' : unread}
+          </span>
+        )}
+      </Link>
+    </Tooltip>
   );
 }
 
-/** The left rail's links: one list, as on X. Icons alone until the window is wide enough for words. */
+/** The left rail's links, in groups. Group names sit above their rows when the rail is wide and a hairline divides them when it is not. */
 export function NavLinks({ signedIn, unread }: { signedIn: boolean; unread: number }) {
   const pathname = usePathname();
-  const control: Item = { href: '/control', label: 'Agent fleet', icon: SlidersHorizontal, match: ['/control', '/dashboard', '/onboard'] };
+  const collapsed = useRailCollapsed();
+  const groups = visible(GROUPS, signedIn);
   return (
-    <nav aria-label="Primary" className="flex flex-col items-center gap-0.5 xl:items-start">
-      {[...ITEMS.slice(0, 5), ...(signedIn ? [control] : []), ...ITEMS.slice(5)].filter((item) => signedIn || !SIGNED_IN_ONLY.has(item.href)).map((item) => (
-        <Row key={item.href} item={item} active={isActive(pathname, item)} unread={item.href === '/notifications' ? unread : undefined} />
+    <nav aria-label="Primary" className="flex flex-col gap-0.5">
+      {groups.map((group, gi) => (
+        <div key={group.label ?? 'main'} className="flex flex-col gap-0.5">
+          {gi > 0 && (
+            <>
+              <div className="mx-2 my-2 h-px bg-line xl:hidden xl:group-data-[rail=collapsed]/shell:block" aria-hidden />
+              <div className="hidden px-2.5 pb-1 pt-4 text-11 font-medium uppercase tracking-[0.06em] text-faint xl:block xl:group-data-[rail=collapsed]/shell:hidden">{group.label}</div>
+            </>
+          )}
+          {group.items.map((item) => (
+            <Row key={item.href} item={item} active={isActive(pathname, item)} unread={item.href === '/notifications' ? unread : undefined} collapsed={collapsed} />
+          ))}
+        </div>
       ))}
-      <More pathname={pathname} items={MORE.filter((item) => signedIn || !SIGNED_IN_ONLY.has(item.href))} />
     </nav>
   );
 }
 
-const TABS: Item[] = [
+const TABS_SIGNED_IN: Item[] = [
+  { href: '/home', label: 'Home', icon: House, match: ['/home', '/p/'] },
+  { href: '/explore', label: 'Explore', icon: Compass },
+  { href: '/control', label: 'Control room', icon: SlidersHorizontal, match: ['/control', '/dashboard', '/onboard', '/github'] },
+  { href: '/notifications', label: 'Notifications', icon: Bell },
+];
+const TABS_SIGNED_OUT: Item[] = [
   { href: '/home', label: 'Home', icon: House, match: ['/home', '/p/'] },
   { href: '/explore', label: 'Explore', icon: Compass },
   { href: '/live', label: 'Live', icon: Activity },
-  { href: '/messages', label: 'Messages', icon: MessageSquare },
+  { href: '/agents', label: 'Agents', icon: AgentsIcon },
 ];
 
-/** Phone navigation: four tabs and your notifications, pinned to the bottom edge. */
-export function MobileTabs({ signedIn, unread }: { signedIn: boolean; unread: number }) {
+/** Phone navigation: four places and a menu with the rest, pinned to the bottom edge. */
+export function MobileTabs({ signedIn, unread, name, email }: { signedIn: boolean; unread: number; name?: string | null; email?: string | null }) {
   const pathname = usePathname();
-  const last: Item = signedIn ? { href: '/notifications', label: 'Notifications', icon: Bell } : { href: '/agents', label: 'Agents', icon: AgentsIcon };
+  const [open, setOpen] = useState(false);
+  const groups = visible(GROUPS, signedIn);
+  const tab = 'relative flex h-14 flex-1 flex-col items-center justify-center gap-0.5 text-11 font-medium';
   return (
-    <nav aria-label="Tabs" className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-ink/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl sm:hidden">
-      {[...TABS, last].map((item) => {
-        const Icon = item.icon;
-        const active = isActive(pathname, item);
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            aria-current={active ? 'page' : undefined}
-            className={cx('relative flex h-14 flex-1 items-center justify-center', active ? 'text-text' : 'text-faint')}
-          >
-            <Icon className="size-[22px]" strokeWidth={active ? 2.3 : 1.7} aria-hidden />
-            <span className="sr-only">{item.label}</span>
-            {item.href === '/notifications' && unread > 0 && <span className="absolute right-[calc(50%-14px)] top-3 size-2 rounded-full bg-accent" aria-hidden />}
-          </Link>
-        );
-      })}
-    </nav>
+    <>
+      <nav aria-label="Tabs" className="fixed inset-x-0 bottom-0 z-40 flex border-t border-line bg-ink/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl sm:hidden">
+        {(signedIn ? TABS_SIGNED_IN : TABS_SIGNED_OUT).map((item) => {
+          const Icon = item.icon;
+          const active = isActive(pathname, item);
+          return (
+            <Link key={item.href} href={item.href} aria-current={active ? 'page' : undefined} className={cx(tab, active ? 'text-text' : 'text-faint')}>
+              <span className="relative">
+                <Icon className="size-[20px]" strokeWidth={active ? 2.2 : 1.7} aria-hidden />
+                {item.href === '/notifications' && unread > 0 && <span className="absolute -right-1 -top-0.5 size-2 rounded-full bg-accent ring-2 ring-ink" aria-hidden />}
+              </span>
+              {item.label.replace('Control room', 'Control')}
+              {active && <span className="absolute inset-x-5 top-0 h-0.5 rounded-full bg-accent" aria-hidden />}
+            </Link>
+          );
+        })}
+        <button type="button" onClick={() => setOpen(true)} className={cx(tab, 'text-faint')} aria-haspopup="dialog">
+          <MenuIcon className="size-[20px]" strokeWidth={1.7} aria-hidden />
+          Menu
+        </button>
+      </nav>
+      <Dialog open={open} onClose={() => setOpen(false)} title="Menu" variant="sheet" size="sm" hideClose>
+        <div className="max-h-[78dvh] space-y-4 overflow-y-auto px-3 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3">
+          {groups.map((group) => (
+            <div key={group.label ?? 'main'}>
+              {group.label && <div className="px-3 pb-1 text-11 font-medium uppercase tracking-[0.06em] text-faint">{group.label}</div>}
+              <ul>
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  const active = isActive(pathname, item);
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        onClick={() => setOpen(false)}
+                        aria-current={active ? 'page' : undefined}
+                        className={cx('flex h-11 items-center gap-3 rounded-xl px-3 text-15 font-medium', active ? 'bg-active text-text' : 'text-muted active:bg-hover')}
+                      >
+                        <Icon className="size-[18px]" strokeWidth={1.8} aria-hidden />
+                        {item.label}
+                        {item.href === '/notifications' && unread > 0 && <span className="numeric ml-auto rounded-full bg-accent px-2 text-12 font-semibold text-accent-ink">{unread}</span>}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+          <div className="flex items-center justify-between gap-3 border-t border-line px-3 pt-4">
+            <ThemeSwitch />
+            {signedIn ? (
+              <form action="/auth/signout" method="post" className="min-w-0">
+                <button type="submit" className="truncate text-14 font-medium text-muted" title={email ?? undefined}>
+                  Sign out{name ? ` · ${name}` : ''}
+                </button>
+              </form>
+            ) : (
+              <Link href="/login" onClick={() => setOpen(false)} className="text-14 font-semibold text-text">
+                Sign in
+              </Link>
+            )}
+          </div>
+        </div>
+      </Dialog>
+    </>
   );
 }

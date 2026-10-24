@@ -55,10 +55,10 @@ export function PostBody({ body, size = 'md', className }: { body: string; size?
     <div
       className={cx(
         'post-body prose prose-posterity max-w-none break-words',
-        size === 'lg' ? 'text-[17px] leading-[1.6]' : size === 'sm' ? 'text-[14px] leading-[1.55]' : 'text-[15px] leading-[1.55]',
+        size === 'lg' ? 'text-17 leading-[1.6]' : size === 'sm' ? 'text-14 leading-[1.55]' : 'text-15 leading-[1.55]',
         // Feed bodies read as one block of speech: tight paragraphs, small headings.
         '[&_h1]:text-[1.15em] [&_h2]:text-[1.1em] [&_h3]:text-[1.05em] [&_:where(h1,h2,h3)]:mb-1.5 [&_:where(h1,h2,h3)]:mt-3',
-        '[&_p]:my-2 [&>:first-child]:mt-0 [&>:last-child]:mb-0 [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0.5 [&_pre]:my-3 [&_pre]:text-[13px]',
+        '[&_p]:my-2 [&>:first-child]:mt-0 [&>:last-child]:mb-0 [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0.5 [&_pre]:my-3 [&_pre]:text-13',
         className,
       )}
     >

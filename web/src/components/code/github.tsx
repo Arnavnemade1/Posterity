@@ -13,7 +13,7 @@ export { GitHubMark };
 /** The small "from GitHub" mark beside a commit that came in from a repository. */
 export function FromGitHub({ className }: { className?: string }) {
   return (
-    <span className={cx('inline-flex items-center gap-1 text-[12px] font-medium text-faint', className)} title="Came from GitHub">
+    <span className={cx('inline-flex items-center gap-1 text-12 font-medium text-faint', className)} title="Came from GitHub">
       <GitHubMark className="size-3" />
       GitHub
     </span>
@@ -27,7 +27,7 @@ export function PullRequestLink({ pr }: { pr: { number: number; url: string; sta
       href={pr.url}
       target="_blank"
       rel="noreferrer"
-      className="inline-flex items-center gap-1.5 text-[13px] text-muted transition-colors hover:text-text"
+      className="inline-flex items-center gap-1.5 text-13 text-muted transition-colors hover:text-text"
     >
       <GitHubMark className="size-3.5" />
       <GitPullRequest className="size-3.5" aria-hidden />
@@ -41,13 +41,13 @@ export function PullRequestLink({ pr }: { pr: { number: number; url: string; sta
 function RepoName({ repo, url }: { repo: string | null; url: string | null }) {
   if (!repo) {
     return (
-      <span className="inline-flex items-center gap-1.5 text-[13.5px] text-muted">
+      <span className="inline-flex items-center gap-1.5 text-14 text-muted">
         <Lock className="size-3.5" aria-hidden /> A private repository
       </span>
     );
   }
   return (
-    <a href={url ?? `https://github.com/${repo}`} target="_blank" rel="noreferrer" className="inline-flex min-w-0 items-center gap-1 font-mono text-[13px] text-text hover:underline">
+    <a href={url ?? `https://github.com/${repo}`} target="_blank" rel="noreferrer" className="inline-flex min-w-0 items-center gap-1 font-mono text-13 text-text hover:underline">
       <span className="truncate">{repo}</span>
       <ArrowUpRight className="size-3.5 shrink-0 text-faint" aria-hidden />
     </a>
@@ -86,21 +86,21 @@ export function WorkspaceGitHubPanel({
 
   return (
     <section id="github" className="space-y-3 border-t border-line px-4 py-4">
-      <h2 className="flex items-center gap-2 text-[15px] font-bold text-text">
+      <h2 className="flex items-center gap-2 text-15 font-bold text-text">
         <GitHubMark /> GitHub
       </h2>
 
       {imp && (
-        <p className="text-[13px] leading-relaxed text-muted">
+        <p className="text-13 leading-relaxed text-muted">
           {imp.status === 'done' ? 'Imported from ' : imp.status === 'failed' ? 'Could not import ' : 'Importing '}
           {imp.repo ? (
-            <a href={imp.url ?? `https://github.com/${imp.repo}`} target="_blank" rel="noreferrer" className="font-mono text-[12.5px] text-text hover:underline">
+            <a href={imp.url ?? `https://github.com/${imp.repo}`} target="_blank" rel="noreferrer" className="font-mono text-13 text-text hover:underline">
               {imp.repo}
             </a>
           ) : (
             'a private repository'
           )}
-          {imp.status === 'done' && imp.sha ? <span className="font-mono text-[12px] text-faint"> @ {imp.sha.slice(0, 7)}</span> : null}
+          {imp.status === 'done' && imp.sha ? <span className="font-mono text-12 text-faint"> @ {imp.sha.slice(0, 7)}</span> : null}
           {imp.status === 'done' && imp.summary ? <span className="text-faint"> · {imp.summary}</span> : null}
           {imp.status === 'failed' && imp.error ? <span className="block text-danger">{imp.error}</span> : null}
           {(imp.status === 'queued' || imp.status === 'running') && <span className="text-faint">…</span>}
@@ -121,13 +121,13 @@ export function WorkspaceGitHubPanel({
               </Pill>
             )}
           </div>
-          {remote.status_detail && <p className="text-[12.5px] leading-relaxed text-muted">{remote.status_detail}</p>}
+          {remote.status_detail && <p className="text-13 leading-relaxed text-muted">{remote.status_detail}</p>}
           {remote.status === 'diverged' && remote.sync_change_request ? (
-            <Link href={`/build/${workspace.slug}/changes/${remote.sync_change_request}`} className="block text-[13px] font-medium text-text hover:underline">
+            <Link href={`/build/${workspace.slug}/changes/${remote.sync_change_request}`} className="block text-13 font-medium text-text hover:underline">
               Merge change request #{remote.sync_change_request} →
             </Link>
           ) : null}
-          <p className="text-[12px] text-faint">
+          <p className="text-12 text-faint">
             {remote.mode === 'two_way'
               ? `Branches go to posterity/*; ${remote.default_branch ?? 'the default branch'} syncs both ways.`
               : 'Branches go to posterity/* on GitHub.'}
@@ -136,7 +136,7 @@ export function WorkspaceGitHubPanel({
           {data.jobs && data.jobs.length > 0 && (
             <ul className="space-y-1 border-t border-line pt-2">
               {data.jobs.slice(0, 5).map((j, i) => (
-                <li key={i} className="flex items-baseline gap-2 text-[12px]">
+                <li key={i} className="flex items-baseline gap-2 text-12">
                   <span className={cx('size-1.5 shrink-0 translate-y-[-1px] rounded-full', j.status === 'failed' ? 'bg-danger' : j.status === 'done' ? 'bg-done' : 'bg-claimed')} aria-hidden />
                   <span className="min-w-0 flex-1 truncate text-muted">
                     {JOB_LABEL[j.kind] ?? j.kind}
@@ -156,7 +156,7 @@ export function WorkspaceGitHubPanel({
         data.repositories && data.repositories.length > 0 ? (
           <LinkGitHubForm workspaceId={workspace.id} repositories={data.repositories} privateWorkspace={workspace.visibility === 'private'} />
         ) : (
-          <p className="text-[13px] leading-relaxed text-muted">
+          <p className="text-13 leading-relaxed text-muted">
             Mirror this workspace to a repository, so GitHub runs its CI on your agents&apos; work.{' '}
             <Link href="/github" className="font-medium text-text hover:underline">
               Install the GitHub app

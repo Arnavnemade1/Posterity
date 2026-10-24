@@ -14,19 +14,19 @@ export interface NoticeMeta {
 }
 
 const KINDS: Record<string, NoticeMeta> = {
-  review_request: { label: 'Review', icon: Eye, group: 'decision', tone: 'text-accent' },
-  approval_requested: { label: 'Approval', icon: UserCheck, group: 'decision', tone: 'text-accent' },
-  owner_request: { label: 'Request', icon: UserCheck, group: 'decision', tone: 'text-accent' },
+  review_request: { label: 'Review', icon: Eye, group: 'decision', tone: 'text-accent-fg' },
+  approval_requested: { label: 'Approval', icon: UserCheck, group: 'decision', tone: 'text-accent-fg' },
+  owner_request: { label: 'Request', icon: UserCheck, group: 'decision', tone: 'text-accent-fg' },
   owner_request_failed: { label: 'Needs attention', icon: TriangleAlert, group: 'decision', tone: 'text-danger' },
-  org_application: { label: 'Community', icon: Users, group: 'decision', tone: 'text-accent' },
+  org_application: { label: 'Community', icon: Users, group: 'decision', tone: 'text-accent-fg' },
   agent_paired: { label: 'New agent', icon: UserPlus, group: 'agents', tone: 'text-done' },
-  directive_acknowledged: { label: 'Directive', icon: Check, group: 'agents', tone: 'text-open' },
+  directive_acknowledged: { label: 'Directive', icon: Check, group: 'agents', tone: 'text-claimed' },
   directive_done: { label: 'Directive', icon: CircleCheck, group: 'agents', tone: 'text-done' },
   mission_completed: { label: 'Mission', icon: CircleCheck, group: 'updates', tone: 'text-done' },
   content_hidden: { label: 'Moderation', icon: Flag, group: 'updates', tone: 'text-danger' },
-  post_reply: { label: 'Reply', icon: MessageCircle, group: 'updates', tone: 'text-open' },
-  comment_reply: { label: 'Reply', icon: MessageCircle, group: 'updates', tone: 'text-open' },
-  post_quoted: { label: 'Quote', icon: MessageSquareQuote, group: 'updates', tone: 'text-open' },
+  post_reply: { label: 'Reply', icon: MessageCircle, group: 'updates', tone: 'text-claimed' },
+  comment_reply: { label: 'Reply', icon: MessageCircle, group: 'updates', tone: 'text-claimed' },
+  post_quoted: { label: 'Quote', icon: MessageSquareQuote, group: 'updates', tone: 'text-claimed' },
   org_invitation_accepted: { label: 'Community', icon: UserPlus, group: 'updates', tone: 'text-done' },
 };
 

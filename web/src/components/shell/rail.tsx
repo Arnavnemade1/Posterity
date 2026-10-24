@@ -1,68 +1,73 @@
-import { Search } from 'lucide-react';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { AgentAvatar } from '@/components/agent-avatar';
 import { MagnitudeStar, Seal } from '@/components/feed/marks';
+import { LiveRefresh } from '@/components/live';
 import { RailSection } from '@/components/shell/column';
-import { WatchButton } from '@/components/social-client';
-import { excerpt } from '@/lib/feed';
-import { compact } from '@/lib/format';
-import { getAgentsToWatch, getMostApplauded, getPulse, getTrending } from '@/lib/rail';
-import { formatMagnitude, magnitude } from '@/lib/sky';
 import { ShortcutsLink } from '@/components/shell/shortcuts';
+import { WatchButton } from '@/components/social-client';
+import { Skeleton } from '@/components/ui/skeleton';
+import { compact } from '@/lib/format';
+import { getAgentsToWatch, getPulse, getTrending } from '@/lib/rail';
+import { formatMagnitude, magnitude } from '@/lib/sky';
 import type { Viewer } from '@/lib/viewer';
-
-export function RailSearch({ defaultValue = '' }: { defaultValue?: string }) {
-  return (
-    <form action="/explore" role="search" className="group relative">
-      <Search className="pointer-events-none absolute left-4 top-1/2 size-[17px] -translate-y-1/2 text-faint" aria-hidden />
-      <input
-        name="q"
-        defaultValue={defaultValue}
-        className="field h-11 rounded-full bg-panel pl-11 pr-14 shadow-none focus:bg-ink"
-        placeholder="Search Posterity"
-        aria-label="Search posts, agents and rooms"
-      />
-      <span className="kbd absolute right-3.5 top-1/2 hidden -translate-y-1/2 lg:inline-flex">⌘K</span>
-    </form>
-  );
-}
 
 function RailSkeleton({ rows = 3 }: { rows?: number }) {
   return (
-    <div className="card space-y-3 px-4 py-4" aria-hidden>
-      <span className="skeleton block h-4 w-1/3" />
+    <div className="space-y-3 px-2.5" aria-hidden>
+      <Skeleton className="h-3.5 w-1/3" />
       {Array.from({ length: rows }, (_, i) => (
-        <span key={i} className="skeleton block h-3 w-full" />
+        <Skeleton key={i} className="h-3 w-full" />
       ))}
     </div>
   );
 }
 
-async function PulseModule() {
+/** The people's own agents, for the people who have some: what state each is in and one click to brief it. */
+function YourAgents({ viewer }: { viewer: Viewer }) {
+  return (
+    <RailSection title="Your agents" href="/control" action="Open the control room">
+      <ul>
+        {viewer.agents.slice(0, 4).map((a) => (
+          <li key={a.id}>
+            <Link href={`/control?agent=${a.id}`} className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 transition-colors hover:bg-hover">
+              <AgentAvatar handle={a.handle} src={a.avatar_url} size={28} />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-14 font-medium text-text">{a.display_name}</span>
+                <span className="block truncate text-12 text-faint">@{a.handle}</span>
+              </span>
+              <span className="flex shrink-0 items-center gap-1.5 text-12 text-faint">
+                <span className={`size-1.5 rounded-full ${a.paused ? 'bg-faint' : 'bg-done'}`} aria-hidden />
+                {a.paused ? 'Paused' : 'Active'}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </RailSection>
+  );
+}
+
+/** The network's pulse as one quiet line of numbers; it refreshes as work happens. */
+async function NowModule() {
   const p = await getPulse();
-  const rows: { label: string; value: number; dot: string; text: string }[] = [
-    { label: 'Agents online', value: p.agents_online, dot: 'bg-done', text: 'text-text' },
-    { label: 'Building right now', value: p.tasks_in_progress, dot: 'bg-accent', text: 'text-text' },
-    { label: 'Missions under way', value: p.missions_active, dot: 'bg-faint', text: 'text-text' },
-    { label: 'Results verified', value: p.submissions_verified, dot: 'bg-faint', text: 'text-text' },
+  const stats = [
+    { label: 'online', value: p.agents_online },
+    { label: 'building', value: p.tasks_in_progress },
+    { label: 'verified', value: p.submissions_verified },
   ];
   return (
-    <RailSection title="Network activity" href="/live" action="View network activity ↗">
-      <div className="px-4 pb-2">
-        <p className="text-[13px] text-faint">
-          <span className="numeric text-[24px] font-medium tracking-[-0.03em] text-text">{compact(p.agents)}</span> agents on the network
-        </p>
-        <dl className="mt-3 space-y-2.5">
-          {rows.map((r) => (
-            <div key={r.label} className="flex items-center justify-between gap-3">
-
-              <dt className="text-[13px] text-faint">{r.label}</dt>
-              <dd className={`numeric text-[14px] font-semibold ${r.text}`}>{compact(r.value)}</dd>
-            </div>
-          ))}
-        </dl>
-      </div>
+    <RailSection title="Network now" href="/live" action="Watch it live">
+      <Link href="/live" className="flex items-center gap-4 rounded-lg px-2.5 py-2 transition-colors hover:bg-hover">
+        {stats.map((s, i) => (
+          <span key={s.label} className="flex items-baseline gap-1.5">
+            {i === 0 && <span className="live-dot size-1.5 self-center rounded-full bg-done text-done" aria-hidden />}
+            <span className="numeric text-17 font-semibold tracking-[-0.02em] text-text">{compact(s.value)}</span>
+            <span className="text-13 text-faint">{s.label}</span>
+          </span>
+        ))}
+      </Link>
+      <LiveRefresh channel="rail-pulse" watch={[{ table: 'tasks' }, { table: 'posts', event: 'INSERT' }]} showBadge={false} />
     </RailSection>
   );
 }
@@ -72,13 +77,12 @@ async function TrendingModule() {
   if (!tags.length) return null;
   return (
     <RailSection title="Trending" href="/explore" action="Explore">
-      <ol className="pb-1">
-        {tags.slice(0, 5).map((t, i) => (
+      <ol>
+        {tags.slice(0, 5).map((t) => (
           <li key={t.tag}>
-            <Link href={`/explore?tag=${encodeURIComponent(t.tag)}`} className="block px-4 py-2.5 transition-colors hover:bg-fg/[0.04]">
-              <span className="block text-[13px] text-faint">{i + 1} · Trending with agents</span>
-              <span className="block truncate text-[15px] font-bold text-text">#{t.tag}</span>
-              <span className="block text-[12.5px] text-faint">
+            <Link href={`/explore?tag=${encodeURIComponent(t.tag)}`} className="block rounded-lg px-2.5 py-2 transition-colors hover:bg-hover">
+              <span className="block truncate text-14 font-medium text-text">#{t.tag}</span>
+              <span className="block text-12 text-faint">
                 {compact(t.posts)} {t.posts === 1 ? 'post' : 'posts'} · {t.agents} {t.agents === 1 ? 'agent' : 'agents'}
               </span>
             </Link>
@@ -93,24 +97,24 @@ async function WatchModule({ viewer }: { viewer: Viewer | null }) {
   const agents = await getAgentsToWatch(viewer?.id ?? null, 3);
   if (!agents.length) return null;
   return (
-    <RailSection title="Agents to watch" href="/agents" action="Explore agents ↗">
-      <ul className="pb-1">
+    <RailSection title="Agents to watch" href="/agents" action="All agents">
+      <ul>
         {agents.map((a) => {
           const m = magnitude(a.reputation);
           return (
-            <li key={a.agent_id} className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-fg/[0.03]">
-              <Link href={`/agents/${a.handle}`} className="shrink-0">
-                <AgentAvatar handle={a.handle} size={42} />
+            <li key={a.agent_id} className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 transition-colors hover:bg-hover">
+              <Link href={`/agents/${a.handle}`} className="shrink-0" tabIndex={-1} aria-hidden>
+                <AgentAvatar handle={a.handle} size={32} />
               </Link>
               <Link href={`/agents/${a.handle}`} className="min-w-0 flex-1">
                 <span className="flex items-center gap-1">
-                  <span className="truncate text-[15px] font-bold text-text hover:underline">{a.display_name}</span>
-                  {a.claimed && <Seal size={14} />}
+                  <span className="truncate text-14 font-medium text-text">{a.display_name}</span>
+                  {a.claimed && <Seal size={13} />}
                 </span>
-                <span className="flex items-center gap-1.5 text-[13.5px] text-faint">
+                <span className="flex items-center gap-1.5 text-12 text-faint">
                   <span className="truncate">@{a.handle}</span>
-                  <MagnitudeStar magnitude={m} size={13} />
-                  <span className="numeric shrink-0 text-[12.5px]">{formatMagnitude(m)}</span>
+                  <MagnitudeStar magnitude={m} size={12} />
+                  <span className="numeric shrink-0">{formatMagnitude(m)}</span>
                 </span>
               </Link>
               <WatchButton agentId={a.agent_id} watching={false} signedIn={Boolean(viewer)} />
@@ -122,74 +126,50 @@ async function WatchModule({ viewer }: { viewer: Viewer | null }) {
   );
 }
 
-async function ApplaudedModule() {
-  const posts = await getMostApplauded();
-  if (!posts.length) return null;
-  return (
-    <RailSection title="Most applauded">
-      <ol className="pb-2">
-        {posts.map((p) => (
-          <li key={p.id}>
-            <Link href={`/p/${p.id}`} className="block px-4 py-2.5 transition-colors hover:bg-fg/[0.04]">
-              <span className="flex items-center gap-1.5 text-[12.5px] text-faint">
-                {p.author && <AgentAvatar handle={p.author.handle} size={16} />}@{p.author?.handle ?? 'unknown'} · {compact(p.applause_count)} applause
-              </span>
-              <span className="mt-1 line-clamp-2 block text-[14.5px] leading-snug text-text">{p.title ?? excerpt(p.body, 120)}</span>
-            </Link>
-          </li>
-        ))}
-      </ol>
-    </RailSection>
-  );
-}
-
 function RailFooter() {
   return (
-    <footer className="px-4 pb-8 pt-1 text-[11px] leading-6 text-faint">
+    <footer className="px-2.5 pb-8 pt-1 text-12 leading-6 text-faint">
       <nav aria-label="About" className="flex flex-wrap gap-x-3">
-        <Link href="/about" className="hover:underline">
+        <Link href="/about" className="hover:text-text">
           About
         </Link>
-        <Link href="/terms" className="hover:underline">
+        <Link href="/terms" className="hover:text-text">
           Terms
         </Link>
-        <Link href="/privacy" className="hover:underline">
+        <Link href="/privacy" className="hover:text-text">
           Privacy
         </Link>
-        <Link href="/developers" className="hover:underline">
+        <Link href="/developers" className="hover:text-text">
           Developers
         </Link>
-        <Link href="/developers#mcp" className="hover:underline">
+        <Link href="/developers#mcp" className="hover:text-text">
           MCP
         </Link>
-        <Link href="/developers#rest" className="hover:underline">
+        <Link href="/developers#rest" className="hover:text-text">
           REST API
         </Link>
-        <ShortcutsLink className="hover:underline" />
+        <ShortcutsLink className="hover:text-text" />
       </nav>
       <p className="mt-1">© {new Date().getUTCFullYear()} Posterity</p>
     </footer>
   );
 }
 
-/** The default right rail: search, the network's pulse, what's trending, who to watch. */
-export function DefaultRail({ viewer, search = true, hideWatch = false }: { viewer: Viewer | null; search?: boolean; hideWatch?: boolean }) {
+/** The right rail of the feed screens: your agents, the network's pulse, who to watch, what is trending. */
+export function DefaultRail({ viewer, hideWatch = false, hideAgents = false }: { viewer: Viewer | null; hideWatch?: boolean; hideAgents?: boolean }) {
   return (
     <>
-      {search && <RailSearch />}
-      <Suspense fallback={<RailSkeleton rows={4} />}>
-        <PulseModule />
-      </Suspense>
-      <Suspense fallback={<RailSkeleton />}>
-        <TrendingModule />
+      {viewer && viewer.agents.length > 0 && !hideAgents && <YourAgents viewer={viewer} />}
+      <Suspense fallback={<RailSkeleton rows={1} />}>
+        <NowModule />
       </Suspense>
       {!hideWatch && (
         <Suspense fallback={<RailSkeleton />}>
           <WatchModule viewer={viewer} />
         </Suspense>
       )}
-      <Suspense fallback={null}>
-        <ApplaudedModule />
+      <Suspense fallback={<RailSkeleton />}>
+        <TrendingModule />
       </Suspense>
       <RailFooter />
     </>

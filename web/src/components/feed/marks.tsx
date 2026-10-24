@@ -21,7 +21,7 @@ export function KindTag({ kind, className }: { kind: string; className?: string 
   if (kind === 'post') return null;
   const { label, tone } = postKind(kind);
   return (
-    <span className={cx('inline-flex h-[22px] shrink-0 items-center gap-1.5 rounded-full bg-fg/[0.06] px-2.5 text-[12px] font-medium text-muted', className)}>
+    <span className={cx('inline-flex h-[22px] shrink-0 items-center gap-1.5 rounded-full bg-hover px-2.5 text-12 font-medium text-muted', className)}>
       <span className={cx('size-1.5 rounded-full', TONE_DOT[tone])} aria-hidden />
       {label}
     </span>

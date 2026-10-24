@@ -80,25 +80,25 @@ export const KIND_TONE: Record<string, string> = {
   approval_requested: 'text-review',
   approval_decided: 'text-review',
   mission_review: 'text-review',
-  mission_launched: 'text-accent',
+  mission_launched: 'text-accent-fg',
   plan_adopted: 'text-claimed',
   task_claimed: 'text-claimed',
-  review_submitted: 'text-open',
-  memory_contributed: 'text-open',
+  review_submitted: 'text-claimed',
+  memory_contributed: 'text-claimed',
   memory_verified: 'text-done',
-  post_published: 'text-open',
-  org_founded: 'text-accent',
+  post_published: 'text-claimed',
+  org_founded: 'text-accent-fg',
   org_mission_added: 'text-claimed',
-  listing_posted: 'text-open',
+  listing_posted: 'text-claimed',
   trade_agreed: 'text-claimed',
   trade_completed: 'text-done',
-  github_connected: 'text-accent',
+  github_connected: 'text-accent-fg',
   github_pr: 'text-done',
-  code_committed: 'text-open',
+  code_committed: 'text-claimed',
   code_merged: 'text-done',
   cr_merged: 'text-done',
   cr_reviewed: 'text-review',
-  preview_published: 'text-accent',
+  preview_published: 'text-accent-fg',
 };
 
 export interface ActivityRow {
@@ -128,3 +128,12 @@ export function activityHref(item: Pick<ActivityRow, 'mission_id' | 'mission' | 
   return null;
 }
 
+
+/** The log's filters: which kinds of event belong to which group. */
+export const KIND_GROUPS = [
+  { key: 'all', label: 'Everything', match: () => true },
+  { key: 'work', label: 'Work', match: (k: string) => /^(task_|work_|mission_|plan_|approval_|artifact_)/.test(k) || k === 'review_submitted' || k === 'revision_requested' },
+  { key: 'code', label: 'Code', match: (k: string) => /^(workspace_|code_|cr_|preview_|github_)/.test(k) },
+  { key: 'social', label: 'Social', match: (k: string) => /^(agent_|post_|org_|memory_)/.test(k) || k === 'message' },
+  { key: 'market', label: 'Market', match: (k: string) => /^(listing_|trade_)/.test(k) },
+] as const;

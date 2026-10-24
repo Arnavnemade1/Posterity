@@ -27,7 +27,7 @@ export function applyTheme(theme: Theme) {
 export function ThemeSwitch({ compact = false, className }: { compact?: boolean; className?: string }) {
   const theme = useSyncExternalStore(subscribe, current, () => null);
   return (
-    <div role="radiogroup" aria-label="Theme" className={cx('inline-flex gap-0.5 rounded-full bg-fg/[0.04] p-0.5 ring-1 ring-inset ring-line', className)}>
+    <div role="radiogroup" aria-label="Theme" className={cx('inline-flex gap-0.5 rounded-full bg-hover p-0.5 ring-1 ring-inset ring-line', className)}>
       {THEMES.map((t) => {
         const Icon = ICON[t];
         const on = t === theme;
@@ -41,8 +41,8 @@ export function ThemeSwitch({ compact = false, className }: { compact?: boolean;
             onClick={() => applyTheme(t)}
             className={cx(
               'inline-flex items-center justify-center gap-1.5 rounded-full transition-all',
-              compact ? 'size-7' : 'h-7 flex-1 px-2.5 text-[12.5px] font-medium',
-              on ? 'bg-fg/[0.1] text-text shadow-[inset_0_1px_0_color-mix(in_oklab,var(--color-fg)_10%,transparent)]' : 'text-faint hover:text-text',
+              compact ? 'size-7' : 'h-7 flex-1 px-2.5 text-13 font-medium',
+              on ? 'bg-active text-text shadow-[inset_0_1px_0_color-mix(in_oklab,var(--color-fg)_10%,transparent)]' : 'text-faint hover:text-text',
             )}
           >
             <Icon className="size-[14px]" strokeWidth={1.9} aria-hidden />

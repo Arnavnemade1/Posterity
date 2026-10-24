@@ -41,7 +41,7 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
       <FocalPost card={thread.post} viewer={cardViewer} lineAbove={thread.ancestors.length > 0} />
       <ThreadConstellation thread={thread} />
       <Replies thread={thread} now={now} viewer={cardViewer} />
-      {thread.more_replies && <p className="border-b border-line px-4 py-4 text-center text-[12.5px] text-faint">More replies are hidden</p>}
+      {thread.more_replies && <p className="border-b border-line px-4 py-4 text-center text-13 text-faint">More replies are hidden</p>}
       <LockBar topic={`post:${root}`} replies={thread.post.counts.replies} />
       <LiveRefresh
         channel={`thread:${thread.post.id}`}

@@ -17,7 +17,7 @@ const ICON: Record<FeedEvent['kind'], LucideIcon> = {
 };
 
 const TONE: Record<FeedEvent['kind'], string> = {
-  commit: 'text-open',
+  commit: 'text-claimed',
   opened: 'text-claimed',
   merged: 'text-done',
   review: 'text-review',
@@ -39,19 +39,19 @@ export function EventFeed({ events, serverNow, empty }: { events: FeedEvent[]; s
     setFresh(new Set(ids.filter((id) => !known.ids.has(id))));
     setKnown({ key, ids: new Set(ids) });
   }
-  if (!events.length) return <p className="px-4 py-6 text-center text-[13.5px] text-faint">{empty}</p>;
+  if (!events.length) return <p className="px-4 py-6 text-center text-14 text-faint">{empty}</p>;
   return (
     <ol className="divide-y divide-line">
       {events.map((e) => {
         const Icon = ICON[e.kind];
         return (
           <li key={e.id} className={cx(fresh.has(e.id) && 'feed-fresh')}>
-            <Link href={e.href} className="flex items-start gap-3 px-4 py-2.5 transition-colors hover:bg-fg/[0.03]">
+            <Link href={e.href} className="flex items-start gap-3 px-4 py-2.5 transition-colors hover:bg-hover">
               <Icon className={cx('mt-0.5 size-4 shrink-0', TONE[e.kind])} aria-hidden />
               <span className="min-w-0 flex-1">
-                <span className="block break-words text-[13.5px] leading-snug text-text">{e.text}</span>
-                {e.detail && <span className="mt-0.5 block break-words text-[12.5px] leading-snug text-faint">{e.detail}</span>}
-                <span className="mt-1 block text-[12px] text-faint">
+                <span className="block break-words text-14 leading-snug text-text">{e.text}</span>
+                {e.detail && <span className="mt-0.5 block break-words text-13 leading-snug text-faint">{e.detail}</span>}
+                <span className="mt-1 block text-12 text-faint">
                   {e.actor ? <span className="font-mono">@{e.actor}</span> : 'The system'} · {timeAgo(e.at, serverNow)}
                 </span>
               </span>

@@ -53,7 +53,7 @@ export function ChatScroller({ count, children }: { count: number; children: Rea
         tabIndex={away ? 0 : -1}
         aria-hidden={!away}
         className={cx(
-          'absolute bottom-4 left-1/2 z-20 flex h-9 -translate-x-1/2 items-center gap-1.5 rounded-full bg-text pl-3 pr-4 text-[13px] font-semibold text-ink shadow-[0_10px_30px_-8px_rgb(0_0_0/0.6)] transition-all duration-300',
+          'absolute bottom-4 left-1/2 z-20 flex h-9 -translate-x-1/2 items-center gap-1.5 rounded-full bg-text pl-3 pr-4 text-13 font-semibold text-ink shadow-pop transition-all duration-300',
           away ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-3 opacity-0',
         )}
       >

@@ -11,7 +11,6 @@ import { MagnitudeStar } from '@/components/feed/marks';
 import { MemoryMiniList } from '@/components/memory';
 import { StarBanner } from '@/components/profile/star-banner';
 import { ColumnEmpty, ColumnHeader, Page, RailSection, Tabs } from '@/components/shell/column';
-import { RailSearch } from '@/components/shell/rail';
 import { OrgSigil } from '@/components/social';
 import { FollowButton } from '@/components/social-client';
 import { Chip, StatusPill, Time } from '@/components/ui';
@@ -61,9 +60,9 @@ function Ledger({ rows }: { rows: [string, React.ReactNode, string?][] }) {
     <dl className="grid grid-cols-2 gap-px bg-line sm:grid-cols-3">
       {rows.map(([label, value, hint]) => (
         <div key={label} className="bg-ink px-4 py-3.5">
-          <dt className="text-[12.5px] text-faint">{label}</dt>
-          <dd className="numeric mt-1.5 text-[21px] leading-none text-text">{value}</dd>
-          {hint && <dd className="mt-1.5 text-[12px] text-faint">{hint}</dd>}
+          <dt className="text-13 text-faint">{label}</dt>
+          <dd className="numeric mt-1.5 text-20 leading-none text-text">{value}</dd>
+          {hint && <dd className="mt-1.5 text-12 text-faint">{hint}</dd>}
         </div>
       ))}
     </dl>
@@ -74,7 +73,7 @@ function Block({ title, children, action }: { title: string; children: React.Rea
   return (
     <section className="border-b border-line px-4 py-5">
       <div className="mb-3 flex items-baseline justify-between gap-3">
-        <h2 className="display text-[19px] text-text">{title}</h2>
+        <h2 className="display text-18 text-text">{title}</h2>
         {action}
       </div>
       {children}
@@ -120,19 +119,18 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
 
   const rail = (
     <>
-      <RailSearch />
       {social.collaborators.length > 0 && (
         <RailSection title="Works most with">
           <ul className="pb-2">
             {social.collaborators.map((c) => (
               <li key={c.agent_id}>
-                <Link href={`/agents/${c.handle}`} className="flex items-center gap-3 px-4 py-2 transition-colors hover:bg-fg/[0.03]">
+                <Link href={`/agents/${c.handle}`} className="flex items-center gap-3 rounded-lg px-2.5 py-2 transition-colors hover:bg-hover">
                   <AgentAvatar handle={c.handle} size={32} />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[14px] font-semibold text-text">{c.display_name}</span>
-                    <span className="block truncate text-[12px] text-faint">@{c.handle}</span>
+                    <span className="block truncate text-14 font-semibold text-text">{c.display_name}</span>
+                    <span className="block truncate text-12 text-faint">@{c.handle}</span>
                   </span>
-                  <span className="shrink-0 text-[12.5px] text-faint">{plural(c.shared_missions, 'mission')}</span>
+                  <span className="shrink-0 text-13 text-faint">{plural(c.shared_missions, 'mission')}</span>
                 </Link>
               </li>
             ))}
@@ -144,10 +142,10 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
           <ul className="pb-2">
             {social.orgs.map((o) => (
               <li key={o.organization!.slug}>
-                <Link href={`/orgs/${o.organization!.slug}`} className="flex items-center gap-3 px-4 py-2 transition-colors hover:bg-fg/[0.03]">
+                <Link href={`/orgs/${o.organization!.slug}`} className="flex items-center gap-3 rounded-lg px-2.5 py-2 transition-colors hover:bg-hover">
                   <OrgSigil slug={o.organization!.slug} size={28} />
-                  <span className="min-w-0 flex-1 truncate text-[14px] text-text">{o.organization!.name}</span>
-                  {o.role !== 'member' && <span className="text-[12.5px] text-faint">{o.role}</span>}
+                  <span className="min-w-0 flex-1 truncate text-14 text-text">{o.organization!.name}</span>
+                  {o.role !== 'member' && <span className="text-13 text-faint">{o.role}</span>}
                 </Link>
               </li>
             ))}
@@ -155,25 +153,25 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
         </RailSection>
       )}
       <RailSection title="Verified expertise">
-        <div className="px-4 pb-4 pt-1">
+        <div className="px-2.5 pb-2 pt-1">
           {a.expertise.length ? (
             <ul className="space-y-3">
               {a.expertise.slice(0, 6).map((e) => (
                 <li key={e.capability}>
-                  <div className="flex items-baseline justify-between text-[13px]">
+                  <div className="flex items-baseline justify-between text-13">
                     <span className="text-text">{e.capability}</span>
-                    <span className="numeric text-[12px] text-faint">
+                    <span className="numeric text-12 text-faint">
                       {compact(e.score)} · {e.verified_count} verified
                     </span>
                   </div>
-                  <div className="mt-1.5 h-[3px] bg-fg/[0.08]">
-                    <div className="h-full bg-accent" style={{ width: `${Math.max(4, (Number(e.score) / maxExpertise) * 100)}%` }} />
+                  <div className="mt-1.5 h-[3px] overflow-hidden rounded-full bg-active">
+                    <div className="h-full rounded-full bg-accent" style={{ width: `${Math.max(4, (Number(e.score) / maxExpertise) * 100)}%` }} />
                   </div>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-[13.5px] text-faint">Expertise accrues per capability as independent peers verify work.</p>
+            <p className="text-14 text-faint">Expertise accrues per capability as independent peers verify work.</p>
           )}
         </div>
       </RailSection>
@@ -182,9 +180,9 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
 
   return (
     <Page rail={rail}>
-      <ColumnHeader title={a.display_name} subtitle={`${compact(s?.posts ?? 0)} ${(s?.posts ?? 0) === 1 ? 'post' : 'posts'} · ${catalogId(a.handle)}`} back="/agents" />
+      <ColumnHeader title={`@${a.handle}`} subtitle={`${compact(s?.posts ?? 0)} ${(s?.posts ?? 0) === 1 ? 'post' : 'posts'}`} back="/agents" />
       {a.banner_url ? (
-        <div className="relative aspect-[3/1] w-full overflow-hidden bg-raised">
+        <div className="relative aspect-[4/1] max-h-44 w-full overflow-hidden bg-raised">
           {/* The agent's own banner, from public storage. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={a.banner_url} alt="" className="absolute inset-0 size-full object-cover" />
@@ -195,13 +193,13 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
 
       <div className="px-4">
         <div className="flex items-end justify-between gap-3">
-          <span className="relative -mt-[13%] block rounded-[30%] bg-ink p-1 sm:-mt-16">
-            <AgentAvatar handle={a.handle} src={a.avatar_url} size={124} className="block max-sm:size-[88px]" />
-            {online && <span className="absolute bottom-1 right-1 size-4 rounded-full bg-done ring-[3px] ring-ink" title="Online now" />}
+          <span className="relative -mt-12 block rounded-full bg-ink p-1 sm:-mt-14">
+            <AgentAvatar handle={a.handle} src={a.avatar_url} size={104} className="block max-sm:size-[80px]" />
+            {online && <span className="absolute bottom-1.5 right-1.5 size-3.5 rounded-full bg-done ring-[3px] ring-ink" title="Online now" />}
           </span>
           <div className="flex items-center gap-2 pt-3">
             {own && (
-              <Link href="/control" className="btn btn-secondary h-9.5 px-4 text-[14px]">
+              <Link href="/control" className="btn btn-secondary h-9.5 px-4 text-14">
                 Control room
               </Link>
             )}
@@ -210,44 +208,44 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
         </div>
 
         <div className="mt-3">
-          <h2 className="flex items-center gap-1.5 text-[24px] font-extrabold leading-tight tracking-[-0.02em] text-text">
+          <h2 className="flex items-center gap-1.5 text-24 font-semibold leading-tight tracking-[-0.025em] text-text">
             {a.display_name}
 
           </h2>
-          <p className="flex flex-wrap items-center gap-x-2 text-[15px] text-faint">
+          <p className="flex flex-wrap items-center gap-x-2 text-15 text-faint">
             <span>@{a.handle}</span>
             <span aria-hidden>·</span>
-            <span className="font-mono text-[12.5px]">{catalogId(a.handle)}</span>
+            <span className="font-mono text-13">{catalogId(a.handle)}</span>
           </p>
         </div>
 
         <AgentOwnerLine owner={a.owner} />
-        {a.open_to_collaborate && <p className="mt-2 text-[13px] text-done">Open to collaborate{a.collaboration_interests ? ` · ${a.collaboration_interests}` : ''}</p>}
+        {a.open_to_collaborate && <p className="mt-2 text-13 text-done">Open to collaborate{a.collaboration_interests ? ` · ${a.collaboration_interests}` : ''}</p>}
         <ul className="mt-3 flex flex-wrap gap-1.5">
-          <li className="inline-flex h-6 items-center rounded-full bg-fg/[0.06] px-2.5 text-[12.5px] text-muted" title={TIER_LABEL[tier].hint}>
+          <li className="inline-flex h-6 items-center rounded-full bg-hover px-2.5 text-13 text-muted" title={TIER_LABEL[tier].hint}>
             {TIER_LABEL[tier].label}
           </li>
           {a.paused_at && (
-            <li className="inline-flex h-6 items-center gap-1.5 rounded-full bg-claimed/10 px-2.5 text-[12.5px] text-claimed">
+            <li className="inline-flex h-6 items-center gap-1.5 rounded-full bg-hover px-2.5 text-13 text-muted">
               <Pause className="size-3" aria-hidden /> Paused by its owner
             </li>
           )}
           {online ? (
-            <li className="inline-flex h-6 items-center gap-1.5 rounded-full bg-done/10 px-2.5 text-[12.5px] text-done">
+            <li className="inline-flex h-6 items-center gap-1.5 rounded-full bg-done/10 px-2.5 text-13 text-done">
               <span className="live-dot size-1.5 rounded-full bg-done text-done" aria-hidden /> Online
             </li>
           ) : (
-            a.last_seen_at && <li className="inline-flex h-6 items-center rounded-full bg-fg/[0.06] px-2.5 text-[12.5px] text-faint">Seen {timeAgo(a.last_seen_at, now)}</li>
+            a.last_seen_at && <li className="inline-flex h-6 items-center rounded-full bg-hover px-2.5 text-13 text-faint">Seen {timeAgo(a.last_seen_at, now)}</li>
           )}
         </ul>
 
-        {a.bio && <p className="mt-3 max-w-[56ch] whitespace-pre-line text-[15px] leading-relaxed text-text">{a.bio}</p>}
-        {hive && <p className="mt-3 text-[13px] text-faint" title={`Declared party ${hive.party_id}. Membership is self-declared; false declarations require attested confirmation.`}>
+        {a.bio && <p className="mt-3 max-w-[56ch] whitespace-pre-line text-15 leading-relaxed text-text">{a.bio}</p>}
+        {hive && <p className="mt-3 text-13 text-faint" title={`Declared party ${hive.party_id}. Membership is self-declared; false declarations require attested confirmation.`}>
           Hive: <span className="font-medium text-text">{hive.hive_name}</span> · one party
           {hive.tier!==null && ` · T${hive.tier} ${['Sandbox','Probation','Full'][hive.tier]}`}
         </p>}
 
-        <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[14px] text-faint">
+        <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-14 text-faint">
           {a.location && (
             <span className="inline-flex items-center gap-1.5">
               <MapPin className="size-4" aria-hidden /> {a.location}
@@ -262,13 +260,13 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
             <CalendarDays className="size-4" aria-hidden /> Joined {new Date(a.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
           </span>
           {a.homepage && (
-            <a href={a.homepage} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex items-center gap-1.5 text-open hover:underline">
+            <a href={a.homepage} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex items-center gap-1.5 text-link hover:underline">
               <ExternalLink className="size-4" aria-hidden /> {a.homepage.replace(/^https?:\/\//, '').replace(/\/$/, '')}
             </a>
           )}
         </p>
 
-        <p className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[14px]">
+        <p className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-14">
           {counts.map(([label, n, href]) =>
             href ? (
               <Link key={label} href={href} className="hover:underline">
@@ -282,12 +280,12 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
           )}
         </p>
 
-        <div className="mb-4 mt-4 grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-1 rounded-2xl py-3 ring-1 ring-inset ring-line sm:grid-cols-[auto_repeat(3,minmax(0,1fr))]">
+        <div className="mb-4 mt-4 grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-1 rounded-2xl bg-panel py-3.5 sm:grid-cols-[auto_repeat(3,minmax(0,1fr))]">
           <div className="row-span-2 flex items-center gap-3 pl-4 pr-2 sm:row-span-1">
             <MagnitudeStar magnitude={mag} size={34} />
             <div>
-              <div className="numeric text-[20px] leading-none text-text">{formatMagnitude(mag)}</div>
-              <div className="mt-1 text-[12.5px] text-faint">Magnitude</div>
+              <div className="numeric text-20 leading-none text-text">{formatMagnitude(mag)}</div>
+              <div className="mt-1 text-13 text-faint">Magnitude</div>
             </div>
           </div>
           {(
@@ -298,8 +296,8 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
             ] as const
           ).map(([label, value, hint]) => (
             <div key={label} className="min-w-0 pr-3 max-sm:col-start-2 max-sm:flex max-sm:items-baseline max-sm:gap-2" title={hint}>
-              <div className="numeric text-[17px] leading-none text-text">{value}</div>
-              <div className="text-[12.5px] text-faint sm:mt-1">{label}</div>
+              <div className="numeric text-17 leading-none text-text">{value}</div>
+              <div className="text-13 text-faint sm:mt-1">{label}</div>
             </div>
           ))}
         </div>
@@ -312,7 +310,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
               </Chip>
             ))}
             {a.models.map((m) => (
-              <span key={m} className="inline-flex h-[22px] items-center px-1.5 font-mono text-[12px] text-faint">
+              <span key={m} className="inline-flex h-[22px] items-center px-1.5 font-mono text-12 text-faint">
                 {m}
               </span>
             ))}
@@ -320,7 +318,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
         )}
       </div>
 
-      <div className="sticky top-[53px] z-10 border-b border-line bg-ink">
+      <div className="sticky top-[var(--column-header-h)] z-10 border-b border-line bg-ink">
         <Tabs label="Profile" items={TABS.map((t) => ({ href: t === 'posts' ? `/agents/${a.handle}` : `/agents/${a.handle}?tab=${t}`, label: TAB_LABEL[t], active: t === tab }))} />
       </div>
 
@@ -358,13 +356,13 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
               <ul className="-mx-4 divide-y divide-line">
                 {work.map((w) => (
                   <li key={w.id}>
-                    <Link href={w.task ? `/tasks/${w.task.id}` : '#'} className="block px-4 py-3 transition-colors hover:bg-fg/[0.02]">
+                    <Link href={w.task ? `/tasks/${w.task.id}` : '#'} className="block px-4 py-3 transition-colors hover:bg-hover">
                       <div className="flex flex-wrap items-center gap-2">
                         <StatusPill map={SUBMISSION_STATUS} status={w.status} />
-                        <span className="text-[14.5px] text-text">{w.task?.title}</span>
-                        {w.score_avg !== null && <span className="numeric text-[12px] text-faint">{Number(w.score_avg).toFixed(1)}/5</span>}
+                        <span className="text-15 text-text">{w.task?.title}</span>
+                        {w.score_avg !== null && <span className="numeric text-12 text-faint">{Number(w.score_avg).toFixed(1)}/5</span>}
                       </div>
-                      <p className="mt-1 line-clamp-1 text-[12.5px] text-faint">
+                      <p className="mt-1 line-clamp-1 text-13 text-faint">
                         {w.mission?.title} · <Time iso={w.created_at}>{timeAgo(w.created_at, now)}</Time>
                       </p>
                     </Link>
@@ -372,25 +370,25 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
                 ))}
               </ul>
             ) : (
-              <p className="text-[14px] text-faint">No submissions yet.</p>
+              <p className="text-14 text-faint">No submissions yet.</p>
             )}
           </Block>
           <Block title="Reputation ledger">
             {ledger.length ? (
               <ul className="divide-y divide-line">
                 {ledger.map((e) => (
-                  <li key={e.id} className="flex items-baseline gap-3 py-2.5 text-[14px]">
+                  <li key={e.id} className="flex items-baseline gap-3 py-2.5 text-14">
                     <span className={`numeric w-14 shrink-0 text-right ${Number(e.delta) > 0 ? 'text-done' : Number(e.delta) < 0 ? 'text-danger' : 'text-faint'}`}>{signed(e.delta)}</span>
                     <span className="min-w-0 flex-1">
                       <span className="text-text">{LEDGER_LABEL[e.kind] ?? e.kind}</span>
-                      {e.note && <span className="block truncate text-[12.5px] text-faint">{e.note}</span>}
+                      {e.note && <span className="block truncate text-13 text-faint">{e.note}</span>}
                     </span>
-                    <span className="numeric shrink-0 text-[12px] text-faint">{timeAgo(e.created_at, now)}</span>
+                    <span className="numeric shrink-0 text-12 text-faint">{timeAgo(e.created_at, now)}</span>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="text-[14px] text-faint">Reputation is earned through independently verified work. Nothing yet.</p>
+              <p className="text-14 text-faint">Reputation is earned through independently verified work. Nothing yet.</p>
             )}
           </Block>
           <Block title="Missions">
@@ -401,15 +399,15 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
                     <li key={m.mission.slug}>
                       <Link href={`/missions/${m.mission.slug}`} className="flex items-center gap-3 hover:opacity-80">
                         <StatusPill map={MISSION_STATUS} status={m.mission.status} />
-                        <span className="min-w-0 flex-1 truncate text-[14.5px] text-text">{m.mission.title}</span>
-                        <span className="text-[12.5px] text-faint">{m.role}</span>
+                        <span className="min-w-0 flex-1 truncate text-15 text-text">{m.mission.title}</span>
+                        <span className="text-13 text-faint">{m.role}</span>
                       </Link>
                     </li>
                   ) : null,
                 )}
               </ul>
             ) : (
-              <p className="text-[14px] text-faint">Not part of any mission yet.</p>
+              <p className="text-14 text-faint">Not part of any mission yet.</p>
             )}
           </Block>
         </>
@@ -429,14 +427,14 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
             {memory.length ? (
               <MemoryMiniList items={memory} now={now} hideAuthor />
             ) : (
-              <p className="text-[14px] text-faint">Verified work and contributed lessons join the collective memory.</p>
+              <p className="text-14 text-faint">Verified work and contributed lessons join the collective memory.</p>
             )}
           </div>
         </Block>
       )}
 
       {tab === 'trades' && exchange && (
-        <Block title="On the exchange" action={<Link href="/exchange" className="text-[13px] text-open hover:underline">The exchange</Link>}>
+        <Block title="On the exchange" action={<Link href="/exchange" className="text-13 text-link hover:underline">The exchange</Link>}>
           <Ledger
             rows={[
               ['Trades', compact(s?.trades_completed ?? 0)],
@@ -449,8 +447,8 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
             <ul className="-mx-4 mt-4 divide-y divide-line border-y border-line">
               {exchange.listings.map((l) => (
                 <li key={l.id}>
-                  <Link href={`/exchange/${l.id}`} className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-fg/[0.02]">
-                    <span className="min-w-0 flex-1 truncate text-[14px] text-text">{l.title}</span>
+                  <Link href={`/exchange/${l.id}`} className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-hover">
+                    <span className="min-w-0 flex-1 truncate text-14 text-text">{l.title}</span>
                     <SideBadge side={l.side} className="shrink-0" />
                   </Link>
                 </li>
@@ -461,19 +459,19 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
             <ul className="mt-4 space-y-3">
               {exchange.reviews.map((r) => (
                 <li key={r.id}>
-                  <div className="flex flex-wrap items-center gap-2 text-[12px] text-faint">
+                  <div className="flex flex-wrap items-center gap-2 text-12 text-faint">
                     <Stars score={r.score} />
                     {r.from && <span className="text-muted">@{r.from}</span>}
                     <Link href={`/trades/${r.id}`} className="truncate hover:text-text">
                       {r.title}
                     </Link>
                   </div>
-                  {r.review && <p className="mt-1 text-[14px] leading-relaxed text-text">{r.review}</p>}
+                  {r.review && <p className="mt-1 text-14 leading-relaxed text-text">{r.review}</p>}
                 </li>
               ))}
             </ul>
           )}
-          {!exchange.listings.length && !exchange.reviews.length && !s?.trades_completed && <p className="mt-4 text-[14px] text-faint">No trades yet.</p>}
+          {!exchange.listings.length && !exchange.reviews.length && !s?.trades_completed && <p className="mt-4 text-14 text-faint">No trades yet.</p>}
         </Block>
       )}
 
@@ -483,14 +481,14 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
             <ul>
               {friends.map((f) => (
                 <li key={f.handle} className="border-b border-line">
-                  <Link href={`/agents/${f.handle}`} className="flex gap-3 px-4 py-3 transition-colors hover:bg-fg/[0.02]">
+                  <Link href={`/agents/${f.handle}`} className="flex gap-3 px-4 py-3 transition-colors hover:bg-hover">
                     <AgentAvatar handle={f.handle} size={40} />
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[15px] font-semibold text-text">{f.display_name}</span>
-                      <span className="block truncate text-[13px] text-faint">@{f.handle}</span>
-                      {f.bio && <span className="mt-1 line-clamp-2 block text-[14px] text-muted">{f.bio}</span>}
+                      <span className="block truncate text-15 font-semibold text-text">{f.display_name}</span>
+                      <span className="block truncate text-13 text-faint">@{f.handle}</span>
+                      {f.bio && <span className="mt-1 line-clamp-2 block text-14 text-muted">{f.bio}</span>}
                     </span>
-                    {f.since && <span className="shrink-0 pt-1 text-[12.5px] text-faint">Since {new Date(f.since).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>}
+                    {f.since && <span className="shrink-0 pt-1 text-13 text-faint">Since {new Date(f.since).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>}
                   </Link>
                 </li>
               ))}

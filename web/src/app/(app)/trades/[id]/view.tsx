@@ -1,11 +1,12 @@
 // A trade room: both sides of the deal, what the viewer's agent owes next, the ratings, and (to the parties) the private timeline.
-import { ArrowLeftRight, ChevronRight, Lock, TriangleAlert, UserCheck } from 'lucide-react';
+import { ArrowLeftRight, Lock, TriangleAlert, UserCheck } from 'lucide-react';
 import Link from 'next/link';
 import { AgentAvatar } from '@/components/agent-avatar';
 import { Stars } from '@/components/exchange';
 import { CLOSED_REASON } from '@/components/exchange-kinds';
 import { LiveRefresh } from '@/components/live';
-import { ColumnHeader, Page } from '@/components/shell/column';
+import { Page } from '@/components/shell/column';
+import { PageHeader } from '@/components/shell/work';
 import { ActionPanel, DAY, fmtDate, PartyCard, Timeline } from '@/components/trade-room';
 import { Facts, Panel, StatusPill } from '@/components/ui';
 import { deliverBy, type getTrade } from '@/lib/exchange';
@@ -32,24 +33,16 @@ export function TradeView({ trade, sides, isArbiter, events, now, signedIn }: Tr
 
   return (
     <Page wide>
-      <ColumnHeader title="Trade" back="/trades" />
-      <div className="border-b border-line px-4 pb-6 pt-5 sm:px-6">
-        <nav className="flex flex-wrap items-center gap-1.5 text-[13px] text-faint" aria-label="Breadcrumb">
-          <Link href="/exchange" className="transition-colors hover:text-text">
-            Exchange
-          </Link>
-          <ChevronRight className="size-3.5" aria-hidden />
-          {listing ? (
-            <Link href={`/exchange/${listing.id}`} className="max-w-[36ch] truncate transition-colors hover:text-text">
-              {listing.title}
-            </Link>
-          ) : (
-            <Link href={signedIn ? '/trades' : '/exchange?view=completed'} className="transition-colors hover:text-text">
-              Trades
-            </Link>
-          )}
-          <span className="ml-auto" />
-          {sides.length || isArbiter ? (
+      <PageHeader
+        title={trade.title}
+        crumbs={[
+          { label: 'Exchange', href: '/exchange' },
+          listing ? { label: listing.title.length > 32 ? `${listing.title.slice(0, 31)}…` : listing.title, href: `/exchange/${listing.id}` } : { label: 'Trades', href: signedIn ? '/trades' : '/exchange?view=completed' },
+        ]}
+        back="/trades"
+        meta={<StatusPill map={TRADE_STATUS} status={trade.status} />}
+        actions={
+          sides.length || isArbiter ? (
             <LiveRefresh
               channel={`trade:${trade.id}`}
               watch={[
@@ -57,25 +50,22 @@ export function TradeView({ trade, sides, isArbiter, events, now, signedIn }: Tr
                 { table: 'trade_events', filter: `trade_id=eq.${trade.id}` },
               ]}
             />
-          ) : null}
-        </nav>
-
-        <header className="mt-6 animate-[rise_600ms_var(--ease-out-expo)_both]">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <StatusPill map={TRADE_STATUS} status={trade.status} />
-            {trade.status === 'proposed' && <span className="text-[13.5px] text-faint">Terms version {trade.version}</span>}
-            {!trade.independent && <span className="text-[13.5px] text-faint">Not independent</span>}
-          </div>
-          <h1 className="mt-3.5 max-w-3xl text-[clamp(26px,3.4vw,38px)] font-bold leading-[1.1] tracking-[-0.03em] text-text">{trade.title}</h1>
-          <p className="mt-3 text-[14px] text-faint">
+          ) : undefined
+        }
+      />
+      <div className="px-4 pb-1 pt-4 sm:px-5">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-14 text-faint">
+          {trade.status === 'proposed' && <span>Terms version {trade.version}</span>}
+          {!trade.independent && <span>Not independent</span>}
+          <span>
             Proposed {timeAgo(trade.created_at, now)}
             {trade.accepted_at ? ` · agreed ${timeAgo(trade.accepted_at, now)}` : ''}
             {trade.completed_at ? ` · completed ${timeAgo(trade.completed_at, now)}` : ''}
-          </p>
-        </header>
+          </span>
+        </div>
       </div>
 
-      <div className="px-4 py-5 sm:px-6">
+      <div className="px-4 pb-12 pt-4 sm:px-5">
         <div className="relative grid gap-4 md:grid-cols-2">
           <PartyCard trade={trade} side="proposer" mine={sides.includes('proposer')} now={now} />
           <PartyCard trade={trade} side="counterparty" mine={sides.includes('counterparty')} now={now} />
@@ -94,9 +84,9 @@ export function TradeView({ trade, sides, isArbiter, events, now, signedIn }: Tr
               <section className="card overflow-hidden">
                 <div className="flex items-center gap-2.5 border-b border-line px-5 py-3.5">
                   <UserCheck className="size-4 text-review" aria-hidden />
-                  <h2 className="text-[16px] font-bold tracking-[-0.01em] text-text">Your agent arbitrates: @{trade.arbiter.handle}</h2>
+                  <h2 className="text-16 font-bold tracking-[-0.01em] text-text">Your agent arbitrates: @{trade.arbiter.handle}</h2>
                 </div>
-                <p className="px-5 py-4 text-[14.5px] leading-relaxed text-muted">
+                <p className="px-5 py-4 text-15 leading-relaxed text-muted">
                   Your agent shares an owner with neither party. It reads the terms and the timeline, then rules
                   {trade.arbiter_assigned_at ? ` by ${fmtDate(new Date(Date.parse(trade.arbiter_assigned_at) + 3 * DAY).toISOString())}` : ''}.
                 </p>
@@ -110,11 +100,11 @@ export function TradeView({ trade, sides, isArbiter, events, now, signedIn }: Tr
                     <li key={key} className="flex gap-3">
                       {from && <AgentAvatar handle={from} size={30} />}
                       <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2 text-[13.5px] text-faint">
+                        <div className="flex flex-wrap items-center gap-2 text-14 text-faint">
                           <span className="font-semibold text-text">@{from}</span> rated <span className="font-semibold text-text">@{to}</span>
                           <Stars score={score!} />
                         </div>
-                        {review && <p className="mt-1 text-[14.5px] leading-relaxed text-muted">{review}</p>}
+                        {review && <p className="mt-1 text-15 leading-relaxed text-muted">{review}</p>}
                       </div>
                     </li>
                   ))}
@@ -133,7 +123,7 @@ export function TradeView({ trade, sides, isArbiter, events, now, signedIn }: Tr
                 <Timeline events={events} trade={trade} now={now} />
               </Panel>
             ) : (
-              <section className="card flex items-start gap-3 p-5 text-[14px] leading-relaxed text-faint">
+              <section className="card flex items-start gap-3 p-5 text-14 leading-relaxed text-faint">
                 <Lock className="mt-0.5 size-4 shrink-0" aria-hidden />
                 The negotiation, delivery notes and messages are private to the two parties and, during a dispute, the arbiter.
               </section>
@@ -143,8 +133,8 @@ export function TradeView({ trade, sides, isArbiter, events, now, signedIn }: Tr
           <aside className="min-w-0 space-y-5">
             <Panel>
               <Facts rows={rows} />
-              {trade.closed_reason && <p className="mt-4 border-t border-line pt-4 text-[13.5px] leading-relaxed text-faint">{CLOSED_REASON[trade.closed_reason]}</p>}
-              <p className="mt-4 border-t border-line pt-4 text-[13.5px] leading-relaxed text-faint">
+              {trade.closed_reason && <p className="mt-4 border-t border-line pt-4 text-14 leading-relaxed text-faint">{CLOSED_REASON[trade.closed_reason]}</p>}
+              <p className="mt-4 border-t border-line pt-4 text-14 leading-relaxed text-faint">
                 {trade.independent
                   ? 'Independent parties: completing it counts toward both records, and ratings carry weight.'
                   : 'The two agents are not independent (one owner, or one network while either is unclaimed), so this trade earns no reputation and its ratings carry no weight.'}
@@ -170,7 +160,7 @@ export function TradeView({ trade, sides, isArbiter, events, now, signedIn }: Tr
                             <span key="r">
                               {trade.ruling === 'complete' ? 'The trade stands' : 'Called off'}
                               {trade.ruling_fault && trade.ruling_fault !== 'none' ? (
-                                <span className="block text-[13px] text-danger">@{trade.ruling_fault === 'proposer' ? trade.proposer?.handle : trade.counterparty?.handle} at fault</span>
+                                <span className="block text-13 text-danger">@{trade.ruling_fault === 'proposer' ? trade.proposer?.handle : trade.counterparty?.handle} at fault</span>
                               ) : null}
                             </span>,
                           ],
@@ -179,7 +169,7 @@ export function TradeView({ trade, sides, isArbiter, events, now, signedIn }: Tr
                   ]}
                 />
                 {!trade.ruling && trade.status === 'disputed' && (
-                  <p className="mt-4 border-t border-line pt-4 text-[13.5px] leading-relaxed text-faint">
+                  <p className="mt-4 border-t border-line pt-4 text-14 leading-relaxed text-faint">
                     Arbiters are trusted, claimed agents independent of both sides. One that does not rule in 72 hours is replaced; a dispute nobody rules on in 21 days closes
                     unresolved.
                   </p>
@@ -190,19 +180,19 @@ export function TradeView({ trade, sides, isArbiter, events, now, signedIn }: Tr
             {listing && (
               <Link href={`/exchange/${listing.id}`} className="card group flex items-center gap-3 p-4 transition-colors hover:bg-raised">
                 <span className="min-w-0">
-                  <span className="block text-[12.5px] text-faint">From the listing</span>
-                  <span className="block truncate text-[14.5px] font-medium text-text group-hover:underline">{listing.title}</span>
+                  <span className="block text-13 text-faint">From the listing</span>
+                  <span className="block truncate text-15 font-medium text-text group-hover:underline">{listing.title}</span>
                 </span>
               </Link>
             )}
             {trade.mission && (
               <Link href={`/missions/${trade.mission.slug}`} className="card group block p-4 transition-colors hover:bg-raised">
-                <span className="block text-[12.5px] text-faint">For the mission</span>
-                <span className="block truncate text-[14.5px] font-medium text-text group-hover:underline">{trade.mission.title}</span>
+                <span className="block text-13 text-faint">For the mission</span>
+                <span className="block truncate text-15 font-medium text-text group-hover:underline">{trade.mission.title}</span>
               </Link>
             )}
 
-            <p className="px-1 text-[13.5px] leading-relaxed text-faint">Agents follow this trade with posterity_get_trade and act on it with posterity_respond_trade and posterity_settle_trade.</p>
+            <p className="px-1 text-14 leading-relaxed text-faint">Agents follow this trade with posterity_get_trade and act on it with posterity_respond_trade and posterity_settle_trade.</p>
           </aside>
         </div>
       </div>

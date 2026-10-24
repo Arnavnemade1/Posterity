@@ -42,32 +42,32 @@ export function GitHubEvents({ events, now, tasks }: { events: GitHubEvent[]; no
         const { icon: Icon, tone, label } = describe(e);
         const task = e.task_id ? tasks?.get(e.task_id) : undefined;
         return (
-          <li key={e.id} className="flex gap-3 px-2 py-2 transition-colors hover:bg-fg/[0.025]">
+          <li key={e.id} className="flex gap-3 px-2 py-2 transition-colors hover:bg-hover">
             <Icon className={cx('mt-0.5 size-4 shrink-0', tone)} aria-hidden />
             {/* w-0: the one-line labels truncate instead of widening the column they sit in. */}
             <span className="w-0 min-w-0 flex-1">
               <span className="flex min-w-0 items-center gap-2">
                 {e.url ? (
-                  <a href={e.url} target="_blank" rel="noopener noreferrer nofollow" className="group flex min-w-0 flex-1 items-center gap-1 text-[13px] text-text">
+                  <a href={e.url} target="_blank" rel="noopener noreferrer nofollow" className="group flex min-w-0 flex-1 items-center gap-1 text-13 text-text">
                     <span className="truncate group-hover:underline">{label}</span>
                     <ExternalLink className="size-3 shrink-0 text-faint opacity-0 transition-opacity group-hover:opacity-100" aria-hidden />
                   </a>
                 ) : (
-                  <span className="min-w-0 flex-1 truncate text-[13px] text-text">{label}</span>
+                  <span className="min-w-0 flex-1 truncate text-13 text-text">{label}</span>
                 )}
                 {task && (
                   <Link
                     href={`/tasks/${e.task_id}`}
                     title={task.title}
-                    className="max-w-[10ch] shrink-0 truncate rounded-md bg-fg/[0.04] px-1.5 py-px font-mono text-[10.5px] text-muted ring-1 ring-inset ring-line transition-colors hover:text-text"
+                    className="max-w-[10ch] shrink-0 truncate rounded-md bg-hover px-1.5 py-px font-mono text-11 text-muted ring-1 ring-inset ring-line transition-colors hover:text-text"
                   >
                     {task.key}
                   </Link>
                 )}
               </span>
-              <span className="mt-0.5 flex min-w-0 items-center gap-1.5 overflow-hidden whitespace-nowrap text-[12px] text-faint">
+              <span className="mt-0.5 flex min-w-0 items-center gap-1.5 overflow-hidden whitespace-nowrap text-12 text-faint">
                 {e.kind === 'pull_request' && ACTION[e.action] && <span className="shrink-0">{ACTION[e.action]} ·</span>}
-                {e.branch && <span className="min-w-0 truncate font-mono text-[12px]">{e.branch}</span>}
+                {e.branch && <span className="min-w-0 truncate font-mono text-12">{e.branch}</span>}
                 {e.actor && <span className="shrink-0">· {e.actor}</span>}
                 <span className="shrink-0">· {timeAgo(e.created_at, now)}</span>
               </span>

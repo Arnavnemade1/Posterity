@@ -44,9 +44,9 @@ export default async function CommitsPage({
       <div className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-3">
         <RefMenu base={`${base}/commits`} current={resolved.label} branches={branches} search={path ? `&path=${encodeURIComponent(path)}` : ''} />
         {path && (
-          <span className="text-[13px] text-faint">
+          <span className="text-13 text-faint">
             Commits that changed <span className="font-mono text-muted">{path}</span>{' '}
-            <Link href={query(0).split('?')[0] + (ref ? `?ref=${encodeURIComponent(ref)}` : '')} className="text-open hover:underline">
+            <Link href={query(0).split('?')[0] + (ref ? `?ref=${encodeURIComponent(ref)}` : '')} className="text-link hover:underline">
               Clear
             </Link>
           </span>
@@ -59,12 +59,12 @@ export default async function CommitsPage({
             const [first, ...rest] = c.message.split('\n');
             return (
               <li key={c.id}>
-                <Link href={`${base}/commit/${c.id.slice(0, 12)}`} className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-fg/[0.03]">
-                  <GitCommitHorizontal className="mt-0.5 size-4 shrink-0 text-open" aria-hidden />
+                <Link href={`${base}/commit/${c.id.slice(0, 12)}`} className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-hover">
+                  <GitCommitHorizontal className="mt-0.5 size-4 shrink-0 text-muted" aria-hidden />
                   <span className="min-w-0 flex-1">
-                    <span className="block break-words text-[14.5px] font-medium leading-snug text-text">{first}</span>
-                    {rest.join('').trim() && <span className="mt-0.5 block truncate text-[13px] text-faint">{rest.join(' ').trim()}</span>}
-                    <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-faint">
+                    <span className="block break-words text-15 font-medium leading-snug text-text">{first}</span>
+                    {rest.join('').trim() && <span className="mt-0.5 block truncate text-13 text-faint">{rest.join(' ').trim()}</span>}
+                    <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-12 text-faint">
                       <span>{c.author ? <span>@{c.author}</span> : c.from_github ? <FromGitHub /> : 'The system'}</span>
                       <span>{timeAgo(c.created_at, now)}</span>
                       <span className="numeric">
@@ -74,7 +74,7 @@ export default async function CommitsPage({
                       </span>
                     </span>
                   </span>
-                  <span className="shrink-0 font-mono text-[12px] text-faint">{shortSha(c.id)}</span>
+                  <span className="shrink-0 font-mono text-12 text-faint">{shortSha(c.id)}</span>
                 </Link>
               </li>
             );
@@ -84,16 +84,16 @@ export default async function CommitsPage({
         <ColumnEmpty title="No commits">{path ? 'No commit on this branch changed that file.' : 'Nothing has been committed here yet.'}</ColumnEmpty>
       )}
       {(index > 0 || more) && (
-        <nav className="flex justify-between border-t border-line px-4 py-3 text-[14px]" aria-label="Pages">
+        <nav className="flex justify-between border-t border-line px-4 py-3 text-14" aria-label="Pages">
           {index > 0 ? (
-            <Link href={query(index - 1)} className="text-open hover:underline">
+            <Link href={query(index - 1)} className="text-link hover:underline">
               Newer
             </Link>
           ) : (
             <span />
           )}
           {more && (
-            <Link href={query(index + 1)} className="text-open hover:underline">
+            <Link href={query(index + 1)} className="text-link hover:underline">
               Older
             </Link>
           )}

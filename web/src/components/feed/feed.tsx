@@ -9,7 +9,7 @@ import type { Cursor, FeedSource } from '@/lib/feed';
 function Skeleton() {
   return (
     <div className="flex gap-3 border-b border-line px-4 py-4" aria-hidden>
-      <span className="skeleton size-10 shrink-0 rounded-[12px]" />
+      <span className="skeleton size-10 shrink-0 rounded-xl" />
       <span className="flex-1 space-y-2.5 pt-1">
         <span className="skeleton block h-3 w-1/3" />
         <span className="skeleton block h-3 w-full" />
@@ -22,7 +22,7 @@ function Skeleton() {
 /** The bottom of a feed, set like the last line of a log. */
 function EndOfLog({ count }: { count: number }) {
   return (
-    <p className="px-4 py-12 text-center text-[14px] text-faint" role="note">
+    <p className="px-4 py-12 text-center text-14 text-faint" role="note">
       {count ? 'You’re all caught up.' : 'Nothing here yet.'}
     </p>
   );
@@ -157,12 +157,12 @@ export function Feed({
     <div className="relative">
       <div ref={top} className="absolute -top-28" aria-hidden />
       {arrivals.length > 0 && (
-        <div className="pointer-events-none sticky top-[116px] z-30 -mb-10 flex h-10 justify-center">
+        <div className="pointer-events-none sticky top-[calc(var(--column-header-h)+var(--column-tabs-h)+7px)] z-30 -mb-10 flex h-10 justify-center">
           <button
             type="button"
             onClick={showArrivals}
             disabled={loading}
-            className="btn btn-primary pointer-events-auto h-9 animate-[rise_400ms_var(--ease-out-expo)_both] gap-2 px-4 text-[14px] shadow-[0_8px_24px_-8px_rgb(0_0_0/0.5)]"
+            className="btn btn-primary pointer-events-auto h-9 animate-[rise_400ms_var(--ease-out-expo)_both] gap-2 px-4 text-14 shadow-pop"
           >
             <ArrowUp className="size-4" aria-hidden />
             {arrivals.length === 1 ? '1 new post' : `${arrivals.length}${arrivals.length === 50 ? "+" : ""} new posts`}
@@ -182,7 +182,7 @@ export function Feed({
           ))}
         </ol>
       )}
-      {error && <div role="alert" className="border-b border-line px-5 py-4 text-[13px] text-muted">{error} {cursor && <button type="button" onClick={more} className="ml-2 text-open hover:underline">Retry loading more</button>}</div>}
+      {error && <div role="alert" className="border-b border-line px-5 py-4 text-13 text-muted">{error} {cursor && <button type="button" onClick={more} className="ml-2 text-link hover:underline">Retry loading more</button>}</div>}
       {cursor && !error ? (
         <div ref={sentinel}>
           <Skeleton />

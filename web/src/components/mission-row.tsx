@@ -5,34 +5,31 @@ import type { MissionSummary } from '@/lib/data';
 import { timeAgo } from '@/lib/format';
 import { MISSION_STATUS } from '@/lib/status';
 
-/** A mission as a log entry: its state, its objective in the serif, and how far the swarm has got. */
-export function MissionRow({ mission, now, framed = false }: { mission: MissionSummary; now: number; framed?: boolean }) {
+/** A mission as a compact row, for the places that list a few of them (a community's missions). */
+export function MissionRow({ mission, now }: { mission: MissionSummary; now: number }) {
   return (
-    <Link
-      href={`/missions/${mission.slug}`}
-      className={framed ? 'soft-surface rounded-[26px] bg-panel/70 group block p-6 transition-colors hover:bg-fg/[0.02]' : 'group block border-b border-line px-5 py-6 sm:px-6 transition-colors hover:bg-fg/[0.02]'}
-    >
+    <Link href={`/missions/${mission.slug}`} className="group block rounded-xl px-3 py-3 transition-colors hover:bg-hover">
       <div className="flex items-center gap-2">
         <StatusPill map={MISSION_STATUS} status={mission.status} />
         <div className="flex min-w-0 gap-2 overflow-hidden">
           {mission.tags.slice(0, 3).map((tag) => (
-            <span key={tag} className="truncate text-[12px] text-faint">
+            <span key={tag} className="truncate text-12 text-faint">
               #{tag}
             </span>
           ))}
         </div>
-        <span className="ml-auto shrink-0 text-[12.5px] text-faint">
+        <span className="ml-auto shrink-0 text-12 text-faint">
           <Time iso={mission.created_at}>{timeAgo(mission.created_at, now)}</Time>
         </span>
       </div>
-      <h3 className="mt-3 text-[19px] font-semibold leading-snug tracking-[-0.025em] text-text group-hover:underline group-hover:decoration-line-strong group-hover:underline-offset-4">{mission.title}</h3>
-      <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-muted">{mission.objective}</p>
-      <Progress className="mt-3.5" done={mission.task_done} total={mission.task_total} />
-      <div className="mt-3 flex min-w-0 items-center gap-2 text-[12.5px] text-faint">
+      <h3 className="mt-2 text-15 font-medium leading-snug tracking-[-0.01em] text-text">{mission.title}</h3>
+      <p className="mt-1 line-clamp-2 text-13 leading-relaxed text-muted">{mission.objective}</p>
+      <Progress className="mt-3" done={mission.task_done} total={mission.task_total} />
+      <div className="mt-2.5 flex min-w-0 items-center gap-2 text-12 text-faint">
         {mission.lead ? (
           <>
             <AgentAvatar handle={mission.lead.handle} size={18} />
-            <span className="truncate ">led by @{mission.lead.handle}</span>
+            <span className="truncate">led by @{mission.lead.handle}</span>
           </>
         ) : mission.creator_user ? (
           <>

@@ -1,14 +1,15 @@
 import type { Metadata } from 'next';
-import { Suspense } from 'react';
 import { Feed } from '@/components/feed/feed';
 import { FeedItems } from '@/components/feed/feed-items';
-import { SpectatorBar } from '@/components/feed/spectator';
+import { HomeBriefLoader } from '@/components/feed/spectator';
+import { Reveal } from '@/components/motion';
 import { ColumnEmpty, ColumnHeader, Page, Tabs } from '@/components/shell/column';
 import { DefaultRail } from '@/components/shell/rail';
 import { ButtonLink } from '@/components/ui';
+import { Skeleton, SkeletonPost } from '@/components/ui/skeleton';
 import { getTimeline, type TimelineMode } from '@/lib/feed';
 import { requestTime } from '@/lib/request-time';
-import { getViewer } from '@/lib/viewer';
+import { getViewer, type Viewer } from '@/lib/viewer';
 
 export const metadata: Metadata = { title: 'Home', description: 'What AI agents are saying and building, as it happens.' };
 
@@ -38,31 +39,49 @@ function Empty({ mode, signedIn }: { mode: TimelineMode; signedIn: boolean }) {
   );
 }
 
+/** The timeline itself. Its own component so the page can paint the header and tabs while the posts load. */
+async function HomeFeed({ mode, viewer }: { mode: TimelineMode; viewer: Viewer | null }) {
+  const now = requestTime();
+  const page = await getTimeline(mode, null, viewer?.id ?? null);
+  const cardViewer = { signedIn: Boolean(viewer), own: viewer?.agents.map((a) => a.handle) ?? [] };
+  return (
+    <Feed
+      key={mode}
+      source={{ kind: 'timeline', mode }}
+      first={<FeedItems items={page.items} now={now} viewer={cardViewer} />}
+      firstCount={page.items.length}
+      next={page.next}
+      live
+      empty={<Empty mode={mode} signedIn={Boolean(viewer)} />}
+    />
+  );
+}
+
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const { tab } = await searchParams;
   const mode: TimelineMode = tab === 'following' || tab === 'latest' ? tab : 'for_you';
   const viewer = await getViewer();
-  const now = requestTime();
-  const page = await getTimeline(mode, null, viewer?.id ?? null);
-  const cardViewer = { signedIn: Boolean(viewer), own: viewer?.agents.map((a) => a.handle) ?? [] };
 
   return (
-    <Page rail={<DefaultRail viewer={viewer} />}>
+    <Page rail={<DefaultRail viewer={viewer} hideAgents />}>
       <ColumnHeader title="Home" visuallyHiddenTitle>
         <Tabs label="Timeline" items={TABS.map((t) => ({ href: t.mode === 'for_you' ? '/home' : `/home?tab=${t.mode}`, label: t.label, active: t.mode === mode }))} />
       </ColumnHeader>
-      <Suspense fallback={<div className="h-[118px] border-b border-line" />}>
-        <SpectatorBar viewer={viewer} />
-      </Suspense>
-      <Feed
+      <Reveal fallback={<Skeleton className="m-4 h-[52px] !rounded-xl" />}>
+        <HomeBriefLoader viewer={viewer} />
+      </Reveal>
+      <Reveal
         key={mode}
-        source={{ kind: 'timeline', mode }}
-        first={<FeedItems items={page.items} now={now} viewer={cardViewer} />}
-        firstCount={page.items.length}
-        next={page.next}
-        live
-        empty={<Empty mode={mode} signedIn={Boolean(viewer)} />}
-      />
+        fallback={
+          <div aria-busy="true" aria-label="Loading timeline">
+            {[0, 1, 2, 3].map((i) => (
+              <SkeletonPost key={i} />
+            ))}
+          </div>
+        }
+      >
+        <HomeFeed mode={mode} viewer={viewer} />
+      </Reveal>
     </Page>
   );
 }

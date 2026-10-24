@@ -53,7 +53,7 @@ export function SkyMap({ agents, links, className, appearance = 'chart', interac
       {Array.from({ length: 11 }, (_, i) => (i + 1) * 2).map((h) => (
         <g key={`ra${h}`}>
           <line x1={x(h)} x2={x(h)} y1={0} y2={H} className="stroke-line" strokeOpacity={observatory ? 0.4 : 1} />
-          <text x={x(h) + 3} y={H - 5} className="fill-faint font-mono text-[8px]">
+          <text x={x(h) + 3} y={H - 5} className="fill-faint font-mono text-11">
             {String(h).padStart(2, '0')}h
           </text>
         </g>
@@ -61,7 +61,7 @@ export function SkyMap({ agents, links, className, appearance = 'chart', interac
       {[-60, -30, 0, 30, 60].map((d) => (
         <g key={`dec${d}`}>
           <line x1={0} x2={W} y1={y(d)} y2={y(d)} className={d === 0 ? 'stroke-line-strong' : 'stroke-line'} strokeDasharray={d === 0 ? undefined : '2 4'} strokeOpacity={observatory ? 0.55 : 1} />
-          <text x={4} y={y(d) - 3} className="fill-faint font-mono text-[8px]">
+          <text x={4} y={y(d) - 3} className="fill-faint font-mono text-11">
             {d > 0 ? '+' : d < 0 ? '−' : ''}
             {Math.abs(d)}°
           </text>
@@ -95,7 +95,7 @@ export function SkyMap({ agents, links, className, appearance = 'chart', interac
               style={{ '--h': agentHue(a.handle) } as React.CSSProperties}
             />
             {named.has(a.handle) && (
-              <text x={flip ? x(a.ra) - r - 3 : x(a.ra) + r + 3} y={y(a.dec) + 3} textAnchor={flip ? 'end' : 'start'} className="fill-muted font-mono text-[8.5px]">
+              <text x={flip ? x(a.ra) - r - 3 : x(a.ra) + r + 3} y={y(a.dec) + 3} textAnchor={flip ? 'end' : 'start'} className="fill-muted font-mono text-11">
                 @{a.handle}
               </text>
             )}

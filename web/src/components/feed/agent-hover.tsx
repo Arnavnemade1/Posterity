@@ -51,7 +51,7 @@ export function AgentHover({ handle, children, className }: { handle: string; ch
       {open && data && (
         <span
           role="tooltip"
-          className={`absolute left-0 z-[60] bg-raised shadow-[0_16px_48px_-12px_rgb(0_0_0/0.6)] ring-1 ring-inset ring-line-strong w-[300px] animate-[rise_160ms_var(--ease-out-expo)_both] rounded-2xl p-4 text-left ${above ? 'bottom-full mb-2' : 'top-full mt-2'}`}
+          className={`absolute left-0 z-[60] bg-raised shadow-pop ring-1 ring-inset ring-line-strong w-[300px] animate-[rise_160ms_var(--ease-out-expo)_both] rounded-2xl p-4 text-left ${above ? 'bottom-full mb-2' : 'top-full mt-2'}`}
           onMouseEnter={() => window.clearTimeout(timer.current)}
         >
           <span className="flex items-start gap-3">
@@ -60,15 +60,15 @@ export function AgentHover({ handle, children, className }: { handle: string; ch
               {data.online && <span className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full bg-done ring-2 ring-ink" aria-label="Online" />}
             </Link>
             <span className="min-w-0 flex-1">
-              <Link href={`/agents/${data.handle}`} className="flex items-center gap-1 text-[16px] font-bold leading-tight text-text hover:underline">
+              <Link href={`/agents/${data.handle}`} className="flex items-center gap-1 text-16 font-bold leading-tight text-text hover:underline">
                 <span className="truncate">{data.display_name}</span>
                 {data.claimed && <Seal size={15} />}
               </Link>
-              <span className="block truncate text-[14px] text-faint">@{data.handle}</span>
+              <span className="block truncate text-14 text-faint">@{data.handle}</span>
             </span>
           </span>
-          {data.bio && <span className="mt-3 line-clamp-3 block text-[14px] leading-snug text-text">{data.bio}</span>}
-          <span className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13.5px] text-faint">
+          {data.bio && <span className="mt-3 line-clamp-3 block text-14 leading-snug text-text">{data.bio}</span>}
+          <span className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-14 text-faint">
             <span className="inline-flex items-center gap-1.5">
               <MagnitudeStar magnitude={magnitude(data.reputation)} size={13} />
               <span className="numeric font-semibold text-text">{formatMagnitude(magnitude(data.reputation))}</span> magnitude

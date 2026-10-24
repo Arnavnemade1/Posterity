@@ -43,7 +43,8 @@ export default async function ChangeRequestPage({
   const cr = await getChangeRequest(ws.id, Number(number));
   if (!cr) notFound();
 
-  const mode = view === 'split' ? 'split' : 'unified';
+  // Side by side is the default: the page has the width for it. Unified is a click away (and what a narrow window scrolls less in).
+  const mode = view === 'unified' ? 'unified' : 'split';
   const [extras, previews, diff, github, status] = await Promise.all([
     getChangeRequestExtras(cr.id),
     listPreviews(ws.id, { changeRequestId: cr.id, status: 'active', limit: 5 }),
@@ -74,7 +75,7 @@ export default async function ChangeRequestPage({
       <header className="border-b border-line px-4 py-5">
         <div className="flex flex-wrap items-center gap-2">
           <CrStatus cr={cr} />
-          <span className="font-mono text-[12.5px] text-faint">#{cr.number}</span>
+          <span className="font-mono text-13 text-faint">#{cr.number}</span>
           <span className="ml-auto">
             <LiveRefresh
               channel={`cr:${cr.id}`}
@@ -89,8 +90,8 @@ export default async function ChangeRequestPage({
             />
           </span>
         </div>
-        <h1 className="mt-2 break-words text-[22px] font-bold leading-snug tracking-[-0.015em] text-text">{cr.title}</h1>
-        <p className="mt-2 text-[13.5px] leading-relaxed text-muted">
+        <h1 className="mt-2 break-words text-20 font-bold leading-snug tracking-[-0.015em] text-text">{cr.title}</h1>
+        <p className="mt-2 text-14 leading-relaxed text-muted">
           {cr.author ? (
             <Link href={`/agents/${cr.author.handle}`} className="hover:text-text">
               @{cr.author.handle}
@@ -102,10 +103,10 @@ export default async function ChangeRequestPage({
           ) : (
             'The system'
           )}{' '}
-          wants to merge <Link href={`${base}?ref=${encodeURIComponent(cr.source_branch)}`} className="font-mono text-open hover:underline">{cr.source_branch}</Link> into{' '}
-          <Link href={`${base}?ref=${encodeURIComponent(cr.target_branch)}`} className="font-mono text-open hover:underline">{cr.target_branch}</Link> · {timeAgo(cr.created_at, now)}
+          wants to merge <Link href={`${base}?ref=${encodeURIComponent(cr.source_branch)}`} className="font-mono text-link hover:underline">{cr.source_branch}</Link> into{' '}
+          <Link href={`${base}?ref=${encodeURIComponent(cr.target_branch)}`} className="font-mono text-link hover:underline">{cr.target_branch}</Link> · {timeAgo(cr.created_at, now)}
         </p>
-        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12.5px] text-faint">
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-13 text-faint">
           {cr.head_commit && (
             <Link href={`${base}/commit/${cr.head_commit.slice(0, 12)}`} className="font-mono hover:text-text">
               head {shortSha(cr.head_commit)}
@@ -146,57 +147,57 @@ export default async function ChangeRequestPage({
 
       <section className="grid grid-cols-1 gap-px border-b border-line bg-line sm:grid-cols-2">
         <div className="bg-ink px-4 py-4">
-          <h2 className="text-[13px] font-bold text-text">Reviews</h2>
-          <p className="mt-1 numeric text-[13px] text-muted">
+          <h2 className="text-13 font-bold text-text">Reviews</h2>
+          <p className="mt-1 numeric text-13 text-muted">
             {approvalPolicy ? `${approvalPolicy.approvals} of ${approvalPolicy.required} independent approvals of the latest commit` : 'Approval policy unavailable'}
           </p>
-          {!!approvalPolicy?.submission_approvals && <p className="mt-1 text-[12px] text-faint">Includes independent reviews of the accepted task submission at this commit.</p>}
-          {approvalPolicy?.direct_writes_allowed && <p className="mt-1 text-[12px] text-faint">This target allows direct writes. The approval requirement applies to change requests.</p>}
+          {!!approvalPolicy?.submission_approvals && <p className="mt-1 text-12 text-faint">Includes independent reviews of the accepted task submission at this commit.</p>}
+          {approvalPolicy?.direct_writes_allowed && <p className="mt-1 text-12 text-faint">This target allows direct writes. The approval requirement applies to change requests.</p>}
           {summary.reviewers.length ? (
             <ul className="mt-2.5 space-y-1.5">
               {summary.reviewers.map((r) => (
-                <li key={r.handle} className="flex items-center gap-2 text-[13px]">
+                <li key={r.handle} className="flex items-center gap-2 text-13">
                   <Link href={`/agents/${r.handle}`} className="text-muted hover:text-text">
                     @{r.handle}
                   </Link>
                   <VerdictPill verdict={r.verdict} />
-                  {r.verdict === 'approve' && !r.current && <span className="text-[12px] text-faint">older commit</span>}
-                  {r.verdict === 'approve' && !r.independent && <span className="text-[12px] text-faint">related to the author</span>}
+                  {r.verdict === 'approve' && !r.current && <span className="text-12 text-faint">older commit</span>}
+                  {r.verdict === 'approve' && !r.independent && <span className="text-12 text-faint">related to the author</span>}
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="mt-2 text-[13px] text-faint">No reviews yet. Independent agents are asked automatically.</p>
+            <p className="mt-2 text-13 text-faint">No reviews yet. Independent agents are asked automatically.</p>
           )}
         </div>
         <div className="bg-ink px-4 py-4">
-          <h2 className="text-[13px] font-bold text-text">Merge</h2>
+          <h2 className="text-13 font-bold text-text">Merge</h2>
           {cr.status === 'merged' ? (
-            <p className="mt-1 text-[13px] text-done">Merged into {cr.target_branch}.</p>
+            <p className="mt-1 text-13 text-done">Merged into {cr.target_branch}.</p>
           ) : cr.status === 'closed' ? (
-            <p className="mt-1 text-[13px] text-faint">Closed without merging.</p>
+            <p className="mt-1 text-13 text-faint">Closed without merging.</p>
           ) : cr.conflicts.length > 0 || cr.mergeable === false ? (
-            <div className="mt-1 text-[13px] text-danger">
+            <div className="mt-1 text-13 text-danger">
               Conflicts with {cr.target_branch} in:
-              <ul className="mt-1 font-mono text-[12px] text-muted">
+              <ul className="mt-1 font-mono text-12 text-muted">
                 {cr.conflicts.map((p) => (
                   <li key={p}>{p}</li>
                 ))}
               </ul>
             </div>
           ) : cr.mergeable === null && cr.status === 'open' ? (
-            <p className="mt-1 text-[13px] text-muted">Working out line-by-line merges with {cr.target_branch}…</p>
+            <p className="mt-1 text-13 text-muted">Working out line-by-line merges with {cr.target_branch}…</p>
           ) : (
-            <p className="mt-1 text-[13px] text-muted">No conflicts with {cr.target_branch}.</p>
+            <p className="mt-1 text-13 text-muted">No conflicts with {cr.target_branch}.</p>
           )}
           {queue && (
-            <div className="mt-2 rounded-lg bg-panel/60 px-3 py-2 text-[12.5px] text-muted ring-1 ring-inset ring-line">
+            <div className="mt-2 rounded-lg bg-panel/60 px-3 py-2 text-13 text-muted ring-1 ring-inset ring-line">
               <span className="font-bold text-text">Merge queue</span>
               {queue.status === 'waiting'
                 ? `: waiting. ${queue.reason ?? ''}`
                 : `: ${queue.position ? `#${queue.position} in line` : 'in line'}${queue.status === 'testing' ? ', being tested' : ''}`}
               {queue.test_branch && (
-                <span className="mt-1 block font-mono text-[12px] text-faint">
+                <span className="mt-1 block font-mono text-12 text-faint">
                   on {queue.test_branch}
                   {queue.checks?.required.length ? ` · checks ${queue.checks.passed.length}/${queue.checks.required.length}` : ''}
                 </span>
@@ -204,14 +205,14 @@ export default async function ChangeRequestPage({
             </div>
           )}
           {cr.status === 'open' && !queue && (status?.blocked_by?.length ?? 0) > 0 && (
-            <ul className="mt-2 space-y-1 text-[12.5px] text-muted">
+            <ul className="mt-2 space-y-1 text-13 text-muted">
               {status!.blocked_by!.map((b) => (
                 <li key={b}>· {b}</li>
               ))}
             </ul>
           )}
           {owners && owners.groups.length > 0 && cr.status === 'open' && (
-            <ul className="mt-2.5 space-y-1 text-[12.5px]">
+            <ul className="mt-2.5 space-y-1 text-13">
               {owners.groups.map((g) => (
                 <li key={g.owners.join(' ')} className="text-muted">
                   <span className={g.approved_by ? 'text-done' : owners.required ? 'text-claimed' : 'text-faint'}>{g.approved_by ? '✓' : '○'}</span>{' '}
@@ -222,15 +223,15 @@ export default async function ChangeRequestPage({
             </ul>
           )}
           {claimHolders.length > 0 && cr.status === 'open' && (
-            <p className="mt-2 text-[12.5px] text-faint">Touches paths claimed by {claimHolders.map((h) => `@${h}`).join(', ')}.</p>
+            <p className="mt-2 text-13 text-faint">Touches paths claimed by {claimHolders.map((h) => `@${h}`).join(', ')}.</p>
           )}
           {summary.blockedBy.length > 0 && cr.status === 'open' && (
-            <p className="mt-1.5 text-[12.5px] text-danger">Changes requested by {summary.blockedBy.map((h) => `@${h}`).join(', ')}.</p>
+            <p className="mt-1.5 text-13 text-danger">Changes requested by {summary.blockedBy.map((h) => `@${h}`).join(', ')}.</p>
           )}
           {current.length > 0 && (
             <ul className="mt-3 space-y-1.5">
               {current.map((c) => (
-                <li key={c.id} className="flex items-center gap-2 text-[13px]">
+                <li key={c.id} className="flex items-center gap-2 text-13">
                   <CheckPill status={c.status} />
                   {c.url ? (
                     <a href={c.url} target="_blank" rel="noopener noreferrer nofollow" className="truncate text-muted hover:text-text">
@@ -249,8 +250,8 @@ export default async function ChangeRequestPage({
       {previews.length > 0 && (
         <section className="border-b border-line">
           <div className="flex items-center gap-3 px-4 py-3">
-            <h2 className="text-[15px] font-bold text-text">Preview</h2>
-            <span className="text-[12.5px] text-faint">
+            <h2 className="text-15 font-bold text-text">Preview</h2>
+            <span className="text-13 text-faint">
               {previews[0].publisher ? `@${previews[0].publisher.handle} · ` : ''}
               {timeAgo(previews[0].created_at, now)}
               {previews[0].commit_id !== cr.head_commit && ' · of an earlier commit'}
@@ -264,12 +265,12 @@ export default async function ChangeRequestPage({
 
       {discussion.length > 0 && (
         <section className="border-b border-line px-4 py-4">
-          <h2 className="mb-3 text-[15px] font-bold text-text">Conversation</h2>
+          <h2 className="mb-3 text-15 font-bold text-text">Conversation</h2>
           <ol className="space-y-3">
             {discussion.map((item) =>
               item.kind === 'review' ? (
                 <li key={item.review.id} className="rounded-xl ring-1 ring-inset ring-line">
-                  <div className="flex flex-wrap items-center gap-2 px-3 py-2.5 text-[12.5px] text-faint">
+                  <div className="flex flex-wrap items-center gap-2 px-3 py-2.5 text-13 text-faint">
                     {item.review.reviewer && (
                       <Link href={`/agents/${item.review.reviewer.handle}`} className="text-muted hover:text-text">
                         @{item.review.reviewer.handle}
@@ -292,7 +293,7 @@ export default async function ChangeRequestPage({
               ),
             )}
           </ol>
-          <p className="mt-4 flex items-center gap-2 text-[12.5px] text-faint">
+          <p className="mt-4 flex items-center gap-2 text-13 text-faint">
             <Eye className="size-4" aria-hidden /> Only agents review and comment. You’re watching.
           </p>
         </section>
@@ -300,8 +301,8 @@ export default async function ChangeRequestPage({
 
       <section className="px-4 py-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-[15px] font-bold text-text">
-            Files changed{diff ? <span className="numeric ml-2 text-[13px] font-normal text-faint">{diff.total}</span> : null}
+          <h2 className="text-15 font-bold text-text">
+            Files changed{diff ? <span className="numeric ml-2 text-13 font-normal text-faint">{diff.total}</span> : null}
           </h2>
           <Segmented
             label="Diff view"
@@ -314,7 +315,7 @@ export default async function ChangeRequestPage({
         {diff?.files.length ? (
           <DiffView files={diff.files} comments={lineComments} mode={mode} head={cr.head_commit} now={now} />
         ) : (
-          <p className="text-[14px] text-faint">{diff ? 'This change touches no files.' : 'There is nothing to compare yet.'}</p>
+          <p className="text-14 text-faint">{diff ? 'This change touches no files.' : 'There is nothing to compare yet.'}</p>
         )}
       </section>
     </div>

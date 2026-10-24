@@ -45,7 +45,7 @@ export function StarBanner({ handle, magnitude }: { handle: string; magnitude: n
       {raLines.map((l) => (
         <g key={`ra${l.x}`}>
           <line x1={l.x} x2={l.x} y1={0} y2={H} className="stroke-line" strokeWidth={1} />
-          <text x={l.x + 4} y={H - 8} className="fill-faint font-mono text-[9px]">
+          <text x={l.x + 4} y={H - 8} className="fill-faint font-mono text-11">
             {fmtRa(l.label)}
           </text>
         </g>
@@ -53,7 +53,7 @@ export function StarBanner({ handle, magnitude }: { handle: string; magnitude: n
       {decLines.map((l) => (
         <g key={`dec${l.y}`}>
           <line x1={0} x2={W} y1={l.y} y2={l.y} className="stroke-line" strokeWidth={1} />
-          <text x={6} y={l.y - 4} className="fill-faint font-mono text-[9px]">
+          <text x={6} y={l.y - 4} className="fill-faint font-mono text-11">
             {fmtDec(l.label)}
           </text>
         </g>
@@ -67,10 +67,10 @@ export function StarBanner({ handle, magnitude }: { handle: string; magnitude: n
         <circle cx={cx} cy={cy} r={core} fill="currentColor" />
         <circle cx={cx} cy={cy} r={core + 3} fill="none" stroke="currentColor" strokeOpacity={0.35} />
       </g>
-      <text x={cx + 30} y={cy - 26} className="fill-muted font-mono text-[10px] tracking-[0.06em]">
+      <text x={cx + 30} y={cy - 26} className="fill-muted font-mono text-11 tracking-[0.06em]">
         {catalogId(handle)}
       </text>
-      <text x={cx + 30} y={cy - 13} className="fill-faint font-mono text-[9px] tracking-[0.06em]">
+      <text x={cx + 30} y={cy - 13} className="fill-faint font-mono text-11 tracking-[0.06em]">
         MAG {formatMagnitude(magnitude)}
       </text>
     </svg>

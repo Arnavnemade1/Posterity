@@ -86,7 +86,7 @@ export function CommentCard({ comment, head, now }: { comment: CrComment; head?:
   const outdated = Boolean(head && comment.side === 'new' && comment.commit_id && comment.commit_id !== head);
   return (
     <div className="border-l-2 border-line-strong bg-panel/50 px-3 py-2.5">
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-faint">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-12 text-faint">
         {comment.author ? (
           <Link href={`/agents/${comment.author.handle}`} className="font-mono text-muted hover:text-text">
             @{comment.author.handle}
@@ -98,7 +98,7 @@ export function CommentCard({ comment, head, now }: { comment: CrComment; head?:
         {comment.resolved_at && <Pill tone="done">Resolved</Pill>}
         {outdated && <Pill tone="faint" dot={false}>On an earlier commit</Pill>}
       </div>
-      <Markdown className="mt-1 text-[13.5px]">{comment.body}</Markdown>
+      <Markdown className="mt-1 text-14">{comment.body}</Markdown>
     </div>
   );
 }
@@ -126,16 +126,16 @@ const ROW_BG = { add: 'bg-done/[0.09]', del: 'bg-danger/[0.09]', ctx: '', note: 
 const MARK = { add: '+', del: '−', ctx: ' ', note: '' } as const;
 const MARK_TONE = { add: 'text-done', del: 'text-danger', ctx: 'text-faint', note: 'text-faint' } as const;
 
-const gutter = 'select-none px-2 text-right align-top text-[12px] text-faint';
+const gutter = 'select-none px-2 text-right align-top text-12 text-faint';
 
 function Unified({ file, threads, head, now }: { file: DiffFile; threads: Map<string, Thread[]>; head: string | null; now: number }) {
   return (
-    <table className="w-full border-collapse font-mono text-[12.5px] leading-[1.55]">
+    <table className="w-full border-collapse font-mono text-13 leading-[1.55]">
       <tbody>
         {(file.hunks ?? []).map((hunk, h) => (
           <HunkBlock key={h}>
-            <tr className="bg-open/[0.07] text-faint">
-              <td colSpan={3} className="px-3 py-1 text-[12px]">
+            <tr className="bg-claimed/[0.07] text-faint">
+              <td colSpan={3} className="px-3 py-1 text-12">
                 @@ −{hunk.oldStart},{hunk.oldLines} +{hunk.newStart},{hunk.newLines} @@
               </td>
             </tr>
@@ -179,12 +179,12 @@ function Split({ file, threads, head, now }: { file: DiffFile; threads: Map<stri
       </>
     ) : (
       <>
-        <td className={cx(gutter, 'bg-fg/[0.02]', side === 'right' && 'border-l border-line')} />
-        <td className="bg-fg/[0.02]" />
+        <td className={cx(gutter, 'bg-hover', side === 'right' && 'border-l border-line')} />
+        <td className="bg-hover" />
       </>
     );
   return (
-    <table className="w-full table-fixed border-collapse font-mono text-[12.5px] leading-[1.55]">
+    <table className="w-full min-w-[720px] table-fixed border-collapse font-mono text-13 leading-[1.55]">
       {/* Fixed layout reads the first row, which is a hunk header spanning everything: say the widths here. */}
       <colgroup>
         <col style={{ width: '3rem' }} />
@@ -195,8 +195,8 @@ function Split({ file, threads, head, now }: { file: DiffFile; threads: Map<stri
       <tbody>
         {(file.hunks ?? []).map((hunk, h) => (
           <HunkBlock key={h}>
-            <tr className="bg-open/[0.07] text-faint">
-              <td colSpan={4} className="px-3 py-1 text-[12px]">
+            <tr className="bg-claimed/[0.07] text-faint">
+              <td colSpan={4} className="px-3 py-1 text-12">
                 @@ −{hunk.oldStart},{hunk.oldLines} +{hunk.newStart},{hunk.newLines} @@
               </td>
             </tr>
@@ -204,7 +204,7 @@ function Split({ file, threads, head, now }: { file: DiffFile; threads: Map<stri
               if ('note' in row) {
                 return (
                   <tr key={i}>
-                    <td colSpan={4} className="px-3 text-[12px] italic text-faint">
+                    <td colSpan={4} className="px-3 text-12 italic text-faint">
                       {row.note}
                     </td>
                   </tr>
@@ -237,7 +237,7 @@ function HunkBlock({ children }: { children: React.ReactNode }) {
 }
 
 const STATUS_ICON = { added: FilePlus2, deleted: FileMinus2, modified: FileDiff, renamed: FileDiff } as const;
-const STATUS_TONE = { added: 'text-done', deleted: 'text-danger', modified: 'text-claimed', renamed: 'text-open' } as const;
+const STATUS_TONE = { added: 'text-done', deleted: 'text-danger', modified: 'text-accent-fg', renamed: 'text-claimed' } as const;
 
 const kb = (n: number | null) => (n === null ? '—' : n < 1024 ? `${n} B` : `${(n / 1024).toFixed(1)} KB`);
 
@@ -265,29 +265,29 @@ export function DiffView({
         const fileComments = comments.filter((c) => c.path === file.path).length;
         return (
           <details key={file.path} id={`file-${file.path}`} open={lines <= 400} className="group overflow-hidden rounded-xl ring-1 ring-inset ring-line">
-            <summary className="flex cursor-pointer list-none items-center gap-2.5 bg-panel/70 px-3 py-2.5 text-[13px] [&::-webkit-details-marker]:hidden">
+            <summary className="flex cursor-pointer list-none items-center gap-2.5 bg-panel/70 px-3 py-2.5 text-13 [&::-webkit-details-marker]:hidden">
               <Icon className={cx('size-4 shrink-0', STATUS_TONE[file.status])} aria-hidden />
               <span className="min-w-0 flex-1 truncate font-mono text-text">
                 {file.oldPath && <span className="text-faint">{file.oldPath} → </span>}
                 {file.path}
               </span>
-              {file.modeChanged && <span className="shrink-0 text-[12px] text-faint">{file.executable ? 'now executable' : 'no longer executable'}</span>}
-              {fileComments > 0 && <span className="text-[12px] text-faint">{fileComments} comment{fileComments === 1 ? '' : 's'}</span>}
+              {file.modeChanged && <span className="shrink-0 text-12 text-faint">{file.executable ? 'now executable' : 'no longer executable'}</span>}
+              {fileComments > 0 && <span className="text-12 text-faint">{fileComments} comment{fileComments === 1 ? '' : 's'}</span>}
               {!file.binary && (
-                <span className="numeric shrink-0 text-[12px]">
+                <span className="numeric shrink-0 text-12">
                   <span className="text-done">+{file.added}</span> <span className="text-danger">−{file.removed}</span>
                 </span>
               )}
             </summary>
             <div className="overflow-x-auto border-t border-line bg-ink">
               {file.binary ? (
-                <p className="px-4 py-3 text-[13px] text-faint">
+                <p className="px-4 py-3 text-13 text-faint">
                   Binary file {file.status === 'added' ? 'added' : file.status === 'deleted' ? 'deleted' : 'changed'} ({kb(file.oldSize)} → {kb(file.newSize)}).
                 </p>
               ) : file.hunks === null ? (
-                <p className="px-4 py-3 text-[13px] text-faint">{file.note ?? 'No line diff for this file.'}</p>
+                <p className="px-4 py-3 text-13 text-faint">{file.note ?? 'No line diff for this file.'}</p>
               ) : file.hunks.length === 0 ? (
-                <p className="px-4 py-3 text-[13px] text-faint">
+                <p className="px-4 py-3 text-13 text-faint">
                   {file.status === 'added' ? 'An empty file.' : file.status === 'renamed' ? 'Moved without changes.' : 'No visible line changes.'}
                 </p>
               ) : mode === 'split' ? (
@@ -295,12 +295,12 @@ export function DiffView({
               ) : (
                 <Unified file={file} threads={threads} head={head} now={now} />
               )}
-              {file.hunks && file.note && <p className="border-t border-line px-4 py-2 text-[12px] text-faint">{file.note}</p>}
+              {file.hunks && file.note && <p className="border-t border-line px-4 py-2 text-12 text-faint">{file.note}</p>}
             </div>
           </details>
         );
       })}
-      {strays > 0 && <p className="text-[12.5px] text-faint">{strays} comment{strays === 1 ? '' : 's'} on files this change no longer touches.</p>}
+      {strays > 0 && <p className="text-13 text-faint">{strays} comment{strays === 1 ? '' : 's'} on files this change no longer touches.</p>}
     </div>
   );
 }

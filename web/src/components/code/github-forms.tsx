@@ -26,8 +26,8 @@ export function LinkGitHubForm({ workspaceId, repositories, privateWorkspace }: 
     <form action={action} className="space-y-3">
       <input type="hidden" name="workspace_id" value={workspaceId} />
       <label className="block">
-        <span className="text-[12.5px] font-medium text-faint">Repository</span>
-        <select name="repo_id" value={repoId} onChange={(e) => setRepoId(e.target.value)} className="field mt-1 h-9 w-full py-1 text-[13.5px]">
+        <span className="text-13 font-medium text-faint">Repository</span>
+        <select name="repo_id" value={repoId} onChange={(e) => setRepoId(e.target.value)} className="field mt-1 h-9 w-full py-1 text-14">
           {repositories.map((r) => (
             <option key={r.id} value={r.id}>
               {r.repo}
@@ -37,7 +37,7 @@ export function LinkGitHubForm({ workspaceId, repositories, privateWorkspace }: 
         </select>
       </label>
       <fieldset className="space-y-1.5">
-        <legend className="text-[12.5px] font-medium text-faint">Sync</legend>
+        <legend className="text-13 font-medium text-faint">Sync</legend>
         {MODES.map((m) => {
           const disabled = m.value === 'two_way' && twoWayBlocked;
           return (
@@ -45,7 +45,7 @@ export function LinkGitHubForm({ workspaceId, repositories, privateWorkspace }: 
               key={m.value}
               className={cx(
                 'flex cursor-pointer gap-2.5 rounded-lg p-2.5 ring-1 ring-inset transition-colors',
-                mode === m.value && !disabled ? 'bg-fg/[0.04] ring-fg/25' : 'ring-line hover:bg-fg/[0.02]',
+                mode === m.value && !disabled ? 'bg-hover ring-fg/25' : 'ring-line hover:bg-hover',
                 disabled && 'cursor-not-allowed opacity-50',
               )}
             >
@@ -59,8 +59,8 @@ export function LinkGitHubForm({ workspaceId, repositories, privateWorkspace }: 
                 className="mt-0.5 accent-accent"
               />
               <span>
-                <span className="block text-[13.5px] font-medium text-text">{m.label}</span>
-                <span className="block text-[12.5px] leading-snug text-faint">
+                <span className="block text-14 font-medium text-text">{m.label}</span>
+                <span className="block text-13 leading-snug text-faint">
                   {disabled ? 'A private repository syncs both ways only with a private workspace.' : m.body}
                 </span>
               </span>
@@ -68,7 +68,7 @@ export function LinkGitHubForm({ workspaceId, repositories, privateWorkspace }: 
           );
         })}
       </fieldset>
-      <label className="flex items-start gap-2.5 text-[13px] text-muted">
+      <label className="flex items-start gap-2.5 text-13 text-muted">
         <input type="checkbox" name="open_prs" defaultChecked className="mt-0.5 accent-accent" />
         <span>Open a pull request for each change request, so the repository&apos;s CI checks the agents&apos; work</span>
       </label>
@@ -99,12 +99,12 @@ export function LinkActions({ workspaceId }: { workspaceId: string }) {
             <SubmitButton size="sm" variant="danger" pendingLabel="Unlinking…">
               Unlink
             </SubmitButton>
-            <button type="button" onClick={() => setConfirm(false)} className="text-[12.5px] text-faint hover:text-text">
+            <button type="button" onClick={() => setConfirm(false)} className="text-13 text-faint hover:text-text">
               Keep
             </button>
           </form>
         ) : (
-          <button type="button" onClick={() => setConfirm(true)} className="text-[12.5px] font-medium text-faint transition-colors hover:text-text">
+          <button type="button" onClick={() => setConfirm(true)} className="text-13 font-medium text-faint transition-colors hover:text-text">
             Unlink…
           </button>
         )}
@@ -119,7 +119,7 @@ export function ReleaseInstallation({ installationId, account }: { installationI
   const [confirm, setConfirm] = useState(false);
   if (!confirm) {
     return (
-      <button type="button" onClick={() => setConfirm(true)} className="text-[12.5px] font-medium text-faint transition-colors hover:text-text">
+      <button type="button" onClick={() => setConfirm(true)} className="text-13 font-medium text-faint transition-colors hover:text-text">
         Disconnect
       </button>
     );
@@ -127,11 +127,11 @@ export function ReleaseInstallation({ installationId, account }: { installationI
   return (
     <form action={action} className="flex flex-wrap items-center gap-2">
       <input type="hidden" name="installation_id" value={installationId} />
-      <span className="text-[12.5px] text-muted">Unlink every workspace using {account}?</span>
+      <span className="text-13 text-muted">Unlink every workspace using {account}?</span>
       <SubmitButton size="sm" variant="danger" pendingLabel="Disconnecting…">
         Disconnect
       </SubmitButton>
-      <button type="button" onClick={() => setConfirm(false)} className="text-[12.5px] text-faint hover:text-text">
+      <button type="button" onClick={() => setConfirm(false)} className="text-13 text-faint hover:text-text">
         Cancel
       </button>
       <FormMessage state={state} />

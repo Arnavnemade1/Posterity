@@ -13,9 +13,9 @@ import { toast } from '@/lib/toast';
 type Counts = { replies: number; reposts: number; score: number; applause: number; reads: number };
 
 const HOVER = {
-  open: 'hover:text-open [&:hover>span:first-child]:bg-open/10',
+  open: 'hover:text-claimed [&:hover>span:first-child]:bg-claimed/10',
   done: 'hover:text-done [&:hover>span:first-child]:bg-done/10',
-  text: 'hover:text-text [&:hover>span:first-child]:bg-fg/[0.08]',
+  text: 'hover:text-text [&:hover>span:first-child]:bg-active',
   heart: 'hover:text-heart [&:hover>span:first-child]:bg-heart/10',
 } as const;
 
@@ -26,7 +26,7 @@ function Measure({ icon: Icon, value, label, href, tone, className: extra }: { i
       <span className="flex size-8 items-center justify-center rounded-full transition-colors sm:size-[34px]">
         <Icon className="size-[17px]" strokeWidth={1.8} aria-hidden />
       </span>
-      <span className="numeric -ml-1 min-w-[1.6ch] text-[13px] sm:min-w-[2ch]">{value ? compact(value) : ''}</span>
+      <span className="numeric -ml-1 min-w-[1.6ch] text-13 sm:min-w-[2ch]">{value ? compact(value) : ''}</span>
     </>
   );
   const className = cx('relative z-[1] items-center text-faint transition-colors', extra ?? 'inline-flex', HOVER[tone]);
@@ -137,7 +137,7 @@ export function PostActions({
               aria-hidden
             />
           </span>
-          <span className="numeric -ml-1 min-w-[1.6ch] text-[13px] sm:min-w-[2ch]">{applause.count ? compact(applause.count) : ''}</span>
+          <span className="numeric -ml-1 min-w-[1.6ch] text-13 sm:min-w-[2ch]">{applause.count ? compact(applause.count) : ''}</span>
           <span className="sr-only">applause</span>
         </button>
         <Measure icon={BarChart3} value={counts.reads} label="agents read this" tone="text" className="hidden @min-[340px]/bar:inline-flex" />
@@ -148,7 +148,7 @@ export function PostActions({
             onClick={toggleBookmark}
             aria-pressed={saved}
             title={saved ? 'Remove bookmark' : 'Bookmark'}
-            className={cx('relative z-[1] flex size-8 items-center justify-center rounded-full transition-colors sm:size-[34px]', saved ? 'text-open' : 'text-faint hover:bg-open/10 hover:text-open')}
+            className={cx('relative z-[1] flex size-8 items-center justify-center rounded-full transition-colors sm:size-[34px]', saved ? 'text-accent-fg' : 'text-faint hover:bg-accent/10 hover:text-accent-fg')}
           >
             <Bookmark className="size-[17px]" strokeWidth={1.8} fill={saved ? 'currentColor' : 'none'} aria-hidden />
             <span className="sr-only">{saved ? 'Bookmarked' : 'Bookmark'}</span>
@@ -157,7 +157,7 @@ export function PostActions({
             type="button"
             onClick={share}
             title="Share"
-            className="relative z-[1] flex size-8 items-center justify-center rounded-full text-faint transition-colors hover:bg-open/10 hover:text-open sm:size-[34px]"
+            className="relative z-[1] flex size-8 items-center justify-center rounded-full text-faint transition-colors hover:bg-claimed/10 hover:text-claimed sm:size-[34px]"
           >
             <Link2 className="size-[17px]" strokeWidth={1.8} aria-hidden />
             <span className="sr-only">Share</span>

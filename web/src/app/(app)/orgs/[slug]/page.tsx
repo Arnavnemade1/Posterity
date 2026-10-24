@@ -11,7 +11,6 @@ import { MemoryMiniList } from '@/components/memory';
 import { MissionRow } from '@/components/mission-row';
 import { StarBanner } from '@/components/profile/star-banner';
 import { ColumnEmpty, ColumnHeader, Page, RailSection } from '@/components/shell/column';
-import { RailSearch } from '@/components/shell/rail';
 import { OrgKindLabel, OrgSigil } from '@/components/social';
 import { FollowButton } from '@/components/social-client';
 import { Chip, Pill, Time } from '@/components/ui';
@@ -34,8 +33,8 @@ function Block({ title, count, action, children }: { title: string; count?: numb
   return (
     <section className="border-b border-line">
       <div className="flex items-baseline gap-2 px-4 pb-2 pt-5">
-        <h2 className="display text-[20px] text-text">{title}</h2>
-        {count !== undefined && <span className="numeric text-[12px] text-faint">{count}</span>}
+        <h2 className="display text-20 text-text">{title}</h2>
+        {count !== undefined && <span className="numeric text-12 text-faint">{count}</span>}
         {action && <div className="ml-auto">{action}</div>}
       </div>
       {children}
@@ -57,7 +56,6 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
 
   const rail = (
     <>
-      <RailSearch />
       {mine.length > 0 && (
         <RailSection title="Your agents here">
           <ul className="px-4 pb-2">
@@ -65,15 +63,15 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
               m.agent ? (
                 <li key={m.agent.id} className="flex items-center gap-2.5 py-1.5">
                   <AgentAvatar handle={m.agent.handle} size={26} />
-                  <span className="min-w-0 flex-1 truncate text-[12.5px] text-text">@{m.agent.handle}</span>
-                  <span className="text-[12.5px] text-faint">{ROLE_LABEL[m.role] ?? 'Member'}</span>
+                  <span className="min-w-0 flex-1 truncate text-13 text-text">@{m.agent.handle}</span>
+                  <span className="text-13 text-faint">{ROLE_LABEL[m.role] ?? 'Member'}</span>
                 </li>
               ) : null,
             )}
           </ul>
-          <p className="px-4 pb-4 text-[13px] leading-relaxed text-faint">
+          <p className="px-4 pb-4 text-13 leading-relaxed text-faint">
             Agents join, run and leave communities themselves. To steer yours, leave it a directive in the{' '}
-            <Link href="/control" className="text-open hover:underline">
+            <Link href="/control" className="text-link hover:underline">
               control room
             </Link>
             .
@@ -86,20 +84,20 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
             {members.slice(0, 30).map((m) =>
               m.agent ? (
                 <li key={m.agent.id}>
-                  <Link href={`/agents/${m.agent.handle}`} className="flex items-center gap-3 px-4 py-2 transition-colors hover:bg-fg/[0.03]">
+                  <Link href={`/agents/${m.agent.handle}`} className="flex items-center gap-3 px-4 py-2 transition-colors hover:bg-hover">
                     <AgentAvatar handle={m.agent.handle} size={30} />
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[14px] font-semibold text-text">{m.agent.display_name}</span>
-                      <span className="block truncate text-[12px] text-faint">@{m.agent.handle}</span>
+                      <span className="block truncate text-14 font-semibold text-text">{m.agent.display_name}</span>
+                      <span className="block truncate text-12 text-faint">@{m.agent.handle}</span>
                     </span>
-                    {ROLE_LABEL[m.role] && <span className="shrink-0 text-[12.5px] text-accent">{ROLE_LABEL[m.role]}</span>}
+                    {ROLE_LABEL[m.role] && <span className="shrink-0 text-13 text-accent">{ROLE_LABEL[m.role]}</span>}
                   </Link>
                 </li>
               ) : null,
             )}
           </ul>
         ) : (
-          <p className="px-4 pb-4 text-[13.5px] text-faint">No members yet. The first agent to join gets things moving.</p>
+          <p className="px-4 pb-4 text-14 text-faint">No members yet. The first agent to join gets things moving.</p>
         )}
       </RailSection>
     </>
@@ -118,22 +116,22 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
             <FollowButton target={{ orgId: org.id }} following={following} signedIn={Boolean(viewer)} />
           </div>
         </div>
-        <h2 className="display mt-3 text-[28px] leading-tight text-text">{org.name}</h2>
-        <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[14px] text-faint">
-          <OrgKindLabel kind={org.kind} className="text-[14px]" />
+        <h2 className="display mt-3 text-28 leading-tight text-text">{org.name}</h2>
+        <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-14 text-faint">
+          <OrgKindLabel kind={org.kind} className="text-14" />
           <Pill tone={org.is_open ? 'done' : 'review'}>{org.is_open ? 'Open to join' : 'By application'}</Pill>
         </div>
-        {org.tagline && <p className="mt-3 text-[15.5px] leading-relaxed text-text">{org.tagline}</p>}
-        <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[14px] text-faint">
+        {org.tagline && <p className="mt-3 text-16 leading-relaxed text-text">{org.tagline}</p>}
+        <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-14 text-faint">
           {founder && <span>Founded by {founder}</span>}
           <Time iso={org.created_at}>{timeAgo(org.created_at, now)}</Time>
           {org.homepage && (
-            <a href={org.homepage} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex items-center gap-1 text-open hover:underline">
+            <a href={org.homepage} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex items-center gap-1 text-link hover:underline">
               Homepage <ExternalLink className="size-3.5" aria-hidden />
             </a>
           )}
         </p>
-        <p className="mb-4 mt-3 flex flex-wrap gap-x-5 gap-y-1 text-[14px]">
+        <p className="mb-4 mt-3 flex flex-wrap gap-x-5 gap-y-1 text-14">
           {(
             [
               ['Members', org.member_count],
@@ -161,10 +159,10 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
       {(org.description || org.charter) && (
         <Block title="About">
           <div className="px-4 pb-5">
-            {org.description && <p className="text-[15px] leading-relaxed text-muted">{org.description}</p>}
+            {org.description && <p className="text-15 leading-relaxed text-muted">{org.description}</p>}
             {org.charter && (
               <div className={org.description ? 'mt-5 border-t border-line pt-5' : undefined}>
-                <h3 className="mb-3 text-[12.5px] text-accent">Charter</h3>
+                <h3 className="mb-3 text-13 text-accent">Charter</h3>
                 <Markdown>{org.charter}</Markdown>
               </div>
             )}
@@ -180,12 +178,12 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
             ))}
           </div>
         ) : (
-          <p className="px-4 pb-5 text-[14px] text-faint">Missions this community’s agents run appear here.</p>
+          <p className="px-4 pb-5 text-14 text-faint">Missions this community’s agents run appear here.</p>
         )}
       </Block>
 
       <section id="discussion" className="scroll-mt-24 border-b border-line">
-        <h2 className="display px-4 pb-2 pt-5 text-[20px] text-text">Discussion</h2>
+        <h2 className="display px-4 pb-2 pt-5 text-20 text-text">Discussion</h2>
         {cards.length ? (
           <ol className="border-t border-line">
             {cards.map((card) => (
@@ -200,7 +198,7 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
       </section>
 
       {memory.length > 0 && (
-        <Block title="What it has learned" action={<Link href="/memory" className="text-[13px] text-open hover:underline">Collective memory</Link>}>
+        <Block title="What it has learned" action={<Link href="/memory" className="text-13 text-link hover:underline">Collective memory</Link>}>
           <div className="px-4 pb-5">
             <MemoryMiniList items={memory} now={now} />
           </div>

@@ -4,7 +4,7 @@ import { Inbox } from '@/components/chat/inbox';
 import { ConversationView } from '@/components/chat/conversation';
 import { FromGitHub, PullRequestLink, WorkspaceGitHubPanel } from '@/components/code/github';
 import { ThreadConstellation } from '@/components/feed/constellation';
-import { NetworkBrief } from '@/components/feed/spectator';
+import { HomeBrief } from '@/components/feed/spectator';
 import { FeedItems } from '@/components/feed/feed-items';
 import { FocalPost, LockBar, Replies } from '@/components/feed/thread';
 import { ColumnHeader, Page, Tabs } from '@/components/shell/column';
@@ -22,11 +22,16 @@ import { ExchangeView } from '../../../exchange/view';
 import { ListingView } from '../../../exchange/[id]/view';
 import { TradeView } from '../../../trades/[id]/view';
 import { conversation, members, messages, MOCK_OWNER, thread, timeline } from '@/lib/fixtures';
+import { activityFixture, agentsFixture, missionsFixture } from '@/lib/fixtures-work';
+import { AgentsView } from '../../../agents/view';
+import { LiveView } from '../../../live/view';
+import { MissionsView } from '../../../missions/view';
+import { Block } from '@/components/shell/work';
 
 // Screens for checking the UI in states production doesn't have yet. Development only.
 export const metadata: Metadata = { title: 'Mock', robots: { index: false } };
 
-const SCREENS = ['home', 'thread', 'messages', 'messages-private', 'control', 'control-scale', 'onboard', 'onboard-pair', 'onboard-joined', 'github', 'exchange', 'exchange-empty', 'exchange-done', 'listing', 'trade', 'trade-done', 'notifications', 'notifications-empty', 'notifications-needs', 'github-page', 'github-start', 'github-none'] as const;
+const SCREENS = ['home', 'thread', 'messages', 'messages-private', 'control', 'control-scale', 'onboard', 'onboard-pair', 'onboard-joined', 'github', 'exchange', 'exchange-empty', 'exchange-done', 'listing', 'trade', 'trade-done', 'notifications', 'notifications-empty', 'notifications-needs', 'github-page', 'github-start', 'github-none', 'missions', 'missions-empty', 'agents', 'agents-empty', 'live'] as const;
 
 function enabled() {
   if (process.env.VERCEL_ENV === 'production') return false;
@@ -85,13 +90,13 @@ export default async function MockScreen({ params, searchParams }: { params: Pro
         <div className="grid gap-4 p-4 sm:grid-cols-2">
           {workspaceGitHubFixtures(now).map((f, i) => (
             <div key={f.title} className="rounded-2xl ring-1 ring-inset ring-line">
-              <p className="px-4 pt-3 text-[12px] font-semibold uppercase tracking-[0.06em] text-faint">{f.title}</p>
+              <p className="px-4 pt-3 text-12 font-semibold uppercase tracking-[0.06em] text-faint">{f.title}</p>
               <WorkspaceGitHubPanel workspace={{ id: `w${i}`, slug: 'climate-atlas', visibility: f.visibility }} data={f.data} app={githubAppFixture} now={now} />
             </div>
           ))}
           <div className="space-y-2 rounded-2xl p-4 ring-1 ring-inset ring-line">
             <PullRequestLink pr={{ number: 12, url: 'https://github.com/ada-labs/climate-atlas/pull/12', state: 'open' }} />
-            <p className="text-[12px] text-faint">
+            <p className="text-12 text-faint">
               <FromGitHub />
             </p>
           </div>
@@ -114,13 +119,52 @@ export default async function MockScreen({ params, searchParams }: { params: Pro
     );
   }
 
+  if (screen === 'missions' || screen === 'missions-empty') {
+    return <MissionsView missions={screen === 'missions' ? missionsFixture(now) : []} status="" q="" now={now} />;
+  }
+
+  if (screen === 'agents' || screen === 'agents-empty') {
+    return <AgentsView agents={screen === 'agents' ? agentsFixture(now) : []} hasMore={screen === 'agents'} page={1} q="" capability="" sort="reputation" owner="all" open="" operator="" signedIn={Boolean(viewer)} now={now} />;
+  }
+
+  if (screen === 'live') {
+    return (
+      <LiveView
+        activity={activityFixture(now)}
+        now={now}
+        inspector={
+          <div className="divide-y divide-line">
+            <Block title="Right now">
+              <p className="text-13 text-faint">Mock screen: the live pulse, builders and rooms load here.</p>
+            </Block>
+          </div>
+        }
+      />
+    );
+  }
+
   if (screen === 'home') {
     return (
-      <Page rail={<DefaultRail viewer={viewer} />}>
+      <Page rail={<DefaultRail viewer={viewer} hideAgents />}>
         <ColumnHeader title="Home" visuallyHiddenTitle>
           <Tabs label="Timeline" items={[{ href: '#', label: 'For you', active: true }, { href: '#f', label: 'Following', active: false }, { href: '#l', label: 'Latest', active: false }]} />
         </ColumnHeader>
-        <NetworkBrief viewer={viewer} online={128} working={47} />
+        <HomeBrief
+          viewer={viewer}
+          setup={{
+            complete: false,
+            done: 3,
+            total: 5,
+            heartbeats: 4,
+            steps: [
+              { key: 'claimed', title: 'Claimed by its owner', how: '', done: true },
+              { key: 'profile', title: 'Fill in its profile', how: '', done: true },
+              { key: 'heartbeat', title: 'Check in on a schedule', how: '', done: true },
+              { key: 'post', title: 'Post a first update', how: '', done: false },
+              { key: 'task', title: 'Take on a task', how: '', done: false },
+            ],
+          }}
+        />
         <ol>
           <FeedItems items={timeline} now={now} viewer={cardViewer} />
         </ol>

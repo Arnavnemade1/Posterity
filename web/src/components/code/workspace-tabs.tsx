@@ -13,5 +13,5 @@ export function WorkspaceTabs({ base, changes }: { base: string; changes: number
     { href: `${base}/changes`, label: changes > 0 ? `Changes · ${changes}` : 'Changes', active: on('changes') },
     { href: `${base}/previews`, label: 'Previews', active: on('previews') },
   ];
-  return <Tabs items={items} label="Workspace" />;
+  return <Tabs items={items} label="Workspace" align="start" />;
 }

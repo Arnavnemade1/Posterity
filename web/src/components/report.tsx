@@ -62,21 +62,21 @@ function ReportDialog({ kind, id, onClose }: { kind: Kind; id: string; onClose: 
       <div ref={panel} role="dialog" aria-modal="true" aria-labelledby={titleId} className="glass w-full max-w-[460px] animate-[rise_220ms_var(--ease-out-expo)_both] rounded-2xl p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 id={titleId} className="text-[19px] font-bold tracking-[-0.02em] text-text">
+            <h2 id={titleId} className="text-18 font-bold tracking-[-0.02em] text-text">
               Report this {kind}
             </h2>
-            <p className="mt-1 text-[13.5px] leading-relaxed text-muted">Reports are private. Three independent reports hide a {kind} everywhere.</p>
+            <p className="mt-1 text-14 leading-relaxed text-muted">Reports are private. Three independent reports hide a {kind} everywhere.</p>
           </div>
-          <button type="button" onClick={onClose} className="-mr-1.5 -mt-1 flex size-8 shrink-0 items-center justify-center rounded-full text-faint hover:bg-fg/[0.06] hover:text-text" aria-label="Close">
+          <button type="button" onClick={onClose} className="-mr-1.5 -mt-1 flex size-8 shrink-0 items-center justify-center rounded-full text-faint hover:bg-hover hover:text-text" aria-label="Close">
             <X className="size-4" aria-hidden />
           </button>
         </div>
         {result?.ok ? (
           <div className="mt-5">
-            <p className="text-[14.5px] leading-relaxed text-text" role="status">
+            <p className="text-15 leading-relaxed text-text" role="status">
               {result.text}
             </p>
-            <button type="button" onClick={onClose} className="btn btn-primary mt-5 h-10 w-full text-[14px]">
+            <button type="button" onClick={onClose} className="btn btn-primary mt-5 h-10 w-full text-14">
               Done
             </button>
           </div>
@@ -90,32 +90,32 @@ function ReportDialog({ kind, id, onClose }: { kind: Kind; id: string; onClose: 
                     key={r.id}
                     className={cx(
                       'flex cursor-pointer gap-3 rounded-xl px-3 py-2.5 ring-1 ring-inset transition-colors',
-                      reason === r.id ? 'bg-fg/[0.05] ring-line-strong' : 'ring-transparent hover:bg-fg/[0.03]',
+                      reason === r.id ? 'bg-hover ring-line-strong' : 'ring-transparent hover:bg-hover',
                     )}
                   >
                     <input type="radio" name="reason" value={r.id} checked={reason === r.id} onChange={() => setReason(r.id)} className="mt-1 accent-[var(--color-text)]" />
                     <span>
-                      <span className="block text-[14.5px] font-medium text-text">{r.label}</span>
-                      <span className="block text-[13px] text-faint">{r.hint}</span>
+                      <span className="block text-15 font-medium text-text">{r.label}</span>
+                      <span className="block text-13 text-faint">{r.hint}</span>
                     </span>
                   </label>
                 ))}
               </div>
             </fieldset>
             <label className="mt-3 block">
-              <span className="text-[13px] text-muted">Note (optional)</span>
-              <textarea value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} rows={2} className="field mt-1.5 w-full resize-none text-[14px]" placeholder="Anything that helps a moderator" />
+              <span className="text-13 text-muted">Note (optional)</span>
+              <textarea value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} rows={2} className="field mt-1.5 w-full resize-none text-14" placeholder="Anything that helps a moderator" />
             </label>
             {result && !result.ok && (
-              <p className="mt-3 text-[13.5px] text-danger" role="alert">
+              <p className="mt-3 text-14 text-danger" role="alert">
                 {result.text}
               </p>
             )}
             <div className="mt-4 flex justify-end gap-2">
-              <button type="button" onClick={onClose} className="btn btn-ghost h-10 px-4 text-[14px]">
+              <button type="button" onClick={onClose} className="btn btn-ghost h-10 px-4 text-14">
                 Cancel
               </button>
-              <button type="submit" disabled={pending} className="btn btn-danger h-10 px-5 text-[14px]">
+              <button type="submit" disabled={pending} className="btn btn-danger h-10 px-5 text-14">
                 {pending ? 'Reporting…' : 'Report'}
               </button>
             </div>
@@ -160,12 +160,12 @@ export function MoreMenu({ kind, id, href, signedIn, own, className }: { kind: K
           event.stopPropagation();
           setAnchor(anchor ? null : anchorOf(event.currentTarget));
         }}
-        className="flex size-8 items-center justify-center rounded-full text-faint transition-colors hover:bg-open/10 hover:text-open sm:size-[34px]"
+        className="flex size-8 items-center justify-center rounded-full text-faint transition-colors hover:bg-claimed/10 hover:text-claimed sm:size-[34px]"
       >
         <Ellipsis className="size-[17px]" strokeWidth={1.8} aria-hidden />
       </button>
       <FloatingMenu anchor={anchor} onClose={close} width={224} align="end" label={`Options for this ${kind}`}>
-        <button type="button" role="menuitem" onClick={copy} className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-[14.5px] text-text transition-colors hover:bg-fg/[0.06] focus-visible:bg-fg/[0.06] focus-visible:outline-none">
+        <button type="button" role="menuitem" onClick={copy} className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-15 text-text transition-colors hover:bg-hover focus-visible:bg-hover focus-visible:outline-none">
           <Link2 className="size-[17px] text-faint" aria-hidden /> Copy link
         </button>
         {!own && (
@@ -177,7 +177,7 @@ export function MoreMenu({ kind, id, href, signedIn, own, className }: { kind: K
               if (!signedIn) return router.push(`/login?next=${encodeURIComponent(pathname)}`);
               setReporting(true);
             }}
-            className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-[14.5px] text-danger transition-colors hover:bg-danger/10 focus-visible:bg-danger/10 focus-visible:outline-none"
+            className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-15 text-danger transition-colors hover:bg-danger/10 focus-visible:bg-danger/10 focus-visible:outline-none"
           >
             <Flag className="size-[17px]" aria-hidden /> Report {kind}
           </button>

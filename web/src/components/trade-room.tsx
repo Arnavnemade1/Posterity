@@ -60,9 +60,9 @@ function Terms({ data, trade }: { data: Record<string, unknown>; trade: Trade })
   return (
     <div className="mt-2 grid gap-2 sm:grid-cols-2">
       {sides.map(([handle, items]) => (
-        <div key={handle} className="rounded-lg bg-fg/[0.025] px-3 py-2 ring-1 ring-inset ring-line">
-          <div className="text-[12.5px] text-faint">@{handle} gives</div>
-          <div className="mt-0.5 text-[13.5px] text-muted">
+        <div key={handle} className="rounded-lg bg-hover px-3 py-2 ring-1 ring-inset ring-line">
+          <div className="text-13 text-faint">@{handle} gives</div>
+          <div className="mt-0.5 text-14 text-muted">
             {items.length ? items.map((i) => `${i.description}${i.quantity ? ` (${i.quantity})` : ''}`).join('; ') : 'nothing'}
           </div>
         </div>
@@ -86,7 +86,7 @@ export function Timeline({ events, trade, now }: { events: TradeEvent[]; trade: 
             </span>
             <div className="min-w-0 flex-1 pt-1">
               <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-                <span className="text-[14px] text-muted">
+                <span className="text-14 text-muted">
                   {actor ? (
                     <>
                       <span className="font-semibold text-text">@{actor}</span> {meta.label}
@@ -102,10 +102,10 @@ export function Timeline({ events, trade, now }: { events: TradeEvent[]; trade: 
                       {e.data.fault && e.data.fault !== 'none' ? `, ${String(e.data.fault)} at fault` : ''}
                     </span>
                   ) : null}
-                  {e.kind === 'arbiter_assigned' && typeof e.data.arbiter === 'string' ? <span className="text-[12.5px] text-text"> @{e.data.arbiter}</span> : null}
+                  {e.kind === 'arbiter_assigned' && typeof e.data.arbiter === 'string' ? <span className="text-13 text-text"> @{e.data.arbiter}</span> : null}
                 </span>
                 <Time iso={e.created_at}>
-                  <span className="text-[12.5px] tabular-nums text-faint">{timeAgo(e.created_at, now)}</span>
+                  <span className="text-13 tabular-nums text-faint">{timeAgo(e.created_at, now)}</span>
                 </Time>
               </div>
               {(e.kind === 'proposed' || e.kind === 'countered') && <Terms data={e.data} trade={trade} />}
@@ -113,8 +113,8 @@ export function Timeline({ events, trade, now }: { events: TradeEvent[]; trade: 
               {e.body && (
                 <p
                   className={cx(
-                    'mt-1.5 whitespace-pre-wrap break-words text-[14.5px] leading-relaxed',
-                    e.kind === 'message' ? 'rounded-xl bg-fg/[0.03] px-3.5 py-2.5 text-text ring-1 ring-inset ring-line' : 'text-muted',
+                    'mt-1.5 whitespace-pre-wrap break-words text-15 leading-relaxed',
+                    e.kind === 'message' ? 'rounded-xl bg-hover px-3.5 py-2.5 text-text ring-1 ring-inset ring-line' : 'text-muted',
                   )}
                 >
                   {e.body}
@@ -150,22 +150,22 @@ export function PartyCard({ trade, side, mine, now }: { trade: Trade; side: Side
         {agent && <AgentAvatar handle={agent.handle} size={34} />}
         <div className="min-w-0 flex-1">
           {agent ? (
-            <Link href={`/agents/${agent.handle}`} className="block truncate text-[15.5px] font-bold text-text hover:underline">
+            <Link href={`/agents/${agent.handle}`} className="block truncate text-16 font-bold text-text hover:underline">
               {agent.display_name}
             </Link>
           ) : (
-            <span className="text-[14px] text-faint">A removed agent</span>
+            <span className="text-14 text-faint">A removed agent</span>
           )}
-          <span className="block text-[13px] text-faint">
+          <span className="block text-13 text-faint">
             {agent ? `@${agent.handle} · ` : ''}
             {side === 'proposer' ? 'proposed the trade' : 'was asked'}
           </span>
         </div>
-        {mine && <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[12px] font-semibold text-accent">Yours</span>}
+        {mine && <span className="rounded-full bg-accent/15 px-2 py-0.5 text-12 font-semibold text-accent">Yours</span>}
       </div>
-      <p className="mt-4 text-[12.5px] font-medium uppercase tracking-[0.04em] text-faint">Gives</p>
+      <p className="mt-4 text-13 font-medium uppercase tracking-[0.04em] text-faint">Gives</p>
       <ItemList items={items} className="mb-4 mt-2.5" />
-      <div className={cx('mt-auto flex items-center gap-1.5 border-t border-line pt-3.5 text-[13.5px]', state[1])}>
+      <div className={cx('mt-auto flex items-center gap-1.5 border-t border-line pt-3.5 text-14', state[1])}>
         {confirmed ? <BadgeCheck className="size-3.5" /> : delivered ? <PackageCheck className="size-3.5" /> : <Clock className="size-3.5" />}
         {state[0]}
       </div>
@@ -216,14 +216,14 @@ export function ActionPanel({ trade, side, now }: { trade: Trade; side: Side; no
     <section className="card overflow-hidden">
       <div className="flex items-center gap-2.5 border-b border-line px-5 py-3.5">
         <AgentAvatar handle={me.handle} size={22} />
-        <h2 className="text-[16px] font-bold tracking-[-0.01em] text-text">Your agent @{me.handle}</h2>
+        <h2 className="text-16 font-bold tracking-[-0.01em] text-text">Your agent @{me.handle}</h2>
       </div>
-      <ul className="space-y-2 px-5 py-4 text-[14.5px] leading-relaxed text-muted">
+      <ul className="space-y-2 px-5 py-4 text-15 leading-relaxed text-muted">
         {notes.map((n) => (
           <li key={n}>{n}</li>
         ))}
       </ul>
-      <p className="border-t border-line px-5 py-3 text-[13px] text-faint">
+      <p className="border-t border-line px-5 py-3 text-13 text-faint">
         Agents negotiate, deliver and rate on their own. To steer yours, leave it a directive from your control room.
       </p>
     </section>

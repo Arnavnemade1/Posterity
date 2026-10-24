@@ -1,4 +1,6 @@
 // Layered drawing of a mission's task graph: dependencies flow left to right.
+import Link from 'next/link';
+import { GraphViewport } from '@/components/task-graph-viewport';
 import { type Glyph, lookup, TASK_STATUS, TONE_VAR, type Tone } from '@/lib/status';
 
 export interface GraphTask {
@@ -120,27 +122,29 @@ function Glyph({ glyph, tone, x, y }: { glyph: Glyph; tone: Tone; x: number; y: 
   );
 }
 
-export function TaskGraph({ tasks, linkTasks = true, fit = false }: { tasks: GraphTask[]; linkTasks?: boolean; fit?: boolean }) {
+/**
+ * `interactive` puts the drawing in a window you can drag and zoom, opened fitted; without it the drawing is
+ * at its own size and scrolls sideways (for small plans in a form).
+ */
+export function TaskGraph({ tasks, linkTasks = true, interactive = false }: { tasks: GraphTask[]; linkTasks?: boolean; interactive?: boolean }) {
   if (!tasks.length) return null;
   const { width, height, position, edges, byKey, layerOf } = layoutGraph(tasks);
 
-  return (
-    <div className={fit ? undefined : 'overflow-x-auto'}>
+  const drawing = (
       <svg
-        width={fit ? '100%' : width}
-        height={fit ? undefined : height}
+        width={width}
+        height={height}
         viewBox={`0 0 ${width} ${height}`}
         role="img"
         aria-label="Task graph"
         className="block overflow-visible"
-        style={fit ? { maxWidth: width } : undefined}
       >
         <defs>
           <marker id="tg-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
             <path d="M0,0 L8,4 L0,8 z" className="fill-faint" />
           </marker>
           <marker id="tg-arrow-done" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-            <path d="M0,0 L8,4 L0,8 z" className="fill-accent" />
+            <path d="M0,0 L8,4 L0,8 z" className="fill-done" />
           </marker>
         </defs>
         {edges.map((e) => {
@@ -163,7 +167,7 @@ export function TaskGraph({ tasks, linkTasks = true, fit = false }: { tasks: Gra
               <path
                 d={d}
                 fill="none"
-                className={done ? 'tg-flow stroke-accent' : 'stroke-line-strong'}
+                className={done ? 'tg-flow stroke-done' : 'stroke-line-strong'}
                 strokeOpacity={done ? 0.85 : 1}
                 strokeWidth={1.3}
                 strokeDasharray={e.implicit ? '3 4' : done ? '6 5' : undefined}
@@ -188,7 +192,7 @@ export function TaskGraph({ tasks, linkTasks = true, fit = false }: { tasks: Gra
                 width={W}
                 height={H}
                 rx={12}
-                style={{ fill: 'var(--color-panel)', stroke: active ? TONE_VAR[tone] : t.status === 'done' ? 'var(--color-accent)' : 'var(--color-line-strong)' }}
+                style={{ fill: 'var(--color-panel)', stroke: active ? TONE_VAR[tone] : t.status === 'done' ? 'var(--color-done)' : 'var(--color-line-strong)' }}
                 strokeOpacity={active ? 0.7 : t.status === 'done' ? 0.5 : 1}
               />
               {active && (
@@ -225,14 +229,15 @@ export function TaskGraph({ tasks, linkTasks = true, fit = false }: { tasks: Gra
             </g>
           );
           return linkTasks && t.id ? (
-            <a key={t.key} href={`/tasks/${t.id}`} aria-label={`${t.title}: ${label}`}>
+            <Link key={t.key} href={`/tasks/${t.id}`} transitionTypes={['nav-forward']} aria-label={`${t.title}: ${label}`}>
               {node}
-            </a>
+            </Link>
           ) : (
             <g key={t.key}>{node}</g>
           );
         })}
       </svg>
-    </div>
   );
+  if (interactive) return <GraphViewport width={width} height={height}>{drawing}</GraphViewport>;
+  return <div className="overflow-x-auto">{drawing}</div>;
 }

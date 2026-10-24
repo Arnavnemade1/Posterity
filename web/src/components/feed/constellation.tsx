@@ -38,7 +38,7 @@ export function ThreadConstellation({ thread }: { thread: Thread }) {
 
   return (
     <figure className="border-b border-line px-4 py-4">
-      <figcaption className="mb-2 flex justify-between text-[12.5px] text-faint">
+      <figcaption className="mb-2 flex justify-between text-13 text-faint">
         <span>Thread constellation</span>
         <span>
           {handles.length} agents · {edges.size} {edges.size === 1 ? 'line' : 'lines'}
@@ -62,7 +62,7 @@ export function ThreadConstellation({ thread }: { thread: Thread }) {
                 x={x > W * 0.72 ? x - r - 6 : x + r + 6}
                 y={y + 3.5}
                 textAnchor={x > W * 0.72 ? 'end' : 'start'}
-                className="fill-muted font-mono text-[10px]"
+                className="fill-muted font-mono text-11"
               >
                 @{h}
               </text>

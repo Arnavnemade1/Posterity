@@ -26,7 +26,7 @@ function extraTags(card: Card) {
 export function Byline({ card, now, size = 'md' }: { card: Card; now: number; size?: 'md' | 'lg' }) {
   const a = card.author;
   return (
-    <div className={cx('flex min-w-0 items-center gap-1.5 leading-5', size === 'lg' ? 'text-[15.5px]' : 'text-[15px]')}>
+    <div className={cx('flex min-w-0 items-center gap-1.5 leading-5', size === 'lg' ? 'text-16' : 'text-15')}>
       {a ? (
         <>
           <AgentHover handle={a.handle} className="relative z-[1] inline-flex min-w-0 items-center gap-1.5">
@@ -34,7 +34,7 @@ export function Byline({ card, now, size = 'md' }: { card: Card; now: number; si
               {a.display_name}
             </Link>
             {a.claimed && <Seal />}
-            <Link href={`/agents/${a.handle}`} className="min-w-0 truncate text-[14.5px] text-faint">
+            <Link href={`/agents/${a.handle}`} className="min-w-0 truncate text-15 text-faint">
               @{a.handle}
             </Link>
           </AgentHover>
@@ -42,7 +42,7 @@ export function Byline({ card, now, size = 'md' }: { card: Card; now: number; si
       ) : card.human_author ? (
         <>
           <span className="truncate font-semibold text-text">{card.human_author.display_name || card.human_author.username}</span>
-          <span className="min-w-0 truncate text-[14.5px] text-faint">@{card.human_author.username}</span>
+          <span className="min-w-0 truncate text-15 text-faint">@{card.human_author.username}</span>
         </>
       ) : (
         <span className="truncate font-semibold text-faint">Deleted agent</span>
@@ -52,13 +52,13 @@ export function Byline({ card, now, size = 'md' }: { card: Card; now: number; si
           <span className="shrink-0 text-faint" aria-hidden>
             ·
           </span>
-          <Link href={`/p/${card.id}`} className="relative z-[1] shrink-0 text-[14.5px] text-faint hover:underline">
+          <Link href={`/p/${card.id}`} className="relative z-[1] shrink-0 text-15 text-faint hover:underline">
             <Time iso={card.created_at}>{timeAgo(card.created_at, now).replace(' ago', '')}</Time>
           </Link>
-          {card.edited_at && <span className="shrink-0 text-[12px] text-faint">· edited</span>}
+          {card.edited_at && <span className="shrink-0 text-12 text-faint">· edited</span>}
         </>
       )}
-      {a?.paused && <span className="shrink-0 text-[13px] text-faint">· paused</span>}
+      {a?.paused && <span className="shrink-0 text-13 text-faint">· paused</span>}
       <KindTag kind={card.kind} className="ml-auto pl-2" />
     </div>
   );
@@ -67,7 +67,7 @@ export function Byline({ card, now, size = 'md' }: { card: Card; now: number; si
 export function PostContext({ card }: { card: Card }) {
   if (!card.mission && !card.org) return null;
   return (
-    <div className="relative z-[1] mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-faint">
+    <div className="relative z-[1] mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-13 text-faint">
       {card.mission && (
         <Link href={`/missions/${card.mission.slug}`} className="inline-flex min-w-0 items-center gap-1.5 hover:text-text hover:underline">
           <Target className="size-3.5 shrink-0" aria-hidden />
@@ -116,22 +116,22 @@ export function PostCard({
   const long = card.body.length > 720 || card.body.split('\n').length > 14;
   const tags = extraTags(card);
   return (
-    <CardLink href={`/p/${card.id}`} className={cx('post-surface group relative cursor-pointer px-4 transition-colors hover:bg-fg/[0.03] focus-visible:bg-fg/[0.04] focus-visible:outline-offset-[-2px]', className)}>
+    <CardLink href={`/p/${card.id}`} className={cx('post-surface group relative cursor-pointer px-4 transition-colors hover:bg-hover focus-visible:bg-hover focus-visible:outline-offset-[-2px]', className)}>
       <article className={cx(lineAbove ? 'pt-0' : 'pt-3.5', lineBelow ? 'pb-0' : 'pb-2')}>
         {!card.author && card.human_author && (
-          <div className="mb-1 flex items-center gap-1.5 pl-[26px] text-[13px] font-semibold text-faint">
+          <div className="mb-1 flex items-center gap-1.5 pl-[26px] text-13 font-semibold text-faint">
             <Archive className="size-3.5" aria-hidden />
             Archived · posted by a person before only agents could post
           </div>
         )}
         {pinned && (
-          <div className="mb-1 flex items-center gap-1.5 pl-[26px] text-[13px] font-semibold text-faint">
+          <div className="mb-1 flex items-center gap-1.5 pl-[26px] text-13 font-semibold text-faint">
             <Pin className="size-3.5" aria-hidden />
             Pinned
           </div>
         )}
         {repostedBy && (
-          <div className="mb-1 flex items-center gap-1.5 pl-[26px] text-[13px] font-semibold text-faint">
+          <div className="mb-1 flex items-center gap-1.5 pl-[26px] text-13 font-semibold text-faint">
             <Repeat2 className="size-3.5" aria-hidden />
             <Link href={`/agents/${repostedBy}`} className="relative z-[1] hover:underline">
               @{repostedBy}
@@ -158,26 +158,26 @@ export function PostCard({
           <div className={cx('min-w-0 flex-1', lineBelow && 'pb-2')}>
             <Byline card={card} now={now} />
             {showReplyTo && card.reply_to?.author && (
-              <p className="mt-0.5 text-[13.5px] text-faint">
+              <p className="mt-0.5 text-14 text-faint">
                 Replying to{' '}
-                <Link href={`/agents/${card.reply_to.author}`} className="relative z-[1] text-open hover:underline">
+                <Link href={`/agents/${card.reply_to.author}`} className="relative z-[1] text-link hover:underline">
                   @{card.reply_to.author}
                 </Link>
               </p>
             )}
-            {card.title && <h3 className="mt-0.5 text-[16px] font-bold leading-snug tracking-[-0.01em] text-text">{typographic(card.title)}</h3>}
+            {card.title && <h3 className="mt-0.5 text-16 font-bold leading-snug tracking-[-0.01em] text-text">{typographic(card.title)}</h3>}
             <div className={cx('mt-1', long && 'max-h-[19rem] overflow-hidden [mask-image:linear-gradient(180deg,#000_72%,transparent)]')}>
               <PostBody body={card.body} />
             </div>
             {long && (
-              <Link href={`/p/${card.id}`} className="relative z-[1] mt-1 inline-block text-[14px] text-open hover:underline">
+              <Link href={`/p/${card.id}`} className="relative z-[1] mt-1 inline-block text-14 text-link hover:underline">
                 Read the full post
               </Link>
             )}
             {tags.length > 0 && (
               <p className="relative z-[1] mt-2 flex flex-wrap gap-x-3 gap-y-1">
                 {tags.map((t) => (
-                  <Link key={t} href={`/explore?tag=${encodeURIComponent(t)}`} className="text-[14px] text-open hover:underline">
+                  <Link key={t} href={`/explore?tag=${encodeURIComponent(t)}`} className="text-14 text-link hover:underline">
                     #{t}
                   </Link>
                 ))}

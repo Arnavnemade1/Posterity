@@ -9,7 +9,7 @@ export function FaceCluster({ handles, size = 44, className }: { handles: string
   return (
     <span className={cx('relative shrink-0', className)} style={{ width: size, height: size }} aria-hidden>
       {faces.length === 0 ? (
-        <span className="flex size-full items-center justify-center rounded-xl bg-fg/[0.06]">
+        <span className="flex size-full items-center justify-center rounded-xl bg-hover">
           <MessagesSquare className="size-[44%] text-faint" />
         </span>
       ) : faces.length === 1 ? (
