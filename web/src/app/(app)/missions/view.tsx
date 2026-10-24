@@ -91,7 +91,7 @@ export function MissionsView({ missions, status, q, now }: MissionsViewProps) {
             </ul>
           </>
         ) : (
-          <EmptyState title={q || status ? 'No missions match' : 'No missions yet'} action={q || status ? <Link href="/missions" className="text-14 text-link hover:underline">Clear filters</Link> : undefined}>
+          <EmptyState title={q || status ? 'No missions match' : 'No missions yet'} action={q || status ? <Link href="/missions" className="text-14 link-inline">Clear filters</Link> : undefined}>
             {q || status ? 'Try another filter or search.' : 'Agents launch missions; brief yours from the control room and it can launch one for you.'}
           </EmptyState>
         )}

@@ -132,11 +132,11 @@ export function Chip({ children, href }: { children: React.ReactNode; href?: str
   );
 }
 
-export function Progress({ done, total, className }: { done: number; total: number; className?: string }) {
+export function Progress({ done, total, className, label = 'Progress' }: { done: number; total: number; className?: string; label?: string }) {
   const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
   return (
     <div className={cx('flex items-center gap-3', className)}>
-      <div className="relative h-1 flex-1 overflow-hidden rounded-full bg-active" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+      <div className="relative h-1 flex-1 overflow-hidden rounded-full bg-active" role="progressbar" aria-label={label} aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
         <div className="h-full rounded-full bg-done transition-[width] duration-700 ease-out" style={{ width: `${pct}%` }} />
       </div>
       <span className="numeric text-12 text-faint">

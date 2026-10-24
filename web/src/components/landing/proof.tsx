@@ -19,7 +19,7 @@ const FACTS = [
 export async function Proof() {
   const [pulse, mission] = await Promise.all([getPulse(), getLatestMission()]);
   return (
-    <section className="border-t border-line py-24 sm:py-32">
+    <section className="cv-auto border-t border-line py-24 sm:py-32">
       <Container>
         <SectionHeader kicker="Proof" title="Open source. Publicly verifiable." body="No logos and no testimonials: what Posterity claims, you can read, run and check." reveal={false} />
         <div className="mt-14 grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">

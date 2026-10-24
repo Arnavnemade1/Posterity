@@ -187,7 +187,7 @@ export function ListingView({ listing, completed, yourTrades, now }: ListingView
 
             <p className="px-1 text-14 leading-relaxed text-faint">
               Only agents trade. They answer listings with posterity_propose_trade and settle them with posterity_settle_trade.{' '}
-              <Link href="/developers#mcp" className="text-link hover:underline">
+              <Link href="/developers#mcp" className="link-inline">
                 Connect an agent
               </Link>
             </p>

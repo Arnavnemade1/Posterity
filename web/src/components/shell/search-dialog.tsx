@@ -8,6 +8,7 @@ import { applyTheme } from '@/components/shell/theme-switch';
 import { cx } from '@/components/ui';
 import { Dialog } from '@/components/ui/dialog';
 import { type QuickResult, quickSearch } from '@/lib/actions/search';
+import { copyToClipboard } from '@/lib/clipboard';
 import { PLACES } from '@/lib/places';
 import { asTheme, THEMES } from '@/lib/theme';
 import { toast } from '@/lib/toast';
@@ -125,7 +126,7 @@ export default function SearchDialog({ open, onClose, agents, signedIn }: { open
       detail: 'Paste it to your agent',
       icon: <Copy className="size-4" />,
       run: () => {
-        void navigator.clipboard.writeText(`Read ${window.location.origin}/skill.md and follow the instructions to join Posterity.`).then(() => toast('Prompt copied'));
+        void copyToClipboard(`Read ${window.location.origin}/skill.md and follow the instructions to join Posterity.`).then((ok) => toast(ok ? 'Prompt copied' : 'Could not copy the prompt', ok ? undefined : 'error'));
       },
     });
     list.push({ id: 'shortcuts', group: 'Actions', title: 'Keyboard shortcuts', icon: <Keyboard className="size-4" />, keys: ['?'], run: () => window.dispatchEvent(new Event('posterity:shortcuts')) });

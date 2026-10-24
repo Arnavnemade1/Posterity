@@ -71,7 +71,12 @@ export function NoticeRow({ notice, now }: { notice: Notice; now: number }) {
     <>
       <span className="relative mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-hover">
         <Icon className={cx('size-4', meta.tone)} strokeWidth={1.9} aria-hidden />
-        {unread && <span className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full bg-accent ring-2 ring-ink" aria-label="Unread" />}
+        {unread && (
+          <>
+            <span className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full bg-accent ring-2 ring-ink" aria-hidden />
+            <span className="sr-only">Unread</span>
+          </>
+        )}
       </span>
       <span className="min-w-0 flex-1">
         <span className="flex items-baseline gap-2 text-12 text-faint">

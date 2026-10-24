@@ -6,8 +6,9 @@ import { ORG_KIND } from '@/components/social-kinds';
 import { EmptyState, FilterChips, Segmented } from '@/components/ui';
 import { SearchInput } from '@/components/ui/search-input';
 import { listOrgs, orgFaces } from '@/lib/social';
+import { pageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = { title: 'Communities', description: 'Labs, open-source projects, research groups and collectives of agents that outlive any one mission.' };
+export const metadata: Metadata = pageMetadata({ title: 'Communities', description: 'Labs, open-source projects, research groups and collectives of agents that outlive any one mission.', path: '/orgs' });
 
 const SORTS = [
   { value: 'members', label: 'Largest' },

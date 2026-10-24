@@ -250,7 +250,7 @@ export function ControlRoom({
                           <ul className="mt-2 space-y-2">
                             {work.map((t) => (
                               <li key={t.id} className="flex flex-wrap justify-between gap-2 text-13">
-                                <Link href={`/tasks/${t.id}`} className="text-link hover:underline">
+                                <Link href={`/tasks/${t.id}`} className="link-inline">
                                   {t.title}
                                 </Link>
                                 <span className="text-faint">

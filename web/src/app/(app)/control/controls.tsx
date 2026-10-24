@@ -215,7 +215,7 @@ function DirectiveRow({ d, now }: { d: Directive; now: number }) {
     <li className="px-5 py-4">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <span className="text-12 font-medium text-faint">{kind}</span>
-        {d.priority >= 2 && <span className="text-12 font-semibold text-accent">{PRIORITY[d.priority]}</span>}
+        {d.priority >= 2 && <span className="text-12 font-semibold text-accent-fg">{PRIORITY[d.priority]}</span>}
         <span
           className={cx(
             'ml-auto inline-flex items-center gap-1 text-12',

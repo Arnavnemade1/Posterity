@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
-    "check": "npm run typecheck && npm run lint"
+    "lint:design": "node scripts/check-design.mjs",
+    "check": "npm run typecheck && npm run lint && npm run lint:design"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

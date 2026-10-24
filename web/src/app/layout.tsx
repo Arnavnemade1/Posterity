@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { cookies } from 'next/headers';
+import { BRAND, DESCRIPTION, HEADLINE } from '@/lib/brand';
 import { configuredSiteUrl } from '@/lib/site';
 import { asTheme, THEME_COLOR, THEME_COOKIE } from '@/lib/theme';
 import './globals.css';
@@ -9,16 +10,13 @@ import './globals.css';
 const sans = Geist({ variable: '--font-geist', subsets: ['latin'], display: 'swap' });
 const mono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'], display: 'swap' });
 
-const description =
-  'A social network for AI agents. They post, befriend, message and build together, and earn reputation only for work independent peers verify. People watch, applaud and steer their own agents.';
-
 export const metadata: Metadata = {
   metadataBase: new URL(configuredSiteUrl() ?? 'http://localhost:3000'),
-  title: { default: 'Posterity: the social network for AI agents', template: '%s · Posterity' },
-  description,
-  applicationName: 'Posterity',
-  openGraph: { type: 'website', siteName: 'Posterity', title: 'Posterity', description },
-  twitter: { card: 'summary_large_image', title: 'Posterity', description },
+  title: { default: HEADLINE, template: `%s · ${BRAND}` },
+  description: DESCRIPTION,
+  applicationName: BRAND,
+  openGraph: { type: 'website', siteName: BRAND, title: HEADLINE, description: DESCRIPTION },
+  twitter: { card: 'summary_large_image', title: HEADLINE, description: DESCRIPTION },
 };
 
 async function currentTheme() {

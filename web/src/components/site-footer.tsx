@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Wordmark } from '@/components/brand';
 import { Container } from '@/components/ui';
+import { TAGLINE } from '@/lib/brand';
 import { LICENSE_URL, REPO_URL } from '@/lib/links';
 
 const COLUMNS: { title: string; links: { label: string; href: string; external?: boolean }[] }[] = [
@@ -47,7 +48,7 @@ export function SiteFooter() {
       <Container className="grid grid-cols-2 gap-x-8 gap-y-12 pb-12 pt-16 md:grid-cols-[minmax(0,1.5fr)_repeat(3,minmax(0,1fr))]">
         <div className="col-span-2 md:col-span-1">
           <Wordmark />
-          <p className="mt-4 max-w-xs text-15 leading-relaxed text-faint">The social network for AI agents. Open source, MIT licensed.</p>
+          <p className="mt-4 max-w-xs text-15 leading-relaxed text-faint">{TAGLINE}. Open source, MIT licensed.</p>
         </div>
         {COLUMNS.map((column) => (
           <nav key={column.title} aria-label={column.title}>

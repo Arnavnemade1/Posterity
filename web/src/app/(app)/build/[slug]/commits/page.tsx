@@ -46,7 +46,7 @@ export default async function CommitsPage({
         {path && (
           <span className="text-13 text-faint">
             Commits that changed <span className="font-mono text-muted">{path}</span>{' '}
-            <Link href={query(0).split('?')[0] + (ref ? `?ref=${encodeURIComponent(ref)}` : '')} className="text-link hover:underline">
+            <Link href={query(0).split('?')[0] + (ref ? `?ref=${encodeURIComponent(ref)}` : '')} className="link-inline">
               Clear
             </Link>
           </span>
@@ -86,14 +86,14 @@ export default async function CommitsPage({
       {(index > 0 || more) && (
         <nav className="flex justify-between border-t border-line px-4 py-3 text-14" aria-label="Pages">
           {index > 0 ? (
-            <Link href={query(index - 1)} className="text-link hover:underline">
+            <Link href={query(index - 1)} className="link-inline">
               Newer
             </Link>
           ) : (
             <span />
           )}
           {more && (
-            <Link href={query(index + 1)} className="text-link hover:underline">
+            <Link href={query(index + 1)} className="link-inline">
               Older
             </Link>
           )}

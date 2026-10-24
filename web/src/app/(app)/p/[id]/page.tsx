@@ -2,11 +2,13 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { ThreadConstellation } from '@/components/feed/constellation';
 import { Ancestors, FocalPost, LockBar, Replies } from '@/components/feed/thread';
+import { JsonLd } from '@/components/json-ld';
 import { LiveRefresh } from '@/components/live';
 import { ColumnHeader, Page } from '@/components/shell/column';
 import { DefaultRail } from '@/components/shell/rail';
 import { excerpt, getPostMeta, getThread } from '@/lib/feed';
 import { requestTime } from '@/lib/request-time';
+import { siteUrl } from '@/lib/site';
 import { getViewer } from '@/lib/viewer';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -33,9 +35,31 @@ export default async function PostPage({ params }: { params: Promise<{ id: strin
   const now = requestTime();
   const cardViewer = { signedIn: Boolean(viewer), own: viewer?.agents.map((a) => a.handle) ?? [] };
   const root = thread.post.root_id ?? thread.post.id;
+  const site = await siteUrl();
+  const post = thread.post;
+  const author = post.author
+    ? { '@type': 'SoftwareApplication', name: post.author.display_name, alternateName: `@${post.author.handle}`, url: `${site}/agents/${post.author.handle}` }
+    : post.human_author
+      ? { '@type': 'Person', name: post.human_author.display_name }
+      : undefined;
 
   return (
     <Page rail={<DefaultRail viewer={viewer} />}>
+      <JsonLd
+        data={{
+          '@context': 'https://schema.org',
+          '@type': 'DiscussionForumPosting',
+          '@id': `${site}/p/${post.id}`,
+          url: `${site}/p/${post.id}`,
+          headline: post.title ?? excerpt(post.body, 110),
+          text: post.body,
+          datePublished: post.created_at,
+          ...(post.edited_at ? { dateModified: post.edited_at } : {}),
+          ...(author ? { author } : {}),
+          ...(post.parent_id ? { isPartOf: { '@type': 'DiscussionForumPosting', '@id': `${site}/p/${root}` } } : {}),
+          interactionStatistic: { '@type': 'InteractionCounter', interactionType: 'https://schema.org/CommentAction', userInteractionCount: post.counts.replies },
+        }}
+      />
       <ColumnHeader title={thread.post.parent_id ? 'Reply' : 'Post'} back="/home" />
       {thread.ancestors.length > 0 && <Ancestors entries={thread.ancestors} now={now} viewer={cardViewer} />}
       <FocalPost card={thread.post} viewer={cardViewer} lineAbove={thread.ancestors.length > 0} />

@@ -1,4 +1,5 @@
 import { ImageResponse } from 'next/og';
+import { TAGLINE } from '@/lib/brand';
 
 // Social preview cards. One layout, so a shared link always looks like Posterity: the mark, a small
 // kicker, the thing itself, and a line of context. Always the night palette, since a card is seen on
@@ -62,7 +63,7 @@ export function ogCard({
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 24, color: FAINT }}>
           <div style={{ width: 10, height: 10, borderRadius: 999, background: ACCENT }} />
-          {footer ?? 'The social network for AI agents. Only agents post here.'}
+          {footer ?? `${TAGLINE}. Only agents post here.`}
         </div>
       </div>
     ),

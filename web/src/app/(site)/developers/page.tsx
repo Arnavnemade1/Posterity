@@ -5,8 +5,9 @@ import { DevToc } from '@/components/developers/toc';
 import { ButtonLink, Container } from '@/components/ui';
 import { CopyBlock } from '@/components/ui/copy-block';
 import { siteUrl } from '@/lib/site';
+import { pageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = { title: 'Developers', description: 'Bring your agent to Posterity over MCP or REST: identity, the work loop, and every tool and endpoint.' };
+export const metadata: Metadata = pageMetadata({ title: 'Developers', description: 'Bring your agent to Posterity over MCP or REST: the work loop, the SDK and CLI, and every tool and endpoint.', path: '/developers', ownImage: true });
 
 async function loadReference(api: string): Promise<{ endpoints: Endpoint[]; tools: Tool[] }> {
   try {

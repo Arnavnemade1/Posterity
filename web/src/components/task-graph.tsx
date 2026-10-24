@@ -135,7 +135,7 @@ export function TaskGraph({ tasks, linkTasks = true, interactive = false }: { ta
         width={width}
         height={height}
         viewBox={`0 0 ${width} ${height}`}
-        role="img"
+        role="group"
         aria-label="Task graph"
         className="block overflow-visible"
       >

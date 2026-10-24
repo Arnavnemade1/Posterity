@@ -1,8 +1,9 @@
 'use client';
 
 import { Check, Copy } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { cx } from '@/components/ui';
+import { useCopy } from '@/components/ui/use-copy';
 
 type Tab = { id: string; label: string; prompt: string; command: string; output: React.ReactNode };
 
@@ -92,9 +93,12 @@ export function Terminal({ api }: { api: string }) {
 
   const [tab, setTab] = useState(0);
   const [typed, setTyped] = useState(0);
-  const [copied, setCopied] = useState(false);
+  const { state: copyState, copy } = useCopy(1600);
+  const copied = copyState === 'copied';
   const [started, setStarted] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const tabsRef = useRef<(HTMLButtonElement | null)[]>([]);
+  const uid = useId();
   const current = tabs[tab];
   const full = current.command;
 
@@ -134,13 +138,32 @@ export function Terminal({ api }: { api: string }) {
           <span className="size-2.5 rounded-full bg-line-strong" />
           <span className="size-2.5 rounded-full bg-line-strong" />
         </span>
-        <div className="flex gap-0.5" role="tablist" aria-label="Client">
+        <div
+          className="flex gap-0.5"
+          role="tablist"
+          aria-label="Client"
+          onKeyDown={(event) => {
+            // Arrow keys move between tabs and select them; Home and End jump to the ends.
+            const last = tabs.length - 1;
+            const next = event.key === 'ArrowRight' ? (tab === last ? 0 : tab + 1) : event.key === 'ArrowLeft' ? (tab === 0 ? last : tab - 1) : event.key === 'Home' ? 0 : event.key === 'End' ? last : null;
+            if (next === null) return;
+            event.preventDefault();
+            setTab(next);
+            tabsRef.current[next]?.focus();
+          }}
+        >
           {tabs.map((t, i) => (
             <button
               key={t.id}
+              ref={(el) => {
+                tabsRef.current[i] = el;
+              }}
+              id={`${uid}-tab-${t.id}`}
               type="button"
               role="tab"
               aria-selected={i === tab}
+              aria-controls={`${uid}-panel`}
+              tabIndex={i === tab ? 0 : -1}
               onClick={() => setTab(i)}
               className={cx(
                 'whitespace-nowrap rounded-md px-2.5 py-1 text-13 font-medium transition-colors',
@@ -153,22 +176,14 @@ export function Terminal({ api }: { api: string }) {
         </div>
         <button
           type="button"
-          onClick={async () => {
-            try {
-              await navigator.clipboard.writeText(copyText);
-              setCopied(true);
-              setTimeout(() => setCopied(false), 1600);
-            } catch {
-              window.prompt('Copy this', copyText);
-            }
-          }}
+          onClick={() => void copy(copyText)}
           className="ml-auto flex items-center gap-1.5 rounded-md px-2.5 py-1 text-12 text-faint transition-colors hover:bg-raised hover:text-text"
         >
-          {copied ? <Check className="size-3.5 text-done" /> : <Copy className="size-3.5" />}
-          {copied ? 'Copied' : 'Copy'}
+          {copied ? <Check className="size-3.5 text-done" aria-hidden /> : <Copy className="size-3.5" aria-hidden />}
+          {copied ? 'Copied' : copyState === 'error' ? 'Copy by hand' : 'Copy'}
         </button>
       </div>
-      <div className="min-h-[268px] bg-ink p-5 font-mono text-13 leading-[1.75]">
+      <div id={`${uid}-panel`} role="tabpanel" aria-labelledby={`${uid}-tab-${current.id}`} tabIndex={0} className="min-h-[268px] bg-ink p-5 font-mono text-13 leading-[1.75] outline-offset-[-2px]">
         {current.command ? (
           <Line>
             <span className="select-none text-faint">{current.prompt}</span>{' '}

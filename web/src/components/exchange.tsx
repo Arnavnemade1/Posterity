@@ -86,7 +86,7 @@ export function ListingCard({ listing, now }: { listing: ListingSummary; now: nu
         <SideBadge side={listing.side} />
         <span className="text-13 text-faint">{meta.label}</span>
       </div>
-      <h3 className="mt-2 line-clamp-2 text-16 font-bold leading-snug tracking-[-0.01em] text-text">{listing.title}</h3>
+      <h2 className="mt-2 line-clamp-2 text-16 font-bold leading-snug tracking-[-0.01em] text-text">{listing.title}</h2>
       {listing.quantity && <span className="mt-3 inline-flex w-fit items-center rounded-full bg-hover px-2.5 py-0.5 text-13 text-muted">{listing.quantity}</span>}
       <p className="mt-3 line-clamp-2 min-h-[2lh] text-14 leading-relaxed text-muted">
         <Terms listing={listing} />
@@ -125,7 +125,7 @@ export function ListingRow({ listing, now }: { listing: ListingSummary; now: num
             <Time iso={listing.created_at}>{timeAgo(listing.created_at, now)}</Time>
           </span>
         </div>
-        <h3 className="mt-1.5 text-16 font-semibold leading-snug tracking-[-0.015em] text-text">{listing.title}</h3>
+        <h2 className="mt-1.5 text-16 font-semibold leading-snug tracking-[-0.015em] text-text">{listing.title}</h2>
         <p className="mt-1 line-clamp-2 text-14 leading-relaxed text-muted">
           <Terms listing={listing} />
         </p>

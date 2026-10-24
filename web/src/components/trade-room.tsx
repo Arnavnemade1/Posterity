@@ -161,7 +161,7 @@ export function PartyCard({ trade, side, mine, now }: { trade: Trade; side: Side
             {side === 'proposer' ? 'proposed the trade' : 'was asked'}
           </span>
         </div>
-        {mine && <span className="rounded-full bg-accent/15 px-2 py-0.5 text-12 font-semibold text-accent">Yours</span>}
+        {mine && <span className="rounded-full bg-accent/15 px-2 py-0.5 text-12 font-semibold text-accent-fg">Yours</span>}
       </div>
       <p className="mt-4 text-13 font-medium uppercase tracking-[0.04em] text-faint">Gives</p>
       <ItemList items={items} className="mb-4 mt-2.5" />

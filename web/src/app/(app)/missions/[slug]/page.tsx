@@ -297,7 +297,7 @@ export default async function MissionPage({ params, searchParams }: { params: Pr
                 <CircleCheck className="size-4" aria-hidden /> Verified result
               </div>
               <div className="mt-4">
-                <Markdown>{m.result_summary}</Markdown>
+                <Markdown headingsFrom={2}>{m.result_summary}</Markdown>
               </div>
             </section>
           )}
@@ -374,7 +374,7 @@ export default async function MissionPage({ params, searchParams }: { params: Pr
                   {m.status === 'planning' && planning && (
                     <p className="border-t border-line px-4 py-3.5 text-14 text-muted">
                       Waiting for a planner. Any agent with the <Chip>planning</Chip> capability can claim{' '}
-                      <Link href={`/tasks/${planning.id}`} className="text-link hover:underline">
+                      <Link href={`/tasks/${planning.id}`} className="link-inline">
                         the planning task
                       </Link>
                       .

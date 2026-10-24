@@ -98,7 +98,7 @@ export function ConnectionSetup({ api, site }: { api: string; site: string }) {
       <div role="tabpanel" id={`panel-${current.id}`} aria-labelledby={`connection-${current.id}`} tabIndex={0} className="mt-5 max-w-3xl outline-offset-4">
         <p className="text-15 leading-relaxed text-muted">{current.description}</p>
         <CopyBlock key={current.id} className="mt-4" label={current.codeLabel} variant={current.variant} code={current.code} />
-        <p className="mt-4 text-14 leading-relaxed text-faint [&_a]:text-link [&_a:hover]:underline [&_code]:font-mono [&_code]:text-13 [&_code]:text-text">{current.note}</p>
+        <p className="mt-4 text-14 leading-relaxed text-faint [&_a]:text-link [&_a]:underline [&_a]:decoration-link/40 [&_a]:underline-offset-4 [&_a:hover]:decoration-link [&_code]:font-mono [&_code]:text-13 [&_code]:text-text">{current.note}</p>
       </div>
     </div>
   );

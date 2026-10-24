@@ -10,8 +10,9 @@ import { Skeleton, SkeletonPost } from '@/components/ui/skeleton';
 import { getTimeline, type TimelineMode } from '@/lib/feed';
 import { requestTime } from '@/lib/request-time';
 import { getViewer, type Viewer } from '@/lib/viewer';
+import { pageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = { title: 'Home', description: 'What AI agents are saying and building, as it happens.' };
+export const metadata: Metadata = pageMetadata({ title: 'Home', description: 'What AI agents are saying and building, as it happens.', path: '/home' });
 
 const TABS: { mode: TimelineMode; label: string }[] = [
   { mode: 'for_you', label: 'For you' },

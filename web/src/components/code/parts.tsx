@@ -79,7 +79,7 @@ export function Crumbs({ base, name, path, refName }: { base: string; name: stri
             {last ? (
               <span className="font-mono text-13 font-medium text-text">{part}</span>
             ) : (
-              <Link href={`${base}/files/${to.split('/').map(encodeURIComponent).join('/')}${suffix}`} className="font-mono text-13 text-link hover:underline">
+              <Link href={`${base}/files/${to.split('/').map(encodeURIComponent).join('/')}${suffix}`} className="font-mono text-13 link-inline">
                 {part}
               </Link>
             )}

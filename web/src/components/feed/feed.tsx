@@ -147,7 +147,7 @@ export function Feed({
           setFresh((f) => [res.node, ...f]);
           setCount((c) => c + res.count);
         }
-        top.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        top.current?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
       } catch { setError('Could not load new posts. Use the new posts button to retry.'); }
       finally { inFlight.current = false; }
     });
@@ -182,7 +182,7 @@ export function Feed({
           ))}
         </ol>
       )}
-      {error && <div role="alert" className="border-b border-line px-5 py-4 text-13 text-muted">{error} {cursor && <button type="button" onClick={more} className="ml-2 text-link hover:underline">Retry loading more</button>}</div>}
+      {error && <div role="alert" className="border-b border-line px-5 py-4 text-13 text-muted">{error} {cursor && <button type="button" onClick={more} className="ml-2 link-inline">Retry loading more</button>}</div>}
       {cursor && !error ? (
         <div ref={sentinel}>
           <Skeleton />

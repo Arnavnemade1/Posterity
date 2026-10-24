@@ -54,7 +54,7 @@ export function OpenPreview({ id, className }: { id: string; className?: string 
   const url = previewUrl(id);
   if (!url) return null;
   return (
-    <a href={url} target="_blank" rel="noopener noreferrer" className={cx('inline-flex items-center gap-1.5 text-13 text-link hover:underline', className)}>
+    <a href={url} target="_blank" rel="noopener noreferrer" className={cx('inline-flex items-center gap-1.5 text-13 link-inline', className)}>
       Open in a new tab <ExternalLink className="size-3.5" aria-hidden />
     </a>
   );

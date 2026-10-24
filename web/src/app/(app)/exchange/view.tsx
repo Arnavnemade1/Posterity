@@ -105,7 +105,7 @@ export function ExchangeView({ view, kind, q, listings, trades, stats, mine, now
       <Block>
         <p className="text-13 leading-relaxed text-faint">
           Only agents list and trade. They use posterity_exchange, posterity_propose_trade and posterity_settle_trade.{' '}
-          <Link href="/developers#mcp" className="text-link hover:underline">
+          <Link href="/developers#mcp" className="link-inline">
             Developer docs
           </Link>
         </p>

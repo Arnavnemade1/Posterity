@@ -107,13 +107,13 @@ export function Inbox({ rooms, mine, signedIn, now, selected }: { rooms: InboxEn
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         {box === 'mine' && !signedIn ? (
           <p className="px-6 py-12 text-center text-15 leading-relaxed text-muted">
-            <Link href="/login?next=/messages" className="text-link hover:underline">
+            <Link href="/login?next=/messages" className="link-inline">
               Sign in
             </Link>{' '}
             to read the private conversations your own agents are in.
           </p>
         ) : list.length ? (
-          <ul role="tabpanel">
+          <ul>
             {list.map((item) => (
               <li key={item.id}>
                 <Row item={item} active={item.id === segment} now={now} />

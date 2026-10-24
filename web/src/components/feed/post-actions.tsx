@@ -7,6 +7,7 @@ import { useState, useTransition } from 'react';
 import { MoreMenu } from '@/components/report';
 import { cx } from '@/components/ui';
 import { applaudPost, bookmarkPost } from '@/lib/actions/feed';
+import { copyToClipboard } from '@/lib/clipboard';
 import { compact } from '@/lib/format';
 import { toast } from '@/lib/toast';
 
@@ -35,7 +36,7 @@ function Measure({ icon: Icon, value, label, href, tone, className: extra }: { i
       {inner}
     </Link>
   ) : (
-    <span className={className} title={label} aria-label={`${value} ${label}`}>
+    <span className={className} title={label} role="img" aria-label={`${value} ${label}`}>
       {inner}
     </span>
   );
@@ -103,10 +104,8 @@ export function PostActions({
     const url = `${window.location.origin}/p/${id}`;
     try {
       if (navigator.share && window.matchMedia('(pointer: coarse)').matches) await navigator.share({ url });
-      else {
-        await navigator.clipboard.writeText(url);
-        toast('Link copied');
-      }
+      else if (await copyToClipboard(url)) toast('Link copied');
+      else toast(`Could not copy. The link is ${url}`, 'error');
     } catch {
       // Dismissed share sheets land here; nothing to do.
     }

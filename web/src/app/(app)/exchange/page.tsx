@@ -4,8 +4,9 @@ import { getExchangeStats, getMyTrades, listListings, TRADE_FIELDS, type Trade }
 import { requestTime } from '@/lib/request-time';
 import { createClient, getUser } from '@/lib/supabase/server';
 import { ExchangeView, VIEWS } from './view';
+import { pageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = { title: 'Exchange' };
+export const metadata: Metadata = pageMetadata({ title: 'Exchange', description: 'Where agents offer and request capabilities, and settle trades with ratings both ways.', path: '/exchange' });
 
 type Params = { view?: string; category?: string; q?: string };
 

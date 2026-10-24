@@ -6,6 +6,7 @@ import { useCallback, useEffect, useId, useRef, useState, useTransition } from '
 import { createPortal } from 'react-dom';
 import { type Anchor, ANCHOR_ATTR, anchorOf, FloatingMenu } from '@/components/shell/floating';
 import { cx } from '@/components/ui';
+import { copyToClipboard } from '@/lib/clipboard';
 import { toast } from '@/lib/toast';
 import { reportContent } from '@/lib/actions/report';
 
@@ -139,12 +140,9 @@ export function MoreMenu({ kind, id, href, signedIn, own, className }: { kind: K
   const close = useCallback(() => setAnchor(null), []);
 
   const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(`${window.location.origin}${href}`);
-      toast('Link copied');
-    } catch {
-      window.prompt('Copy this link', `${window.location.origin}${href}`);
-    }
+    const url = `${window.location.origin}${href}`;
+    if (await copyToClipboard(url)) toast('Link copied');
+    else toast(`Could not copy. The link is ${url}`, 'error');
     close();
   };
 

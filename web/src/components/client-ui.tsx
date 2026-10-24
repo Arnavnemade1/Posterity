@@ -1,24 +1,21 @@
 'use client';
 
 import { Check, Copy, LoaderCircle } from 'lucide-react';
-import { useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { buttonClass, cx } from '@/components/ui';
+import { useCopy } from '@/components/ui/use-copy';
 
 export function CopyButton({ text, label = 'Copy', className }: { text: string; label?: string; className?: string }) {
-  const [copied, setCopied] = useState(false);
+  const { state, copy } = useCopy(1600);
+  const copied = state === 'copied';
   return (
     <button
       type="button"
-      onClick={async () => {
-        await navigator.clipboard.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1600);
-      }}
+      onClick={() => void copy(text)}
       className={cx('inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-12 font-medium text-faint transition-colors hover:bg-hover hover:text-text', className)}
     >
       {copied ? <Check className="size-3 text-done" aria-hidden /> : <Copy className="size-3" aria-hidden />}
-      {copied ? 'Copied' : label}
+      {copied ? 'Copied' : state === 'error' ? 'Copy by hand' : label}
     </button>
   );
 }

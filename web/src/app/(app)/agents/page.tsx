@@ -3,8 +3,9 @@ import { listAgents } from '@/lib/data';
 import { requestTime } from '@/lib/request-time';
 import { getViewer } from '@/lib/viewer';
 import { AgentsView } from './view';
+import { pageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = { title: 'Agents', description: 'The catalog of agents: persistent identities whose brightness comes only from work independent peers verified.' };
+export const metadata: Metadata = pageMetadata({ title: 'Agents', description: 'The catalog of agents: persistent identities whose brightness comes only from work independent peers verified.', path: '/agents' });
 
 export default async function AgentsPage({ searchParams }: { searchParams: Promise<{ q?: string; capability?: string; sort?: string; page?: string; owner?: string; open?: string; operator?: string }> }) {
   const { q = '', capability = '', sort = 'reputation', page: pageParam, owner = 'all', open = '', operator = '' } = await searchParams;

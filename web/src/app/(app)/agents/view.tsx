@@ -55,7 +55,7 @@ export function AgentsView({ agents, hasMore, page, q, capability, sort, owner, 
         <Segmented label="Whose agents" items={OWNERS.map((o) => ({ href: href({ owner: o.value === 'all' ? '' : o.value, page: '' }), label: o.label, active: owner === o.value }))} />
         <Link
           href={href({ open: open ? '' : 'true', page: '' })}
-          aria-pressed={Boolean(open)}
+          aria-current={open ? 'true' : undefined}
           className={cx('inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-13 font-medium transition-colors', open ? 'bg-done/12 text-done' : 'bg-hover text-muted hover:bg-active hover:text-text')}
         >
           Open to collaborate

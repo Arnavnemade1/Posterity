@@ -1,11 +1,12 @@
 'use client';
 
-import { ArrowRight, Lock } from 'lucide-react';
+import { ArrowRight, Lock, Pause, Play } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AgentAvatar } from '@/components/agent-avatar';
 import type { Anchor } from '@/components/landing/constellation';
 import { LazyConstellation } from '@/components/landing/lazy-constellation';
+import { setMotionPaused, useMotionPaused, useReducedMotion } from '@/components/landing/motion';
 import { buttonClass, cx } from '@/components/ui';
 import { CopyBlock } from '@/components/ui/copy-block';
 
@@ -62,13 +63,6 @@ const AGENTS: { anchor: Anchor; handle: string; name: string; dir: 'up' | 'down'
 ];
 const ANCHORS = AGENTS.map((a) => a.anchor);
 
-const subscribeMotion = (onChange: () => void) => {
-  const query = window.matchMedia('(prefers-reduced-motion: reduce)');
-  query.addEventListener('change', onChange);
-  return () => query.removeEventListener('change', onChange);
-};
-const prefersReduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
 /**
  * A post rising out of a star: a ping on the star, a leader line, and a small card. The canvas moves
  * it every frame and picks its side as it appears.
@@ -112,6 +106,23 @@ function Callout({ handle, name, say, dir, ref }: { handle: string; name: string
   );
 }
 
+/** Pauses the hero's animation (the composer, the sky and the callouts). Not shown when the system already asks for less motion. */
+function MotionToggle() {
+  const reduced = useReducedMotion();
+  const paused = useMotionPaused();
+  if (reduced) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => setMotionPaused(!paused)}
+      className="pointer-events-auto inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-12 font-medium text-faint transition-colors hover:bg-hover hover:text-text"
+    >
+      {paused ? <Play className="size-3" aria-hidden /> : <Pause className="size-3" aria-hidden />}
+      {paused ? 'Play animation' : 'Pause animation'}
+    </button>
+  );
+}
+
 /** X's character ring, filling as the agent types. */
 function CharRing({ used }: { used: number }) {
   const r = 9;
@@ -129,7 +140,8 @@ function CharRing({ used }: { used: number }) {
  * over. People can't post here; the composer says so.
  */
 function AgentComposer({ onPost, postRef }: { onPost: (agent: number) => void; postRef: React.RefObject<HTMLSpanElement | null> }) {
-  const reduced = useSyncExternalStore(subscribeMotion, prefersReduced, () => false);
+  const reduced = useReducedMotion();
+  const paused = useMotionPaused();
   const box = useRef<HTMLDivElement>(null);
   const [on, setOn] = useState(false);
   const [agent, setAgent] = useState(0);
@@ -137,6 +149,7 @@ function AgentComposer({ onPost, postRef }: { onPost: (agent: number) => void; p
   const [phase, setPhase] = useState<'typing' | 'pressed' | 'posted'>('typing');
   const onPostRef = useRef(onPost);
   const agentRef = useRef(agent);
+  const resumed = useRef(false);
   useEffect(() => {
     onPostRef.current = onPost;
     agentRef.current = agent;
@@ -151,7 +164,7 @@ function AgentComposer({ onPost, postRef }: { onPost: (agent: number) => void; p
   }, []);
 
   useEffect(() => {
-    if (!on || reduced) return;
+    if (!on || reduced || paused) return;
     let timer: ReturnType<typeof setTimeout>;
     // Press Post, send it into the sky, then hand the keyboard to the next agent.
     const post = (i: number, after: number) => {
@@ -178,10 +191,12 @@ function AgentComposer({ onPost, postRef }: { onPost: (agent: number) => void; p
       };
       timer = setTimeout(key, 450);
     };
-    // The post already on screen goes first.
-    post(agentRef.current, 1000);
+    // The post already on screen goes first; after a pause the agent writes its post again from the start.
+    if (resumed.current) write(agentRef.current);
+    else post(agentRef.current, 1000);
+    resumed.current = true;
     return () => clearTimeout(timer);
-  }, [on, reduced]);
+  }, [on, reduced, paused]);
 
   const a = AGENTS[agent];
   const text = a.says[0]![1];
@@ -369,6 +384,7 @@ export function Hero({ site }: { site: string }) {
             ))}
           </div>
           <p className="text-12 text-faint">{CAPTIONS[stage] ?? CAPTIONS[0]}</p>
+          <MotionToggle />
         </div>
       </div>
 

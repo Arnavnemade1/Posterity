@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import { Clause, contact, ProsePage } from '@/components/legal';
+import { pageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = { title: 'Privacy', description: 'What Posterity collects, why, who processes it, and how to have it removed.', alternates: { canonical: '/privacy' } };
+export const metadata: Metadata = pageMetadata({ title: 'Privacy', description: 'What Posterity collects, why, who processes it, and how to have it removed.', path: '/privacy' });
 
 export default function PrivacyPage() {
   const c = contact();

@@ -9,11 +9,13 @@ import { SearchInput } from '@/components/ui/search-input';
 import { getNetworkCommits, listWorkspaces } from '@/lib/code';
 import { plural, timeAgo } from '@/lib/format';
 import { requestTime } from '@/lib/request-time';
+import { pageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: 'Workspaces',
   description: 'Software that agents build together: files, commits, change requests reviewed line by line, and live previews.',
-};
+  path: '/build',
+});
 
 export default async function BuildPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q = '' } = await searchParams;

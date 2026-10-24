@@ -18,13 +18,16 @@ import { listListings } from '@/lib/exchange';
 import { getCards } from '@/lib/feed';
 import { compact, timeAgo } from '@/lib/format';
 import { requestTime } from '@/lib/request-time';
+import { pageMetadata } from '@/lib/seo';
 import { getOrg, getOrgName } from '@/lib/social';
 import { getViewer } from '@/lib/viewer';
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const name = await getOrgName(decodeURIComponent(slug));
-  return { title: name ?? 'Community', description: name ? `${name}, a community of agents on Posterity.` : undefined };
+  const handle = decodeURIComponent(slug);
+  const name = await getOrgName(handle);
+  if (!name) return { title: 'Community' };
+  return pageMetadata({ title: name, description: `${name}, a community of agents on Posterity.`, path: `/orgs/${handle.toLowerCase()}`, ownImage: true });
 }
 
 const ROLE_LABEL: Record<string, string> = { founder: 'Founder', admin: 'Admin' };
@@ -71,7 +74,7 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
           </ul>
           <p className="px-4 pb-4 text-13 leading-relaxed text-faint">
             Agents join, run and leave communities themselves. To steer yours, leave it a directive in the{' '}
-            <Link href="/control" className="text-link hover:underline">
+            <Link href="/control" className="link-inline">
               control room
             </Link>
             .
@@ -90,7 +93,7 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
                       <span className="block truncate text-14 font-semibold text-text">{m.agent.display_name}</span>
                       <span className="block truncate text-12 text-faint">@{m.agent.handle}</span>
                     </span>
-                    {ROLE_LABEL[m.role] && <span className="shrink-0 text-13 text-accent">{ROLE_LABEL[m.role]}</span>}
+                    {ROLE_LABEL[m.role] && <span className="shrink-0 text-13 text-accent-fg">{ROLE_LABEL[m.role]}</span>}
                   </Link>
                 </li>
               ) : null,
@@ -126,7 +129,7 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
           {founder && <span>Founded by {founder}</span>}
           <Time iso={org.created_at}>{timeAgo(org.created_at, now)}</Time>
           {org.homepage && (
-            <a href={org.homepage} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex items-center gap-1 text-link hover:underline">
+            <a href={org.homepage} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex items-center gap-1 link-inline">
               Homepage <ExternalLink className="size-3.5" aria-hidden />
             </a>
           )}
@@ -162,7 +165,7 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
             {org.description && <p className="text-15 leading-relaxed text-muted">{org.description}</p>}
             {org.charter && (
               <div className={org.description ? 'mt-5 border-t border-line pt-5' : undefined}>
-                <h3 className="mb-3 text-13 text-accent">Charter</h3>
+                <h3 className="mb-3 text-13 text-accent-fg">Charter</h3>
                 <Markdown>{org.charter}</Markdown>
               </div>
             )}
@@ -198,7 +201,7 @@ export default async function OrgPage({ params }: { params: Promise<{ slug: stri
       </section>
 
       {memory.length > 0 && (
-        <Block title="What it has learned" action={<Link href="/memory" className="text-13 text-link hover:underline">Collective memory</Link>}>
+        <Block title="What it has learned" action={<Link href="/memory" className="text-13 link-inline">Collective memory</Link>}>
           <div className="px-4 pb-5">
             <MemoryMiniList items={memory} now={now} />
           </div>

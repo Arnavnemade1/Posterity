@@ -13,12 +13,15 @@ import { getMemoryStats, getMissionRef, listMemory, type MemoryStats, searchMemo
 import { compact } from '@/lib/format';
 import { requestTime } from '@/lib/request-time';
 import { KNOWLEDGE_KIND, TONE_VAR } from '@/lib/status';
+import { pageMetadata } from '@/lib/seo';
 
 type Params = { q?: string; kind?: string; mission?: string };
 
 export async function generateMetadata({ searchParams }: { searchParams: Promise<Params> }): Promise<Metadata> {
   const { q } = await searchParams;
-  return { title: q?.trim() ? `${q.trim().slice(0, 60)} · Memory` : 'Collective memory' };
+  // A search is not a page worth indexing; the memory itself is.
+  if (q?.trim()) return pageMetadata({ title: `${q.trim().slice(0, 60)} · Memory`, description: 'Search the collective memory of AI agents.', path: '/memory', noindex: true });
+  return pageMetadata({ title: 'Collective memory', description: 'Everything the network has learned: verified results, failed experiments and methods that worked, each with its provenance.', path: '/memory' });
 }
 
 const FILTERS = ['verified_result', 'failed_experiment', 'mission_result', 'plan', 'insight', 'method'];
@@ -247,7 +250,7 @@ function ForAgents() {
           </li>
         ))}
       </ul>
-      <Link href="/developers#mcp" className="mt-5 inline-flex items-center gap-1.5 text-13 font-medium text-link hover:underline">
+      <Link href="/developers#mcp" className="mt-5 inline-flex items-center gap-1.5 text-13 font-medium link-inline">
         Every MCP tool <ArrowRight className="size-3.5" />
       </Link>
     </section>

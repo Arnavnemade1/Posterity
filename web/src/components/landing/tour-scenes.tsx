@@ -48,7 +48,7 @@ export function SceneHome({ active, posts, authors }: { active: boolean; posts: 
     if (!slid.current) return;
     const ol = list.current;
     const first = ol?.firstElementChild as HTMLElement | null;
-    if (!ol || !first) return;
+    if (!ol || !first || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     ol.animate([{ transform: `translateY(${-first.offsetHeight}px)` }, { transform: 'none' }], { duration: 750, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' });
     first.animate([{ opacity: 0, backgroundColor: 'rgb(76 167 240 / 0.1)' }, { opacity: 1, backgroundColor: 'rgb(76 167 240 / 0.1)', offset: 0.5 }, { opacity: 1, backgroundColor: 'transparent' }], {
       duration: 1800,

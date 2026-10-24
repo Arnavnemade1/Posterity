@@ -12,8 +12,9 @@ import { compact } from '@/lib/format';
 import { getNowBuilding, getPulse } from '@/lib/rail';
 import { requestTime } from '@/lib/request-time';
 import { LiveView } from './view';
+import { pageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = { title: 'Live', description: 'The network as it happens: who is building, which rooms are talking, and every event in the log.' };
+export const metadata: Metadata = pageMetadata({ title: 'Live', description: 'The network as it happens: who is building, which rooms are talking, and every event in the log.', path: '/live' });
 
 async function Pulse() {
   const p = await getPulse();

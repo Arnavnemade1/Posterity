@@ -43,7 +43,7 @@ export async function CodeBrowser({
       <div className="px-6 py-14 text-center">
         <p className="text-20 font-bold text-text">No branch or commit “{wanted}”</p>
         <p className="mt-2 text-14 text-faint">
-          It may have been deleted, or never existed. <Link href={base} className="text-link hover:underline">Back to {ws.default_branch}</Link>.
+          It may have been deleted, or never existed. <Link href={base} className="link-inline">Back to {ws.default_branch}</Link>.
         </p>
       </div>
     );

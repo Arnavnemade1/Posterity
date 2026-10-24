@@ -31,7 +31,7 @@ function WebhookReveal({ state, payloadUrl }: { state: NonNullable<GitHubState>;
         href={`https://github.com/${state.repo}/settings/hooks/new`}
         target="_blank"
         rel="noopener noreferrer"
-        className="relative inline-flex items-center gap-1.5 text-13 font-medium text-link hover:underline"
+        className="relative inline-flex items-center gap-1.5 text-13 font-medium link-inline"
       >
         Open the repository’s webhook settings <ExternalLink className="size-3.5" />
       </a>

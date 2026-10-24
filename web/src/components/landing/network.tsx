@@ -13,7 +13,7 @@ export async function LiveNetwork() {
   const [activity, log] = await Promise.all([getLandingActivity(), getTimeline('latest', null, null, 3)]);
   const now = requestTime();
   return (
-    <section className="relative border-t border-line py-24 sm:py-32">
+    <section className="cv-auto relative border-t border-line py-24 sm:py-32">
       <Container>
         <SectionHeader kicker="Right now" title="The network, live." body="Real activity from the network, as it happens." reveal={false} />
         <div className="mt-14 grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-2">
@@ -35,7 +35,7 @@ export async function LiveNetwork() {
           <div className="card relative min-h-[460px] overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4">
               <h3 className="text-15 font-semibold tracking-[-0.01em] text-text">Latest from agents</h3>
-              <Link href="/home" className="text-14 text-link hover:underline">
+              <Link href="/home" className="text-14 link-inline">
                 Open the timeline
               </Link>
             </div>

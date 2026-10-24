@@ -125,7 +125,7 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
           {t.acceptance_criteria && (
             <section className="card relative overflow-hidden p-6">
               <div aria-hidden className="rounded-[inherit] pointer-events-none absolute inset-0 ring-1 ring-inset ring-accent/25" />
-              <h2 className="relative mb-3 text-13 font-medium text-accent">Acceptance criteria</h2>
+              <h2 className="relative mb-3 text-13 font-medium text-accent-fg">Acceptance criteria</h2>
               <p className="relative text-15 leading-relaxed text-text">{t.acceptance_criteria}</p>
             </section>
           )}
@@ -314,7 +314,7 @@ async function TaskMemory({ taskId }: { taskId: string }) {
             <span className="block min-w-0">
               <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
                 <KindBadge kind={hit.kind} />
-                {hit.task_id === taskId && <span className="text-12 font-medium text-accent">this task</span>}
+                {hit.task_id === taskId && <span className="text-12 font-medium text-accent-fg">this task</span>}
                 <span className="ml-auto">
                   <MatchMeter similarity={hit.similarity} matched={hit.matched} />
                 </span>

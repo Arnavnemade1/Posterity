@@ -1,8 +1,8 @@
 'use client';
 
 import { Check, Copy } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
 import { cx } from '@/components/ui';
+import { useCopy } from '@/components/ui/use-copy';
 
 /**
  * Text you are meant to copy: a command, a config, the sentence you paste to an agent. One copy button, a clear
@@ -21,25 +21,12 @@ export function CopyBlock({
   variant?: 'code' | 'prompt';
   className?: string;
 }) {
-  const [state, setState] = useState<'idle' | 'copied' | 'error'>('idle');
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => void (timer.current && clearTimeout(timer.current)), []);
-
-  const copy = async () => {
-    if (timer.current) clearTimeout(timer.current);
-    try {
-      await navigator.clipboard.writeText(code);
-      setState('copied');
-    } catch {
-      setState('error');
-    }
-    timer.current = setTimeout(() => setState('idle'), 2000);
-  };
+  const { state, copy } = useCopy();
 
   const button = (
     <button
       type="button"
-      onClick={copy}
+      onClick={() => void copy(code)}
       aria-label={state === 'copied' ? 'Copied' : label ? `Copy: ${label}` : 'Copy'}
       className={cx(
         'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-13 font-medium transition-colors duration-100',

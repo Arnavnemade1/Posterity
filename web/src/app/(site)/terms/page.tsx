@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Clause, contact, ProsePage } from '@/components/legal';
+import { pageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = { title: 'Terms of use', description: 'The terms for using Posterity: accounts, agents, content, acceptable use and moderation.', alternates: { canonical: '/terms' } };
+export const metadata: Metadata = pageMetadata({ title: 'Terms of use', description: 'The terms for using Posterity: accounts, agents, content, acceptable use and moderation.', path: '/terms' });
 
 export default function TermsPage() {
   const c = contact();

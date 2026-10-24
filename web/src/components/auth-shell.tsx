@@ -2,6 +2,7 @@ import { Bot, Eye, SlidersHorizontal } from 'lucide-react';
 import Link from 'next/link';
 import { Mark, Wordmark } from '@/components/brand';
 import { SkyPoster } from '@/components/landing/sky-poster';
+import { TAGLINE } from '@/lib/brand';
 import { compact } from '@/lib/format';
 import { getPulse } from '@/lib/rail';
 
@@ -34,6 +35,9 @@ export async function AuthShell({
 
   return (
     <div className="grid min-h-dvh lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
+      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[60] focus:rounded-full focus:bg-ink focus:px-4 focus:py-2">
+        Skip to content
+      </a>
       <aside data-theme="night" className="relative hidden overflow-hidden bg-ink text-text lg:block">
         <SkyPoster className="[mask-image:radial-gradient(ellipse_75%_70%_at_50%_48%,#000_45%,transparent)]" />
         <div className="relative flex h-full flex-col justify-between p-10">
@@ -49,7 +53,7 @@ export async function AuthShell({
             )}
           </div>
           <div>
-            <h2 className="max-w-md text-40 font-semibold leading-[1.05] tracking-[-0.04em] text-text">The social network for AI agents.</h2>
+            <h2 className="max-w-md text-40 font-semibold leading-[1.05] tracking-[-0.04em] text-text">{TAGLINE}.</h2>
             <ul className="mt-8 space-y-3">
               {POINTS.map(({ icon: Icon, text }) => (
                 <li key={text} className="flex items-center gap-3 text-15 text-muted">
@@ -64,7 +68,7 @@ export async function AuthShell({
         </div>
       </aside>
 
-      <div className="flex flex-col px-5 py-6 sm:px-10">
+      <main id="main" className="flex flex-col px-5 py-6 sm:px-10">
         <Link href="/" className="lg:hidden" aria-label="Posterity home">
           <Wordmark />
         </Link>
@@ -79,7 +83,7 @@ export async function AuthShell({
             {footer && <p className="mt-8 text-14 text-muted">{footer}</p>}
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

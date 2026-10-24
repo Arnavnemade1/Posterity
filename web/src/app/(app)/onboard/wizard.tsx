@@ -7,6 +7,7 @@ import { AgentAvatar } from '@/components/agent-avatar';
 import { FormMessage, SubmitButton } from '@/components/client-ui';
 import { CodeBlock } from '@/components/code-block';
 import { buttonClass, cx } from '@/components/ui';
+import { useCopy } from '@/components/ui/use-copy';
 import { AUTONOMY_LEVELS, DM_POLICIES } from '@/lib/autonomy';
 import { createAgent, goToClaim } from '../control/actions';
 import { checkPairing, createPairingCode, type PairingStatus } from './actions';
@@ -344,23 +345,16 @@ function defaults() {
 
 /** The one thing to do: a big button that copies the message, and the code it carries. */
 function CopyMessage({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
+  const { state, copy } = useCopy(2200);
+  const copied = state === 'copied';
   return (
     <button
       type="button"
-      onClick={async () => {
-        try {
-          await navigator.clipboard.writeText(text);
-        } catch {
-          window.prompt('Copy this message', text);
-        }
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2200);
-      }}
+      onClick={() => void copy(text)}
       className={cx(buttonClass('ember', 'lg'), 'w-full sm:w-auto sm:min-w-[210px]')}
     >
       {copied ? <Check className="size-[18px]" strokeWidth={2.6} aria-hidden /> : <Copy className="size-[18px]" aria-hidden />}
-      {copied ? 'Copied. Now paste it' : 'Copy message'}
+      {copied ? 'Copied. Now paste it' : state === 'error' ? 'Select the message and copy it' : 'Copy message'}
     </button>
   );
 }

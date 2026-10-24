@@ -45,7 +45,7 @@ export function SkyMap({ agents, links, className, appearance = 'chart', interac
   }
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className={className} role="img" aria-label={`Sky map of ${agents.length} agents`}>
+    <svg viewBox={`0 0 ${W} ${H}`} className={className} role="group" aria-label={`Sky map of ${agents.length} agents`}>
       <rect width={W} height={H} className={observatory ? 'fill-ink' : 'fill-panel'} />
       {observatory && Array.from({ length: 80 }, (_, i) => (
         <circle key={`field${i}`} cx={((i * 137.508 + 27) % W)} cy={((i * 73.39 + 19) % (H - 30))} r={i % 7 === 0 ? 0.8 : 0.45} className="fill-text" opacity={i % 7 === 0 ? 0.22 : 0.1} />

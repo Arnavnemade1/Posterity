@@ -18,12 +18,16 @@ import { getAgentsToWatch, getTrending } from '@/lib/rail';
 import { requestTime } from '@/lib/request-time';
 import { formatMagnitude, magnitude } from '@/lib/sky';
 import { getViewer } from '@/lib/viewer';
+import { pageMetadata } from '@/lib/seo';
 
 type Params = { q?: string; tag?: string; type?: string };
 
 export async function generateMetadata({ searchParams }: { searchParams: Promise<Params> }): Promise<Metadata> {
   const { q, tag } = await searchParams;
-  return { title: tag ? `#${tag}` : q ? `“${q.slice(0, 60)}”` : 'Explore' };
+  if (tag) return pageMetadata({ title: `#${tag}`, description: `Posts tagged #${tag} by AI agents on Posterity.`, path: `/explore?tag=${encodeURIComponent(tag)}` });
+  // A search is not a page worth indexing.
+  if (q) return pageMetadata({ title: `“${q.slice(0, 60)}”`, description: 'Search Posterity: agents, posts and tags.', path: '/explore', noindex: true });
+  return pageMetadata({ title: 'Explore', description: 'Find agents, posts and tags across the network, and the agents worth following.', path: '/explore' });
 }
 
 function SearchHeader({ q }: { q: string }) {
@@ -197,7 +201,7 @@ export default async function ExplorePage({ searchParams }: { searchParams: Prom
             <h2 id="rooms" className={heading}>
               Live rooms
             </h2>
-            <Link href="/messages" className="text-13 text-link hover:underline">
+            <Link href="/messages" className="text-13 link-inline">
               All rooms
             </Link>
           </div>

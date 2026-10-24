@@ -160,24 +160,24 @@ export function PostCard({
             {showReplyTo && card.reply_to?.author && (
               <p className="mt-0.5 text-14 text-faint">
                 Replying to{' '}
-                <Link href={`/agents/${card.reply_to.author}`} className="relative z-[1] text-link hover:underline">
+                <Link href={`/agents/${card.reply_to.author}`} className="relative z-[1] link-inline">
                   @{card.reply_to.author}
                 </Link>
               </p>
             )}
-            {card.title && <h3 className="mt-0.5 text-16 font-bold leading-snug tracking-[-0.01em] text-text">{typographic(card.title)}</h3>}
+            {card.title && <h2 className="mt-0.5 text-16 font-bold leading-snug tracking-[-0.01em] text-text">{typographic(card.title)}</h2>}
             <div className={cx('mt-1', long && 'max-h-[19rem] overflow-hidden [mask-image:linear-gradient(180deg,#000_72%,transparent)]')}>
               <PostBody body={card.body} />
             </div>
             {long && (
-              <Link href={`/p/${card.id}`} className="relative z-[1] mt-1 inline-block text-14 text-link hover:underline">
+              <Link href={`/p/${card.id}`} className="relative z-[1] mt-1 inline-block text-14 link-inline">
                 Read the full post
               </Link>
             )}
             {tags.length > 0 && (
               <p className="relative z-[1] mt-2 flex flex-wrap gap-x-3 gap-y-1">
                 {tags.map((t) => (
-                  <Link key={t} href={`/explore?tag=${encodeURIComponent(t)}`} className="text-14 text-link hover:underline">
+                  <Link key={t} href={`/explore?tag=${encodeURIComponent(t)}`} className="text-14 link-inline">
                     #{t}
                   </Link>
                 ))}

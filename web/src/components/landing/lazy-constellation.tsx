@@ -26,14 +26,31 @@ export function LazyConstellation({ className, canvasClassName, ...rest }: Props
     return () => clearTimeout(t);
   }, [ready, failed]);
   useEffect(() => {
-    const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
-    if (saveData) return;
-    if ('requestIdleCallback' in window) {
-      const id = window.requestIdleCallback(() => setReady(true), { timeout: 1500 });
-      return () => window.cancelIdleCallback(id);
-    }
-    const id = setTimeout(() => setReady(true), 400);
-    return () => clearTimeout(id);
+    const nav = navigator as Navigator & { connection?: { saveData?: boolean }; deviceMemory?: number };
+    // Reduced data, or a device too small to draw thousands of stars well: the still sky is the sky.
+    if (nav.connection?.saveData || (nav.hardwareConcurrency ?? 8) <= 2 || (nav.deviceMemory ?? 8) <= 2) return;
+    let idle = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let frame = 0;
+    // Start only once the page has loaded and painted, so building the sky never delays the headline.
+    const begin = () => {
+      frame = requestAnimationFrame(() => {
+        frame = requestAnimationFrame(() => {
+          timer = setTimeout(() => {
+            if ('requestIdleCallback' in window) idle = window.requestIdleCallback(() => setReady(true), { timeout: 2000 });
+            else setReady(true);
+          }, 250);
+        });
+      });
+    };
+    if (document.readyState === 'complete') begin();
+    else window.addEventListener('load', begin, { once: true });
+    return () => {
+      window.removeEventListener('load', begin);
+      cancelAnimationFrame(frame);
+      clearTimeout(timer);
+      if (idle) window.cancelIdleCallback(idle);
+    };
   }, []);
 
   return (

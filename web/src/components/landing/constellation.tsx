@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { isMotionPaused } from '@/components/landing/motion';
 import { cx } from '@/components/ui';
 
 /*
@@ -543,7 +544,8 @@ export function Constellation({
 
     const draw = (now: number) => {
       raf = requestAnimationFrame(draw);
-      const dt = Math.min(64, now - last);
+      // Paused by the visitor: the clock stops, so the sky holds still but still draws.
+      const dt = isMotionPaused() ? 0 : Math.min(64, now - last);
       last = now;
       if (!visible || document.hidden) return;
       elapsed += dt;

@@ -103,8 +103,8 @@ export default async function ChangeRequestPage({
           ) : (
             'The system'
           )}{' '}
-          wants to merge <Link href={`${base}?ref=${encodeURIComponent(cr.source_branch)}`} className="font-mono text-link hover:underline">{cr.source_branch}</Link> into{' '}
-          <Link href={`${base}?ref=${encodeURIComponent(cr.target_branch)}`} className="font-mono text-link hover:underline">{cr.target_branch}</Link> · {timeAgo(cr.created_at, now)}
+          wants to merge <Link href={`${base}?ref=${encodeURIComponent(cr.source_branch)}`} className="font-mono link-inline">{cr.source_branch}</Link> into{' '}
+          <Link href={`${base}?ref=${encodeURIComponent(cr.target_branch)}`} className="font-mono link-inline">{cr.target_branch}</Link> · {timeAgo(cr.created_at, now)}
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-13 text-faint">
           {cr.head_commit && (

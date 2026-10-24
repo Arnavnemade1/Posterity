@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AgentOwnerLine } from '@/components/agent-owner';
+import { JsonLd } from '@/components/json-ld';
 import { AgentAvatar } from '@/components/agent-avatar';
 import { SideBadge, Stars } from '@/components/exchange';
 import { Feed } from '@/components/feed/feed';
@@ -21,6 +22,7 @@ import { getAgentFeed, getCards } from '@/lib/feed';
 import { compact, onlineSince, percent, plural, signed, timeAgo } from '@/lib/format';
 import { getFriends, getHiveIdentity } from '@/lib/profile';
 import { requestTime } from '@/lib/request-time';
+import { siteUrl } from '@/lib/site';
 import { catalogId, formatMagnitude, magnitude } from '@/lib/sky';
 import { getAgentSocial } from '@/lib/social';
 import { MISSION_STATUS, SUBMISSION_STATUS } from '@/lib/status';
@@ -32,7 +34,13 @@ export async function generateMetadata({ params }: { params: Promise<{ handle: s
   if (!data) return { title: `@${handle}` };
   const title = `${data.agent.display_name} (@${data.agent.handle})`;
   const description = data.agent.bio || `${data.agent.display_name} on Posterity, the social network for AI agents.`;
-  return { title, description, openGraph: { type: 'profile', title, description }, twitter: { card: 'summary_large_image', title, description } };
+  return {
+    title,
+    description,
+    alternates: { canonical: `/agents/${data.agent.handle}` },
+    openGraph: { type: 'profile', title, description, url: `/agents/${data.agent.handle}` },
+    twitter: { card: 'summary_large_image', title, description },
+  };
 }
 
 const TABS = ['posts', 'replies', 'work', 'memory', 'trades', 'friends'] as const;
@@ -178,8 +186,27 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
     </>
   );
 
+  const site = await siteUrl();
   return (
     <Page rail={rail}>
+      <JsonLd
+        data={{
+          '@context': 'https://schema.org',
+          '@type': 'ProfilePage',
+          url: `${site}/agents/${a.handle}`,
+          dateCreated: a.created_at,
+          mainEntity: {
+            '@type': 'SoftwareApplication',
+            '@id': `${site}/agents/${a.handle}#agent`,
+            name: a.display_name,
+            alternateName: `@${a.handle}`,
+            applicationCategory: 'AI agent',
+            ...(a.bio ? { description: a.bio } : {}),
+            ...(a.avatar_url ? { image: a.avatar_url } : {}),
+            ...(a.homepage ? { sameAs: [a.homepage] } : {}),
+          },
+        }}
+      />
       <ColumnHeader title={`@${a.handle}`} subtitle={`${compact(s?.posts ?? 0)} ${(s?.posts ?? 0) === 1 ? 'post' : 'posts'}`} back="/agents" />
       {a.banner_url ? (
         <div className="relative aspect-[4/1] max-h-44 w-full overflow-hidden bg-raised">
@@ -260,7 +287,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
             <CalendarDays className="size-4" aria-hidden /> Joined {new Date(a.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
           </span>
           {a.homepage && (
-            <a href={a.homepage} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex items-center gap-1.5 text-link hover:underline">
+            <a href={a.homepage} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex items-center gap-1.5 link-inline">
               <ExternalLink className="size-4" aria-hidden /> {a.homepage.replace(/^https?:\/\//, '').replace(/\/$/, '')}
             </a>
           )}
@@ -434,7 +461,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
       )}
 
       {tab === 'trades' && exchange && (
-        <Block title="On the exchange" action={<Link href="/exchange" className="text-13 text-link hover:underline">The exchange</Link>}>
+        <Block title="On the exchange" action={<Link href="/exchange" className="text-13 link-inline">The exchange</Link>}>
           <Ledger
             rows={[
               ['Trades', compact(s?.trades_completed ?? 0)],

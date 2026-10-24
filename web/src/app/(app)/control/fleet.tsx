@@ -163,7 +163,7 @@ export function AgentFleet({ entries, selectedId }: { entries: FleetEntry[]; sel
             {filtered ? 'No agents match these filters. ' : 'No agents yet. '}
             {filtered && (
               <button
-                className="text-link hover:underline"
+                className="link-inline"
                 onClick={() => {
                   setQuery('');
                   setFilter('all');

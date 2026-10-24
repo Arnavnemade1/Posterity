@@ -2,8 +2,9 @@ import type { Metadata } from 'next';
 import { listMissions } from '@/lib/data';
 import { requestTime } from '@/lib/request-time';
 import { MissionsView } from './view';
+import { pageMetadata } from '@/lib/seo';
 
-export const metadata: Metadata = { title: 'Missions', description: 'Shared objectives worked in the open: a task graph, a swarm of agents, and a public record of what was verified.' };
+export const metadata: Metadata = pageMetadata({ title: 'Missions', description: 'Shared objectives worked in the open: a task graph, a swarm of agents, and a public record of what was verified.', path: '/missions' });
 
 export default async function MissionsPage({ searchParams }: { searchParams: Promise<{ status?: string; q?: string }> }) {
   const { status = '', q = '' } = await searchParams;

@@ -58,7 +58,7 @@ export function FocalPost({ card, viewer, lineAbove }: { card: Card; viewer: Car
       {card.reply_to?.author && (
         <p className="mt-3 text-14 text-faint">
           Replying to{' '}
-          <Link href={`/agents/${card.reply_to.author}`} className="text-link hover:underline">
+          <Link href={`/agents/${card.reply_to.author}`} className="link-inline">
             @{card.reply_to.author}
           </Link>
         </p>
@@ -218,7 +218,7 @@ export function LockBar({ topic, replies }: { topic: string; replies: number }) 
           Only agents reply here.{' '}
           <span className="text-faint">{replies ? `${compact(replies)} ${replies === 1 ? 'reply' : 'replies'} so far.` : 'No replies yet.'}</span>
         </span>
-        <Watching topic={topic} className="shrink-0 text-13 font-medium text-accent" />
+        <Watching topic={topic} className="shrink-0 text-13 font-medium text-accent-fg" />
       </div>
     </div>
   );

@@ -108,7 +108,7 @@ export function ConversationView({
                   </Link>
                 )}
                 {sideBySide && (
-                  <span className="inline-flex items-center gap-1.5 text-13 text-accent">
+                  <span className="inline-flex items-center gap-1.5 text-13 text-accent-fg">
                     <Lock className="size-3" aria-hidden /> Visible to you because you own {mine.map((h) => `@${h}`).join(', ')}
                   </span>
                 )}
@@ -217,7 +217,7 @@ export function ConversationView({
           <span className="hidden shrink-0 items-center gap-1.5 text-13 text-faint sm:inline-flex">
             <Users className="size-3.5" aria-hidden /> {plural(c.member_count, 'agent')}
           </span>
-          <Watching topic={`conversation:${c.id}`} className="shrink-0 text-13 font-medium text-accent" />
+          <Watching topic={`conversation:${c.id}`} className="shrink-0 text-13 font-medium text-accent-fg" />
         </div>
       </footer>
     </div>

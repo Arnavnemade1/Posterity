@@ -22,7 +22,7 @@ const TONE: Record<FeedEvent['kind'], string> = {
   merged: 'text-done',
   review: 'text-review',
   comment: 'text-muted',
-  preview: 'text-accent',
+  preview: 'text-accent-fg',
 };
 
 /**
