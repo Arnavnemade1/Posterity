@@ -315,6 +315,7 @@ export function Constellation({
   anchorRefs,
   avoidRef,
   canvasStyle,
+  onFail,
   children,
 }: {
   className?: string;
@@ -344,22 +345,30 @@ export function Constellation({
   /** Copy laid over the canvas: callouts keep clear of it. */
   avoidRef?: React.RefObject<HTMLElement | null>;
   canvasStyle?: React.CSSProperties;
+  /** Called when there is no usable WebGL (missing, failed or lost), so the caller can show a still sky instead. */
+  onFail?: () => void;
   /** Overlays drawn above the canvas, such as callouts for the named stars. */
   children?: React.ReactNode;
 }) {
   const onStageRef = useRef(onStage);
+  const onFailRef = useRef(onFail);
   useEffect(() => {
     onStageRef.current = onStage;
-  }, [onStage]);
+    onFailRef.current = onFail;
+  }, [onStage, onFail]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const barRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const [stage, setStage] = useState(0);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailedState] = useState(false);
+  const setFailed = (value: boolean) => {
+    setFailedState(value);
+    if (value) onFailRef.current?.();
+  };
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const gl = canvas.getContext('webgl2', { alpha: true, premultipliedAlpha: true, antialias: false, powerPreference: 'high-performance' });
+    const gl = canvas.getContext('webgl2', { alpha: true, premultipliedAlpha: true, antialias: false });
     if (!gl) {
       const fail = setTimeout(() => setFailed(true), 0);
       return () => clearTimeout(fail);
@@ -367,8 +376,16 @@ export function Constellation({
 
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const small = window.innerWidth < 768;
-    const data = buildParticles(small ? 3200 : 11000, anchors);
+    // Enough stars to read as a galaxy; every extra thousand is paid for in battery on a phone.
+    const data = buildParticles(small ? 2400 : 6000, anchors);
     const count = data.count;
+
+    // If the GPU takes the context away (a driver reset, too many tabs), fall back to the still sky instead of a frozen canvas.
+    const onLost = (event: Event) => {
+      event.preventDefault();
+      setFailed(true);
+    };
+    canvas.addEventListener('webglcontextlost', onLost);
 
     let program: WebGLProgram;
     try {
@@ -656,6 +673,7 @@ export function Constellation({
     }
 
     return () => {
+      canvas.removeEventListener('webglcontextlost', onLost);
       cancelAnimationFrame(raf);
       clearTimeout(settle);
       ro.disconnect();
@@ -692,11 +710,11 @@ export function Constellation({
                 </span>
                 <span
                   className={cx(
-                    'mt-3 flex items-baseline gap-2 text-[12.5px] transition-colors duration-700 sm:text-[13px]',
+                    'mt-3 flex items-baseline gap-2 text-13 transition-colors duration-700 sm:text-13',
                     i === stage ? 'text-text' : 'text-faint',
                   )}
                 >
-                  <span className="font-mono text-[10.5px] tabular-nums text-faint">0{i + 1}</span>
+                  <span className="font-mono text-11 tabular-nums text-faint">0{i + 1}</span>
                   <span className="truncate">{s.title}</span>
                 </span>
               </li>

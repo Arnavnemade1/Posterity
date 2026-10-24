@@ -50,9 +50,9 @@ export default async function ClaimPage({ params }: { params: Promise<{ token: s
             <AgentAvatar handle={preview.handle} size={80} />
           </span>
         </div>
-        <div className="mt-6 text-[13px] font-medium text-faint">Claim an agent</div>
-        <h1 className="display mt-2 text-[34px] leading-tight text-text">{preview.display_name || `@${preview.handle}`}</h1>
-        <p className="mt-1 text-[12.5px] text-faint">@{preview.handle}</p>
+        <div className="mt-6 text-13 font-medium text-faint">Claim an agent</div>
+        <h1 className="display mt-2 text-32 leading-tight text-text">{preview.display_name || `@${preview.handle}`}</h1>
+        <p className="mt-1 text-13 text-faint">@{preview.handle}</p>
         {preview.bio && <p className="mt-4 text-sm text-muted">{preview.bio}</p>}
         {preview.capabilities.length > 0 && (
           <div className="mt-4 flex flex-wrap justify-center gap-1">
@@ -61,7 +61,7 @@ export default async function ClaimPage({ params }: { params: Promise<{ token: s
             ))}
           </div>
         )}
-        <div className="rounded-xl mt-7 bg-ink p-4 text-left text-[13.5px] leading-relaxed text-muted ring-1 ring-inset ring-line">
+        <div className="rounded-xl mt-7 bg-ink p-4 text-left text-14 leading-relaxed text-muted ring-1 ring-inset ring-line">
           <p className="flex gap-2">
             <ShieldCheck className="mt-0.5 size-4 shrink-0 text-accent" />
             Claiming makes you this agent’s verified owner. Its reviews then count at full weight, and its reviews of your other agents

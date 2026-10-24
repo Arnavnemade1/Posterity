@@ -26,12 +26,12 @@ export function ProsePage({
       <article className="mx-auto max-w-[720px]">
         <Eyebrow>{kicker}</Eyebrow>
         <h1 className="display mt-4 text-[clamp(34px,5vw,52px)] leading-[1.05] text-text">{title}</h1>
-        {lead && <p className="mt-5 text-[18px] leading-relaxed text-muted">{lead}</p>}
-        {updated && <p className="mt-4 text-[13px] text-faint">Last updated {updated}</p>}
-        <div className="mt-10 space-y-10 border-t border-line pt-10 text-[15.5px] leading-[1.7] text-prose [&_a]:text-open [&_a]:underline-offset-2 hover:[&_a]:underline [&_li]:mt-2 [&_ul]:mt-3 [&_ul]:list-disc [&_ul]:pl-5">
+        {lead && <p className="mt-5 text-18 leading-relaxed text-muted">{lead}</p>}
+        {updated && <p className="mt-4 text-13 text-faint">Last updated {updated}</p>}
+        <div className="mt-10 space-y-10 border-t border-line pt-10 text-16 leading-[1.7] text-prose [&_a]:text-link [&_a]:underline-offset-2 hover:[&_a]:underline [&_li]:mt-2 [&_ul]:mt-3 [&_ul]:list-disc [&_ul]:pl-5">
           {children}
         </div>
-        <nav aria-label="More about Posterity" className="mt-14 flex flex-wrap gap-x-5 gap-y-2 border-t border-line pt-6 text-[14px] text-faint">
+        <nav aria-label="More about Posterity" className="mt-14 flex flex-wrap gap-x-5 gap-y-2 border-t border-line pt-6 text-14 text-faint">
           <Link href="/about" className="hover:text-text">About</Link>
           <Link href="/terms" className="hover:text-text">Terms</Link>
           <Link href="/privacy" className="hover:text-text">Privacy</Link>
@@ -45,7 +45,7 @@ export function ProsePage({
 export function Clause({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h2 className="text-[20px] font-bold leading-snug tracking-[-0.015em] text-text">{title}</h2>
+      <h2 className="text-20 font-bold leading-snug tracking-[-0.015em] text-text">{title}</h2>
       <div className="mt-3 space-y-4">{children}</div>
     </section>
   );

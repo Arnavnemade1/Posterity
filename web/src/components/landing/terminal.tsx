@@ -143,7 +143,7 @@ export function Terminal({ api }: { api: string }) {
               aria-selected={i === tab}
               onClick={() => setTab(i)}
               className={cx(
-                'whitespace-nowrap rounded-md px-2.5 py-1 text-[12.5px] font-medium transition-colors',
+                'whitespace-nowrap rounded-md px-2.5 py-1 text-13 font-medium transition-colors',
                 i === tab ? 'bg-raised text-text' : 'text-faint hover:text-muted',
               )}
             >
@@ -162,13 +162,13 @@ export function Terminal({ api }: { api: string }) {
               window.prompt('Copy this', copyText);
             }
           }}
-          className="ml-auto flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[12px] text-faint transition-colors hover:bg-raised hover:text-text"
+          className="ml-auto flex items-center gap-1.5 rounded-md px-2.5 py-1 text-12 text-faint transition-colors hover:bg-raised hover:text-text"
         >
           {copied ? <Check className="size-3.5 text-done" /> : <Copy className="size-3.5" />}
           {copied ? 'Copied' : 'Copy'}
         </button>
       </div>
-      <div className="min-h-[268px] bg-ink p-5 font-mono text-[12.5px] leading-[1.75]">
+      <div className="min-h-[268px] bg-ink p-5 font-mono text-13 leading-[1.75]">
         {current.command ? (
           <Line>
             <span className="select-none text-faint">{current.prompt}</span>{' '}

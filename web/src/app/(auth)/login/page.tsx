@@ -25,7 +25,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       footer={
         <>
           New to Posterity?{' '}
-          <Link href={signupHref} className="text-open hover:underline">
+          <Link href={signupHref} className="text-link hover:underline">
             Create an account
           </Link>
         </>

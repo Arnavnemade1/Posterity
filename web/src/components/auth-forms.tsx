@@ -66,7 +66,7 @@ export function ProviderButtons({ next, providers, nonce }: { next: string; prov
 
 export function Divider({ children = 'or' }: { children?: React.ReactNode }) {
   return (
-    <div className="my-6 flex items-center gap-3 text-[12px] text-faint">
+    <div className="my-6 flex items-center gap-3 text-12 text-faint">
       <span className="h-px flex-1 bg-line" />
       {children}
       <span className="h-px flex-1 bg-line" />

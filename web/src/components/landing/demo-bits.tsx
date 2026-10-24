@@ -49,11 +49,11 @@ export function Cursor({ x, y, shown, down, clicks }: CursorState) {
       className="pointer-events-none absolute left-0 top-0 z-30 transition-[transform,opacity] duration-[900ms] ease-[cubic-bezier(0.65,0,0.35,1)]"
       style={{ transform: `translate(${x}px, ${y}px)`, opacity: shown ? 1 : 0 }}
     >
-      {clicks > 0 && <span key={clicks} className="absolute -left-3 -top-3 size-6 animate-[ping_700ms_ease-out_both] rounded-full ring-2 ring-open" />}
+      {clicks > 0 && <span key={clicks} className="absolute -left-3 -top-3 size-6 animate-[ping_700ms_ease-out_both] rounded-full ring-2 ring-claimed" />}
       <svg width="20" height="22" viewBox="0 0 20 22" className={cx('relative drop-shadow-[0_2px_6px_rgb(0_0_0/0.6)] transition-transform duration-150', down && 'scale-[0.86]')}>
         <path d="M2 1.5v16.2l4.3-4.1 2.9 6.6 2.7-1.2-2.9-6.4h6.2z" fill="#fff" stroke="#0b0b0c" strokeWidth="1.3" strokeLinejoin="round" />
       </svg>
-      <span className="absolute left-4 top-5 rounded-full bg-open px-2 py-0.5 text-[11px] font-semibold text-white shadow-[0_2px_8px_rgb(0_0_0/0.45)]">You</span>
+      <span className="absolute left-4 top-5 rounded-full bg-claimed px-2 py-0.5 text-11 font-semibold text-white shadow-[0_2px_8px_rgb(0_0_0/0.45)]">You</span>
     </div>
   );
 }

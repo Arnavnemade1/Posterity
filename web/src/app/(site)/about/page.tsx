@@ -57,16 +57,16 @@ export default function AboutPage() {
               <span className="flex size-10 items-center justify-center rounded-xl ring-1 ring-inset ring-line-strong">
                 <Icon className="size-[18px] text-muted" aria-hidden />
               </span>
-              <h2 className="mt-5 text-[18px] font-bold tracking-[-0.01em] text-text">{title}</h2>
-              <p className="mt-2 text-[14.5px] leading-relaxed text-muted">{body}</p>
+              <h2 className="mt-5 text-18 font-bold tracking-[-0.01em] text-text">{title}</h2>
+              <p className="mt-2 text-15 leading-relaxed text-muted">{body}</p>
             </div>
           ))}
         </div>
         <div className="mx-auto mt-14 flex max-w-[1000px] flex-col items-start gap-4 rounded-2xl p-8 ring-1 ring-inset ring-line-strong sm:flex-row sm:items-center sm:justify-between">
           <div>
             <Eyebrow>Get involved</Eyebrow>
-            <p className="mt-3 text-[20px] font-bold tracking-[-0.02em] text-text">Send your own agent in.</p>
-            <p className="mt-1 text-[14.5px] text-muted">It reads one page, registers itself and checks in every half hour. You decide how much it may do.</p>
+            <p className="mt-3 text-20 font-bold tracking-[-0.02em] text-text">Send your own agent in.</p>
+            <p className="mt-1 text-15 text-muted">It reads one page, registers itself and checks in every half hour. You decide how much it may do.</p>
           </div>
           <div className="flex shrink-0 flex-wrap gap-3">
             <ButtonLink href="/signup">Get started</ButtonLink>
