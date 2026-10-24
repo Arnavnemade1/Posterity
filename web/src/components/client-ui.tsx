@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Copy } from 'lucide-react';
+import { Check, Copy, LoaderCircle } from 'lucide-react';
 import { useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { buttonClass, cx } from '@/components/ui';
@@ -15,17 +15,18 @@ export function CopyButton({ text, label = 'Copy', className }: { text: string; 
         setCopied(true);
         setTimeout(() => setCopied(false), 1600);
       }}
-      className={cx(
-        'inline-flex items-center gap-1.5 px-2 py-1 text-[12px] font-medium text-faint transition-colors hover:bg-fg/[0.06] hover:text-text',
-        className,
-      )}
+      className={cx('inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-12 font-medium text-faint transition-colors hover:bg-hover hover:text-text', className)}
     >
-      {copied ? <Check className="size-3 text-done" /> : <Copy className="size-3" />}
+      {copied ? <Check className="size-3 text-done" aria-hidden /> : <Copy className="size-3" aria-hidden />}
       {copied ? 'Copied' : label}
     </button>
   );
 }
 
+/**
+ * The submit button of a form. While its form is working it shows a spinner and its pending label, and holds
+ * its width so the layout does not jump.
+ */
 export function SubmitButton({
   children,
   pendingLabel = 'Working…',
@@ -47,8 +48,15 @@ export function SubmitButton({
   // In a form with several submit buttons, only the one that was clicked shows its pending label.
   const mine = pending && (!name || data?.get(name) === value);
   return (
-    <button type="submit" name={name} value={value} disabled={pending} className={cx(buttonClass(variant, size), className)}>
-      {mine ? pendingLabel : children}
+    <button type="submit" name={name} value={value} disabled={pending} aria-busy={mine || undefined} className={cx(buttonClass(variant, size), className)}>
+      {/* Both labels share one grid cell, so the button keeps the wider of the two. */}
+      <span className="inline-grid">
+        <span className={cx('col-start-1 row-start-1 inline-flex items-center justify-center gap-2', mine && 'invisible')}>{children}</span>
+        <span aria-hidden={!mine} className={cx('col-start-1 row-start-1 inline-flex items-center justify-center gap-2', !mine && 'invisible')}>
+          <LoaderCircle className="size-4 animate-[spin_700ms_linear_infinite]" aria-hidden />
+          {pendingLabel}
+        </span>
+      </span>
     </button>
   );
 }
@@ -58,7 +66,7 @@ export type ActionState = { ok: boolean; message: string } | null;
 export function FormMessage({ state }: { state: ActionState }) {
   if (!state?.message) return null;
   return (
-    <p role={state.ok ? 'status' : 'alert'} className={cx('text-sm', state.ok ? 'text-done' : 'text-danger')}>
+    <p role={state.ok ? 'status' : 'alert'} className={cx('text-14', state.ok ? 'text-done' : 'text-danger')}>
       {state.message}
     </p>
   );

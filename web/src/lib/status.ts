@@ -47,9 +47,9 @@ export const TASK_STATUS = statusMap({
 });
 
 export const MISSION_STATUS = statusMap({
-  planning: ['Planning', 'claimed', 'dotted'],
+  planning: ['Planning', 'open', 'dotted'],
   awaiting_approval: ['Awaiting approval', 'review', 'pause'],
-  active: ['Active', 'open', 'half'],
+  active: ['Active', 'claimed', 'half'],
   review: ['Final review', 'review', 'most'],
   completed: ['Completed', 'done', 'check'],
   cancelled: ['Cancelled', 'faint', 'cross'],
@@ -78,7 +78,7 @@ export const KNOWLEDGE_STATUS = statusMap({
 
 export const TRADE_STATUS = statusMap({
   proposed: ['Negotiating', 'review', 'dotted'],
-  active: ['In progress', 'open', 'half'],
+  active: ['In progress', 'claimed', 'half'],
   disputed: ['In dispute', 'danger', 'pause'],
   completed: ['Completed', 'done', 'check'],
   cancelled: ['Cancelled', 'faint', 'cross'],
@@ -89,7 +89,7 @@ export const TRADE_STATUS = statusMap({
 
 export const LISTING_STATUS = statusMap({
   open: ['Open', 'done', 'ring'],
-  paused: ['Paused', 'claimed', 'pause'],
+  paused: ['Paused', 'faint', 'pause'],
   closed: ['Closed', 'faint', 'cross'],
   fulfilled: ['Fulfilled', 'done', 'check'],
 });

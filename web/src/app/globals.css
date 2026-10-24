@@ -4,48 +4,83 @@
 /*
   Posterity design system.
 
-  Restraint first: neutral graphite surfaces, crisp type, hairline borders, and a single gold accent
-  used sparingly for brand, live and active states. Colour beyond that carries meaning only (status).
-  Three themes share one structure: dark (default), dim and light. Every colour is a variable, so any
-  section can pin its own theme.
+  One palette for the whole product: graphite surfaces separated by tone rather than rules, crisp type,
+  and a single gold accent (the ember node in the logo) used sparingly: active state, focus, live, brand.
+  Status colours carry meaning only and never collide with the accent: open is neutral, in progress blue,
+  review violet, done green, danger rose. Three themes share one structure: night (default), twilight and
+  day. Every colour is a variable, so any section can pin its own theme.
+
+  Scales (use these, not arbitrary values):
+    type     text-11 12 13 14 15 16 17 18 20 24 28 32 40
+    radius   rounded-md 6 (tags, kbd) · xl 12 (rows, inputs) · 2xl 16 (cards, menus) · 3xl 24 (dialogs) · full
+    shadow   shadow-pop (menus, popovers) · shadow-modal (dialogs)
+    motion   120ms (hover) · 180ms (enter/exit) · 320ms (layout), always var(--ease-out-expo)
+    wash     bg-hover 5% · bg-active 8% · bg-selected 10%
 */
 
 @custom-variant day (&:where([data-theme='day'], [data-theme='day'] *));
 @custom-variant twilight (&:where([data-theme='twilight'], [data-theme='twilight'] *));
 
 @theme static {
-  /* Dark */
+  /* Night */
   --color-ink: #09090b;
-  --color-panel: #16181c;
-  --color-raised: #1d1f23;
-  --color-fg: #e7e9ea;
-  --color-line: #2a2d31;
-  --color-line-strong: #3a3e43;
-  --color-text: #e7e9ea;
-  --color-prose: #c9cdd1;
-  --color-muted: #a2a8ae;
-  --color-faint: #7c8288;
-  --color-ghost: #3a3e43;
+  --color-surface: #0e0e11;
+  --color-panel: #131316;
+  --color-raised: #1a1a1e;
+  --color-overlay: #1f1f24;
+  --color-fg: #ececee;
+  --color-line: rgb(255 255 255 / 0.075);
+  --color-line-strong: rgb(255 255 255 / 0.14);
+  --color-text: #ececee;
+  --color-prose: #c8c8ce;
+  --color-muted: #a4a4ac;
+  --color-faint: #8a8a93;
+  --color-ghost: rgb(255 255 255 / 0.14);
+  --color-hover: rgb(255 255 255 / 0.05);
+  --color-active: rgb(255 255 255 / 0.08);
+  --color-selected: rgb(255 255 255 / 0.1);
   --color-accent: #e2a94b;
-  --color-accent-ink: #0b0b0c;
+  --color-accent-ink: #17110a;
+  --color-accent-fg: #e2a94b;
+  --color-link: #e2a94b;
   --color-ember: #e2a94b;
-  --color-rose: #f2555a;
-  --color-violet: #9b8cf2;
-  --color-cyan: #4ca7f0;
-  --color-open: #4ca7f0;
-  --color-claimed: #e2a94b;
-  --color-review: #9b8cf2;
+  --color-open: #9a9aa3;
+  --color-claimed: #5aa9f2;
+  --color-review: #b690f2;
   --color-done: #3ecf8e;
   --color-danger: #f2555a;
+  --color-cyan: #4cc3d9;
+  --color-violet: #b690f2;
+  --color-rose: #f2555a;
   --color-heart: #f91880;
 
-  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --shadow-pop: 0 10px 30px -10px rgb(0 0 0 / 0.7), 0 0 0 1px rgb(255 255 255 / 0.1);
+  --shadow-modal: 0 28px 80px -24px rgb(0 0 0 / 0.8), 0 0 0 1px rgb(255 255 255 / 0.1);
 
-  --animate-marquee: marquee 50s linear infinite;
+  --text-11: 11px;
+  --text-12: 12px;
+  --text-13: 13px;
+  --text-14: 14px;
+  --text-15: 15px;
+  --text-16: 16px;
+  --text-17: 17px;
+  --text-18: 18px;
+  --text-20: 20px;
+  --text-24: 24px;
+  --text-28: 28px;
+  --text-32: 32px;
+  --text-40: 40px;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
   --animate-rise: rise 0.6s var(--ease-out-expo) both;
   --animate-fade: fade 0.8s var(--ease-out-expo) both;
-  --animate-shimmer: shimmer 2.4s linear infinite;
+}
+
+/* The two sticky bars every column page stacks. Things that sit under them read these, never a literal. */
+:root {
+  --column-header-h: 52px;
+  --column-tabs-h: 44px;
 }
 
 @theme inline {
@@ -54,83 +89,106 @@
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
+/* Night, restated so a section can pin it inside another theme (the public site does). */
 [data-theme='night'] {
   color-scheme: dark;
   --color-ink: #09090b;
-  --color-panel: #16181c;
-  --color-raised: #1d1f23;
-  --color-fg: #e7e9ea;
-  --color-line: #2a2d31;
-  --color-line-strong: #3a3e43;
-  --color-text: #e7e9ea;
-  --color-prose: #c9cdd1;
-  --color-muted: #a2a8ae;
-  --color-faint: #7c8288;
-  --color-ghost: #3a3e43;
+  --color-surface: #0e0e11;
+  --color-panel: #131316;
+  --color-raised: #1a1a1e;
+  --color-overlay: #1f1f24;
+  --color-fg: #ececee;
+  --color-line: rgb(255 255 255 / 0.075);
+  --color-line-strong: rgb(255 255 255 / 0.14);
+  --color-text: #ececee;
+  --color-prose: #c8c8ce;
+  --color-muted: #a4a4ac;
+  --color-faint: #8a8a93;
+  --color-ghost: rgb(255 255 255 / 0.14);
+  --color-hover: rgb(255 255 255 / 0.05);
+  --color-active: rgb(255 255 255 / 0.08);
+  --color-selected: rgb(255 255 255 / 0.1);
   --color-accent: #e2a94b;
-  --color-accent-ink: #0b0b0c;
+  --color-accent-ink: #17110a;
+  --color-accent-fg: #e2a94b;
+  --color-link: #e2a94b;
   --color-ember: #e2a94b;
-  --color-rose: #f2555a;
-  --color-violet: #9b8cf2;
-  --color-cyan: #4ca7f0;
-  --color-open: #4ca7f0;
-  --color-claimed: #e2a94b;
-  --color-review: #9b8cf2;
+  --color-open: #9a9aa3;
+  --color-claimed: #5aa9f2;
+  --color-review: #b690f2;
   --color-done: #3ecf8e;
   --color-danger: #f2555a;
+  --color-cyan: #4cc3d9;
+  --color-violet: #b690f2;
+  --color-rose: #f2555a;
   --color-heart: #f91880;
+  --shadow-pop: 0 10px 30px -10px rgb(0 0 0 / 0.7), 0 0 0 1px rgb(255 255 255 / 0.1);
+  --shadow-modal: 0 28px 80px -24px rgb(0 0 0 / 0.8), 0 0 0 1px rgb(255 255 255 / 0.1);
 }
 
 /* Dim: a deep slate for long evenings. */
 [data-theme='twilight'] {
   color-scheme: dark;
-  --color-ink: #15202b;
-  --color-panel: #1e2732;
-  --color-raised: #253341;
-  --color-fg: #f7f9f9;
-  --color-line: #38444d;
-  --color-line-strong: #4a5865;
-  --color-text: #f7f9f9;
-  --color-prose: #d4dbe1;
-  --color-muted: #aab8c2;
-  --color-faint: #94a1ad;
-  --color-ghost: #38444d;
+  --color-ink: #12161c;
+  --color-surface: #161b23;
+  --color-panel: #1a2029;
+  --color-raised: #222a35;
+  --color-overlay: #28313e;
+  --color-fg: #e8ecf1;
+  --color-line: rgb(255 255 255 / 0.085);
+  --color-line-strong: rgb(255 255 255 / 0.15);
+  --color-text: #e8ecf1;
+  --color-prose: #cdd4dc;
+  --color-muted: #a3acb8;
+  --color-faint: #959faa;
+  --color-ghost: rgb(255 255 255 / 0.15);
+  --color-open: #9aa4b2;
+  --color-danger: #f7777b;
 }
 
 /* Light. */
 [data-theme='day'] {
   color-scheme: light;
   --color-ink: #ffffff;
-  --color-panel: #f7f9f9;
-  --color-raised: #ffffff;
-  --color-fg: #0f1419;
-  --color-line: #eff3f4;
-  --color-line-strong: #cfd9de;
-  --color-text: #0f1419;
-  --color-prose: #2f3336;
-  --color-muted: #536471;
-  --color-faint: #5f6e7c;
-  --color-ghost: #cfd9de;
-  --color-accent: #9a6412;
-  --color-accent-ink: #ffffff;
-  --color-ember: #9a6412;
-  --color-rose: #cf1c52;
-  --color-violet: #6c55e0;
-  --color-cyan: #1d6fe0;
-  --color-open: #1d6fe0;
-  --color-claimed: #9a6412;
-  --color-review: #6c55e0;
-  --color-done: #00855a;
-  --color-danger: #cf1c52;
+  --color-surface: #f7f7f8;
+  --color-panel: #f3f4f6;
+  --color-raised: #eceef1;
+  --color-overlay: #ffffff;
+  --color-fg: #111318;
+  --color-line: rgb(0 0 0 / 0.08);
+  --color-line-strong: rgb(0 0 0 / 0.15);
+  --color-text: #111318;
+  --color-prose: #2c3038;
+  --color-muted: #555b66;
+  --color-faint: #666b75;
+  --color-ghost: rgb(0 0 0 / 0.15);
+  --color-hover: rgb(0 0 0 / 0.045);
+  --color-active: rgb(0 0 0 / 0.07);
+  --color-selected: rgb(0 0 0 / 0.09);
+  --color-accent: #d99a2b;
+  --color-accent-ink: #1a1203;
+  --color-accent-fg: #8a5a00;
+  --color-link: #8a5a00;
+  --color-ember: #d99a2b;
+  --color-open: #666b75;
+  --color-claimed: #1a63c9;
+  --color-review: #6a45d0;
+  --color-done: #007a4f;
+  --color-danger: #c4153f;
+  --color-cyan: #0b7285;
+  --color-violet: #6a45d0;
+  --color-rose: #c4153f;
   --color-heart: #d6246e;
+  --shadow-pop: 0 10px 30px -10px rgb(0 0 0 / 0.22), 0 0 0 1px rgb(0 0 0 / 0.1);
+  --shadow-modal: 0 28px 80px -24px rgb(0 0 0 / 0.3), 0 0 0 1px rgb(0 0 0 / 0.1);
 }
 
-@keyframes marquee {
-  to { transform: translateX(-50%); }
+/* The public site is always night. Pin the page behind it too, so overscroll never shows another theme. */
+html:has([data-site-root]) {
+  color-scheme: dark;
+  background: #09090b;
 }
-@keyframes marquee-y {
-  to { transform: translateY(-50%); }
-}
+
 @keyframes rise {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: none; }
@@ -139,9 +197,9 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
-@keyframes shimmer {
-  from { background-position: 200% 0; }
-  to { background-position: -200% 0; }
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
 }
 @keyframes pulse-ring {
   0% { box-shadow: 0 0 0 0 color-mix(in oklab, currentColor 45%, transparent); }
@@ -161,14 +219,6 @@
   100% { transform: scale(1); }
 }
 /* The landing page's live panels and sky callouts. */
-@keyframes feed-shift {
-  from { transform: translateY(-68px); }
-  to { transform: none; }
-}
-@keyframes bubble-in {
-  from { opacity: 0; transform: translateY(6px) scale(0.97); }
-  to { opacity: 1; transform: none; }
-}
 @keyframes typing {
   0%, 70%, 100% { opacity: 0.3; transform: none; }
   35% { opacity: 1; transform: translateY(-2px); }
@@ -205,13 +255,13 @@
     text-wrap: pretty;
   }
   ::selection {
-    background: color-mix(in oklab, var(--color-accent) 30%, transparent);
+    background: color-mix(in oklab, var(--color-accent) 28%, transparent);
     color: var(--color-text);
   }
+  /* One focus ring everywhere: the accent, offset so it never hugs the element. */
   :focus-visible {
-    outline: 2px solid color-mix(in oklab, var(--color-text) 60%, transparent);
+    outline: 2px solid var(--color-accent-fg);
     outline-offset: 2px;
-    border-radius: 6px;
   }
   input,
   textarea,
@@ -221,6 +271,15 @@
   code, kbd, pre, samp {
     font-feature-settings: normal;
     letter-spacing: 0;
+  }
+  svg.lucide {
+    flex-shrink: 0;
+  }
+  button {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
   }
   * {
     scrollbar-width: thin;
@@ -267,35 +326,9 @@
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
 }
-/* Kept for older markup: plain text colour, no effects. */
-@utility text-aurora {
-  color: var(--color-text);
-}
-@utility text-gradient {
-  color: var(--color-text);
-}
-@utility accent-serif {
-  font-style: normal;
-}
 
 /* ——— Backdrops ——— */
 
-/* A faint field of stars, for the landing page only. */
-@utility starfield {
-  background-image:
-    radial-gradient(1px 1px at 12% 18%, color-mix(in oklab, var(--color-fg) 55%, transparent), transparent),
-    radial-gradient(1px 1px at 72% 12%, color-mix(in oklab, var(--color-fg) 40%, transparent), transparent),
-    radial-gradient(1px 1px at 38% 64%, color-mix(in oklab, var(--color-fg) 45%, transparent), transparent),
-    radial-gradient(1px 1px at 86% 72%, color-mix(in oklab, var(--color-fg) 35%, transparent), transparent),
-    radial-gradient(1px 1px at 22% 82%, color-mix(in oklab, var(--color-fg) 30%, transparent), transparent),
-    radial-gradient(1px 1px at 58% 34%, color-mix(in oklab, var(--color-fg) 45%, transparent), transparent),
-    radial-gradient(1px 1px at 92% 38%, color-mix(in oklab, var(--color-fg) 30%, transparent), transparent),
-    radial-gradient(1px 1px at 6% 48%, color-mix(in oklab, var(--color-fg) 35%, transparent), transparent);
-  background-size: 360px 360px;
-}
-@utility nebula {
-  background: none;
-}
 @utility graticule {
   background-image:
     linear-gradient(var(--color-line) 1px, transparent 1px),
@@ -303,71 +336,61 @@
   background-size: 48px 48px;
   background-position: -1px -1px;
 }
-@utility dot-grid {
-  background-image: radial-gradient(var(--color-line-strong) 1px, transparent 1px);
-  background-size: 22px 22px;
-}
-@utility mask-fade-x {
-  mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
-}
-@utility mask-fade-b {
-  mask-image: linear-gradient(180deg, #000 60%, transparent);
-}
 @utility rule {
   border-top: 1px solid var(--color-line);
-}
-@utility hairline {
-  height: 1px;
-  background: var(--color-line);
 }
 
 /* ——— Surfaces ——— */
 
+/* A panel is a step up in tone from the page, with a hairline to define its edge. */
 @utility card {
   border-radius: 16px;
   background: var(--color-panel);
   box-shadow: inset 0 0 0 1px var(--color-line);
 }
-/* Floating chrome: menus, dialogs, toasts. */
+/* Floating chrome: menus, popovers, toasts. */
 @utility glass {
-  background: var(--color-raised);
-  box-shadow: inset 0 0 0 1px var(--color-line-strong), 0 18px 48px -14px rgb(0 0 0 / 0.55);
+  background: var(--color-overlay);
+  box-shadow: var(--shadow-pop);
 }
-/* Kept for older markup: a plain hairline frame. */
-@utility glow-border {
-  box-shadow: inset 0 0 0 1px var(--color-line);
-}
-@utility beam {
-  box-shadow: inset 0 0 0 1px var(--color-line-strong);
-}
-@utility spotlight {
-  position: relative;
+/* A row in a continuous timeline: no card, a hairline between posts. */
+@utility timeline-item {
+  border-bottom: 1px solid var(--color-line);
 }
 @utility skeleton {
   border-radius: 6px;
-  background: linear-gradient(90deg, var(--color-line) 0%, color-mix(in oklab, var(--color-fg) 9%, transparent) 50%, var(--color-line) 100%);
-  background-size: 200% 100%;
-  animation: shimmer 2.4s linear infinite;
+  background: color-mix(in oklab, var(--color-fg) 7%, transparent);
+  animation: skeleton-pulse 1.8s ease-in-out infinite;
 }
 
 /* ——— Controls ——— */
 
 @utility field {
   width: 100%;
-  border-radius: 10px;
-  background: transparent;
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--color-fg) 3%, transparent);
   padding: 0.6rem 0.85rem;
   font-size: 0.9375rem;
   line-height: 1.35;
   color: var(--color-text);
   box-shadow: inset 0 0 0 1px var(--color-line-strong);
-  transition: box-shadow 150ms ease;
+  transition: box-shadow 150ms var(--ease-out-expo), background-color 150ms var(--ease-out-expo);
   &::placeholder {
     color: var(--color-faint);
   }
+  &:hover:not(:focus):not(:disabled) {
+    background: color-mix(in oklab, var(--color-fg) 5%, transparent);
+  }
   &:focus {
     outline: none;
-    box-shadow: inset 0 0 0 1.5px var(--color-text);
+    box-shadow: inset 0 0 0 1px var(--color-accent-fg), 0 0 0 3px color-mix(in oklab, var(--color-accent) 28%, transparent);
+  }
+  &[aria-invalid='true'] {
+    box-shadow: inset 0 0 0 1px var(--color-danger), 0 0 0 3px color-mix(in oklab, var(--color-danger) 22%, transparent);
+  }
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
   }
 }
 @utility kbd {
@@ -376,7 +399,7 @@
   height: 1.35rem;
   align-items: center;
   justify-content: center;
-  border-radius: 5px;
+  border-radius: 6px;
   padding: 0 0.35rem;
   font-family: var(--font-mono);
   font-size: 11px;
@@ -396,10 +419,13 @@
   font-weight: 600;
   letter-spacing: -0.01em;
   user-select: none;
-  transition: background-color 150ms ease, box-shadow 150ms ease, color 150ms ease, opacity 150ms ease;
+  transition: background-color 120ms var(--ease-out-expo), box-shadow 120ms var(--ease-out-expo), color 120ms var(--ease-out-expo), opacity 120ms var(--ease-out-expo), transform 120ms var(--ease-out-expo);
   &:disabled {
     cursor: not-allowed;
     opacity: 0.5;
+  }
+  &:active:not(:disabled) {
+    transform: scale(0.98);
   }
 }
 @utility btn-primary {
@@ -409,7 +435,7 @@
     background: color-mix(in oklab, var(--color-text) 86%, var(--color-ink));
   }
 }
-/* The brand's own button, used once or twice a page. */
+/* The brand's own button: gold, used once or twice a page. */
 @utility btn-ember {
   color: var(--color-accent-ink);
   background: var(--color-accent);
@@ -422,14 +448,14 @@
   background: transparent;
   box-shadow: inset 0 0 0 1px var(--color-line-strong);
   &:hover:not(:disabled) {
-    background: color-mix(in oklab, var(--color-fg) 7%, transparent);
+    background: var(--color-hover);
   }
 }
 @utility btn-ghost {
   color: var(--color-muted);
   &:hover:not(:disabled) {
     color: var(--color-text);
-    background: color-mix(in oklab, var(--color-fg) 7%, transparent);
+    background: var(--color-hover);
   }
 }
 @utility btn-danger {
@@ -437,6 +463,127 @@
   box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-danger) 40%, transparent);
   &:hover:not(:disabled) {
     background: color-mix(in oklab, var(--color-danger) 10%, transparent);
+  }
+}
+/* A button that is working: its label stays, a spinner joins it, the width holds. */
+.btn[aria-busy='true'] {
+  pointer-events: none;
+}
+
+/* ——— Floating layers ——— */
+
+/* A modal dialog: the native element, so focus is trapped, Esc closes and the page behind is inert. */
+dialog.dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(calc(100% - 24px), var(--dialog-w, 480px));
+  max-height: min(86dvh, 760px);
+  padding: 0;
+  border: 0;
+  border-radius: 24px;
+  overflow: hidden;
+  color: var(--color-text);
+  background: var(--color-overlay);
+  box-shadow: var(--shadow-modal);
+  opacity: 0;
+  transform: translateY(8px) scale(0.985);
+  transition:
+    opacity 180ms var(--ease-out-expo),
+    transform 180ms var(--ease-out-expo),
+    overlay 180ms allow-discrete,
+    display 180ms allow-discrete;
+}
+dialog.dialog[open] {
+  opacity: 1;
+  transform: none;
+}
+@starting-style {
+  dialog.dialog[open] {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+}
+dialog.dialog::backdrop {
+  background: rgb(0 0 0 / 0.62);
+  opacity: 0;
+  transition:
+    opacity 180ms var(--ease-out-expo),
+    overlay 180ms allow-discrete,
+    display 180ms allow-discrete;
+}
+dialog.dialog[open]::backdrop {
+  opacity: 1;
+}
+@starting-style {
+  dialog.dialog[open]::backdrop {
+    opacity: 0;
+  }
+}
+/* A sheet rises from the bottom edge on phones and sits like a dialog on wider screens. */
+dialog.dialog[data-variant='sheet'] {
+  width: 100%;
+  max-width: none;
+  inset: auto 0 0 0;
+  margin: 0;
+  max-height: 88dvh;
+  border-radius: 24px 24px 0 0;
+  transform: translateY(24px);
+}
+dialog.dialog[data-variant='sheet'][open] {
+  transform: none;
+}
+@starting-style {
+  dialog.dialog[data-variant='sheet'][open] {
+    transform: translateY(24px);
+  }
+}
+@media (min-width: 640px) {
+  dialog.dialog[data-variant='sheet'] {
+    width: min(calc(100% - 24px), var(--dialog-w, 480px));
+    inset: 0;
+    margin: auto;
+    max-height: min(86dvh, 760px);
+    border-radius: 24px;
+    transform: translateY(8px) scale(0.985);
+  }
+  dialog.dialog[data-variant='sheet'][open] {
+    transform: none;
+  }
+}
+/* The command bar sits high on the screen, not centred. */
+dialog.dialog[data-variant='palette'] {
+  inset: 10dvh 0 auto 0;
+  margin: 0 auto;
+}
+
+/* A menu or popover: shown in the top layer, so it is never clipped and keeps the theme it is rendered in. */
+.floating {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  z-index: 80;
+  color: var(--color-text);
+  background: var(--color-overlay);
+  box-shadow: var(--shadow-pop);
+  border: 0;
+  padding: 6px;
+  border-radius: 16px;
+  opacity: 0;
+  transform: translateY(-4px) scale(0.985);
+  transform-origin: var(--origin, top left);
+  transition:
+    opacity 120ms var(--ease-out-expo),
+    transform 120ms var(--ease-out-expo);
+}
+.floating[data-state='open'] {
+  opacity: 1;
+  transform: none;
+}
+@starting-style {
+  .floating[data-state='open'] {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.985);
   }
 }
 
@@ -460,24 +607,21 @@
   animation: msg-flash 1.9s ease-out;
 }
 
-/* A press gives a little: buttons settle under the pointer. */
-.btn:active:not(:disabled) {
-  transform: scale(0.97);
-}
-
 /* Posts rise into a timeline one after another, the first screenful only. */
 @keyframes feed-rise {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: none; }
 }
 .feed-enter > li {
-  animation: feed-rise 520ms var(--ease-out-expo) both;
+  animation: feed-rise 420ms var(--ease-out-expo) both;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 220px;
 }
-.feed-enter > li:nth-child(2) { animation-delay: 50ms; }
-.feed-enter > li:nth-child(3) { animation-delay: 100ms; }
-.feed-enter > li:nth-child(4) { animation-delay: 150ms; }
-.feed-enter > li:nth-child(5) { animation-delay: 200ms; }
-.feed-enter > li:nth-child(n + 6) { animation-delay: 240ms; }
+.feed-enter > li:nth-child(2) { animation-delay: 40ms; }
+.feed-enter > li:nth-child(3) { animation-delay: 80ms; }
+.feed-enter > li:nth-child(4) { animation-delay: 120ms; }
+.feed-enter > li:nth-child(5) { animation-delay: 160ms; }
+.feed-enter > li:nth-child(n + 6) { animation-delay: 200ms; }
 
 .live-dot {
   animation: pulse-ring 2.4s ease-out infinite;
@@ -488,7 +632,7 @@
 
 [data-reveal] {
   opacity: 0;
-  transform: translateY(10px);
+  transform: translateY(8px);
   transition:
     opacity 700ms var(--ease-out-expo),
     transform 700ms var(--ease-out-expo);
@@ -499,6 +643,50 @@
   transform: none;
 }
 
+/*
+  Route and loading transitions (React <ViewTransition>, see components/motion.tsx). Nothing animates by
+  default: only the named boundaries do, and short. The page behind (rail, header) never moves.
+*/
+::view-transition {
+  pointer-events: none;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+@keyframes vt-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes vt-rise {
+  from { translate: 0 8px; }
+  to { translate: 0 0; }
+}
+::view-transition-old(.page-forward),
+::view-transition-old(.page-back),
+::view-transition-old(.page-fade) {
+  animation: 90ms ease-in both vt-fade reverse;
+}
+::view-transition-new(.page-forward) {
+  animation: 180ms var(--ease-out-expo) 70ms both vt-fade, 240ms var(--ease-out-expo) 70ms both vt-rise;
+}
+::view-transition-new(.page-back),
+::view-transition-new(.page-fade) {
+  animation: 160ms var(--ease-out-expo) 70ms both vt-fade;
+}
+/* A skeleton hands over to the content it stood in for. */
+::view-transition-old(.reveal-out) {
+  animation: 120ms ease-in both vt-fade reverse;
+}
+::view-transition-new(.reveal-in) {
+  animation: 200ms var(--ease-out-expo) 60ms both vt-fade, 260ms var(--ease-out-expo) 60ms both vt-rise;
+}
+/* The active tab's underline slides to the next one. */
+::view-transition-group(.tab-indicator) {
+  animation-duration: 220ms;
+  animation-timing-function: var(--ease-out-expo);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -506,6 +694,13 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
   }
   [data-reveal] {
     opacity: 1;
@@ -549,7 +744,7 @@
 .prose-posterity {
   --tw-prose-body: var(--color-prose);
   --tw-prose-headings: var(--color-text);
-  --tw-prose-links: var(--color-open);
+  --tw-prose-links: var(--color-link);
   --tw-prose-bold: var(--color-text);
   --tw-prose-counters: var(--color-faint);
   --tw-prose-bullets: var(--color-faint);
@@ -574,7 +769,7 @@
 }
 .prose-posterity :where(code):not(:where(pre *)) {
   background: color-mix(in oklab, var(--color-fg) 8%, transparent);
-  border-radius: 5px;
+  border-radius: 6px;
   padding: 0.12em 0.38em;
   font-weight: 450;
   font-size: 0.86em;
@@ -589,7 +784,7 @@
 }
 
 .post-body :where(a.mention, a.hashtag) {
-  color: var(--color-open);
+  color: var(--color-link);
   text-decoration: none;
   font-weight: inherit;
 }
@@ -715,7 +910,9 @@ a:focus-visible > .task-node .node-rect {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .hero-leave {
+  .hero-leave,
+  .tg-flow,
+  .tg-active {
     animation: none;
   }
 }
@@ -724,29 +921,6 @@ a:focus-visible > .task-node .node-rect {
 @keyframes tour-fill {
   from { transform: scaleY(0); }
   to { transform: scaleY(1); }
-}
-
-/* The product shot settles flat as it scrolls into view. */
-@keyframes untilt {
-  from { transform: rotateX(10deg) scale(0.97); }
-  to { transform: none; }
-}
-.tilt-in {
-  transform-origin: 50% 0;
-}
-@supports (animation-timeline: view()) {
-  .tilt-in {
-    animation: untilt linear both;
-    animation-timeline: view();
-    animation-range: entry 0% cover 40%;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .tilt-in,
-  .tg-flow,
-  .tg-active {
-    animation: none;
-  }
 }
 
 /* Syntax colours for the code pages: the status palette, so they follow the sky. */
@@ -769,14 +943,14 @@ a:focus-visible > .task-node .node-rect {
 .hljs-symbol,
 .hljs-bullet,
 .hljs-variable.constant_ {
-  color: var(--color-claimed);
+  color: var(--color-accent-fg);
 }
 .hljs-title,
 .hljs-section,
 .hljs-title.function_,
 .hljs-title.class_,
 .hljs-built_in {
-  color: var(--color-open);
+  color: var(--color-claimed);
 }
 .hljs-attr,
 .hljs-attribute,
@@ -803,7 +977,7 @@ a:focus-visible > .task-node .node-rect {
 
 /* A line arriving in the live feed. */
 @keyframes feed-in {
-  from { opacity: 0; transform: translateY(-6px); background-color: color-mix(in srgb, var(--color-accent) 16%, transparent); }
+  from { opacity: 0; transform: translateY(-6px); background-color: color-mix(in srgb, var(--color-accent) 14%, transparent); }
   to { opacity: 1; transform: none; background-color: transparent; }
 }
 .feed-fresh {
@@ -815,70 +989,13 @@ a:focus-visible > .task-node .node-rect {
   }
 }
 
-/* Social app: a continuous timeline, thin rules, and a flat blue accent. */
-.app-shell {
-  --color-ink: #000000;
-  --color-panel: #16181c;
-  --color-raised: #202327;
-  --color-line: #2f3336;
-  --color-line-strong: #454c52;
-  --color-text: #e7e9ea;
-  --color-fg: #e7e9ea;
-  --color-prose: #d4d7d9;
-  --color-muted: #939ba3;
-  --color-faint: #7d8790;
-  --color-accent: #9bd4ff;
-  --color-accent-ink: #071521;
-  --color-ember: #9bd4ff;
-  --color-done: #83caff;
-  --agent-avatar-radius: 50%;
-  background: var(--color-ink);
+/* The command bar's input owns its focus indicator. */
+.search-dialog-input:focus,
+.search-dialog-input:focus-visible {
+  outline: none;
+  box-shadow: none;
+  border-radius: 0;
 }
-[data-theme='day'] .app-shell {
-  --color-ink: #ffffff;
-  --color-panel: #f7f9f9;
-  --color-raised: #ffffff;
-  --color-line: #e9edef;
-  --color-line-strong: #cfd9de;
-  --color-text: #0f1419;
-  --color-fg: #0f1419;
-  --color-prose: #2f3336;
-  --color-muted: #536471;
-  --color-faint: #5f6e7c;
-  --color-accent: #287bbf;
-  --color-accent-ink: #ffffff;
-  --color-ember: #287bbf;
-  --color-done: #287bbf;
+.search-dialog-input-row:focus-within {
+  box-shadow: inset 0 -2px 0 var(--color-accent);
 }
-[data-theme='twilight'] .app-shell {
-  --color-ink: #101720;
-  --color-panel: #17212d;
-  --color-raised: #202c3b;
-  --color-line: #2d3947;
-  --color-line-strong: #435568;
-}
-.app-shell .card { border-radius: 16px; box-shadow: inset 0 0 0 1px var(--color-line); }
-.app-shell .btn { border-radius: 999px; font-weight: 700; transition: background-color .15s, opacity .15s; }
-.app-shell .btn-primary { background: var(--color-accent); color: var(--color-accent-ink); box-shadow: none; }
-.app-shell .btn-primary:hover:not(:disabled) { opacity: .9; }
-.app-shell .btn-secondary { background: transparent; box-shadow: inset 0 0 0 1px var(--color-line-strong); }
-.app-shell .field { border-radius: 12px; background: transparent; box-shadow: inset 0 0 0 1px var(--color-line-strong); }
-.app-shell .rail-section { background: transparent; }
-.app-shell .rail-section .btn-primary { background: var(--color-text); color: var(--color-ink); }
-.app-shell aside[aria-label='Around the network'] input { border-radius: 999px; background: var(--color-panel); box-shadow: none; }
-.app-shell .soft-surface, .app-shell .fleet-side { border-radius: 16px; background-image: none; box-shadow: inset 0 0 0 1px var(--color-line); }
-.app-shell .timeline-item { margin: 0; border-bottom: 1px solid var(--color-line); border-radius: 0; background: transparent; box-shadow: none; }
-.app-shell .timeline-item .post-surface { border-radius: 0; }
-.app-shell .fleet-metrics > div:first-child > p:last-child { color: var(--color-accent); }
-.app-shell :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
-.app-shell ::selection { background: color-mix(in srgb, var(--color-accent) 28%, transparent); }
-.app-shell .feed-enter > li { content-visibility: auto; contain-intrinsic-size: auto 220px; }
-@media (prefers-reduced-motion: reduce) {
-  .app-shell *, .app-shell *::before, .app-shell *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
-}
-
-/* Flex layouts must preserve control glyphs; the search header owns its focus indicator. */
-.app-shell svg.lucide { flex-shrink: 0; }
-.app-shell .search-dialog-input:focus,
-.app-shell .search-dialog-input:focus-visible { outline: none; box-shadow: none; border-radius: 0; }
-.app-shell .search-dialog-input-row:focus-within { box-shadow: inset 0 -2px 0 var(--color-accent); }

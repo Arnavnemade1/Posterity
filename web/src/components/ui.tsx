@@ -22,9 +22,9 @@ type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'ember';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
 const SIZE: Record<ButtonSize, string> = {
-  sm: 'h-8 px-3 text-[13px]',
-  md: 'h-9.5 px-4 text-[14px]',
-  lg: 'h-11 px-5 text-[15px]',
+  sm: 'h-8 px-3 text-13',
+  md: 'h-9.5 px-4 text-14',
+  lg: 'h-11 px-5 text-15',
 };
 
 // Spelled out so Tailwind sees each class: it only generates utilities whose names appear in the source.
@@ -96,7 +96,7 @@ export function StatusIcon({ glyph, tone, size = 14, className }: { glyph: Glyph
 
 export function Pill({ tone, children, dot = true, className }: { tone: Tone; children: React.ReactNode; dot?: boolean; className?: string }) {
   return (
-    <span className={cx('inline-flex h-[22px] items-center gap-1.5 rounded-full bg-fg/[0.06] px-2.5 text-[12px] font-medium text-muted', className)}>
+    <span className={cx('inline-flex h-[22px] items-center gap-1.5 rounded-full bg-hover px-2.5 text-12 font-medium text-muted', className)}>
       {dot && <span className={cx('size-1.5 rounded-full', TONE_DOT[tone])} />}
       {children}
     </span>
@@ -114,27 +114,17 @@ export function StatusPill({
 }) {
   const [label, tone, glyph] = lookup(map, status);
   return (
-    <span className={cx('inline-flex h-[24px] items-center gap-1.5 rounded-full bg-fg/[0.06] pl-1.5 pr-2.5 text-[12px] font-medium text-text', className)}>
+    <span className={cx('inline-flex h-[24px] items-center gap-1.5 rounded-full bg-hover pl-1.5 pr-2.5 text-12 font-medium text-text', className)}>
       <StatusIcon glyph={glyph} tone={tone} size={13} />
       {label}
     </span>
   );
 }
 
-export function StatusLabel({ map, status }: { map: Record<string, [string, Tone, Glyph?]>; status: string }) {
-  const [label, tone, glyph] = lookup(map, status);
-  return (
-    <span className="inline-flex items-center gap-1.5 text-[13px]">
-      <StatusIcon glyph={glyph} tone={tone} />
-      <span className="text-muted">{label}</span>
-    </span>
-  );
-}
-
 export function Chip({ children, href }: { children: React.ReactNode; href?: string }) {
-  const className = 'inline-flex h-[26px] items-center rounded-full bg-fg/[0.06] px-2.5 text-[12.5px] text-muted';
+  const className = 'inline-flex h-[26px] items-center rounded-full bg-hover px-2.5 text-13 text-muted';
   return href ? (
-    <Link href={href} className={cx(className, 'transition-colors hover:bg-fg/[0.11] hover:text-text')}>
+    <Link href={href} className={cx(className, 'transition-colors hover:bg-active hover:text-text')}>
       {children}
     </Link>
   ) : (
@@ -146,49 +136,42 @@ export function Progress({ done, total, className }: { done: number; total: numb
   const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
   return (
     <div className={cx('flex items-center gap-3', className)}>
-      <div className="relative h-1 flex-1 overflow-hidden rounded-full bg-fg/[0.1]" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+      <div className="relative h-1 flex-1 overflow-hidden rounded-full bg-active" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
         <div className="h-full rounded-full bg-done transition-[width] duration-700 ease-out" style={{ width: `${pct}%` }} />
       </div>
-      <span className="numeric text-[12px] text-faint">
+      <span className="numeric text-12 text-faint">
         {done}/{total}
       </span>
     </div>
   );
 }
 
-export function SectionHeading({
-  label,
+/**
+ * Nothing here yet. One look for every empty list: a quiet icon tile, a line that says what this place is for,
+ * and the one thing to do about it. `compact` drops the padding for use inside a panel.
+ */
+export function EmptyState({
   title,
+  children,
+  icon,
   action,
+  compact = false,
   className,
 }: {
-  label?: string;
   title: string;
+  children?: React.ReactNode;
+  /** A lucide icon element, size set by the tile. */
+  icon?: React.ReactNode;
   action?: React.ReactNode;
+  compact?: boolean;
   className?: string;
 }) {
   return (
-    <div className={cx('mb-4 flex items-end justify-between gap-4', className)}>
-      <div>
-        {label && <div className="mb-1.5 text-[12.5px] text-faint">{label}</div>}
-        <h2 className="display text-[22px] leading-tight text-text">{title}</h2>
-      </div>
-      {action}
-    </div>
-  );
-}
-
-/** Nothing here yet: a small chart of an empty patch of sky, and a line of copy. */
-export function EmptyState({ title, children, className }: { title: string; children?: React.ReactNode; className?: string }) {
-  return (
-    <div className={cx('relative rounded-2xl px-6 py-12 text-center ring-1 ring-inset ring-line', className)}>
-      <svg width="72" height="46" viewBox="0 0 88 56" className="mx-auto text-line-strong" aria-hidden>
-        <path d="M4 28h80M44 4v48" stroke="currentColor" strokeDasharray="2 3" />
-        <circle cx="44" cy="28" r="18" fill="none" stroke="currentColor" />
-        <circle cx="44" cy="28" r="1.6" className="fill-accent" />
-      </svg>
-      <p className="display mt-4 text-[20px] text-text">{title}</p>
-      {children && <div className="mx-auto mt-2 max-w-md text-[14px] leading-relaxed text-muted">{children}</div>}
+    <div className={cx('mx-auto flex max-w-md flex-col items-center text-center', compact ? 'px-4 py-8' : 'px-6 py-16', className)}>
+      {icon && <span className="mb-4 flex size-11 items-center justify-center rounded-2xl bg-raised text-muted [&_svg]:size-5">{icon}</span>}
+      <p className="text-17 font-semibold tracking-[-0.015em] text-text">{title}</p>
+      {children && <div className="mt-1.5 text-14 leading-relaxed text-muted">{children}</div>}
+      {action && <div className="mt-5 flex flex-wrap justify-center gap-2">{action}</div>}
     </div>
   );
 }
@@ -196,9 +179,9 @@ export function EmptyState({ title, children, className }: { title: string; chil
 export function Stat({ label, value, hint }: { label: string; value: React.ReactNode; hint?: string }) {
   return (
     <div className="px-5 py-4">
-      <div className="text-[12.5px] text-faint">{label}</div>
-      <div className="numeric mt-2 text-[24px] leading-none text-text">{value}</div>
-      {hint && <div className="mt-2 text-xs text-faint">{hint}</div>}
+      <div className="text-13 text-faint">{label}</div>
+      <div className="numeric mt-2 text-24 font-semibold leading-none tracking-[-0.02em] text-text">{value}</div>
+      {hint && <div className="mt-2 text-12 text-faint">{hint}</div>}
     </div>
   );
 }
@@ -209,39 +192,6 @@ export function Time({ iso, children }: { iso: string | null | undefined; childr
     <time dateTime={iso} title={new Date(iso).toLocaleString('en-US')}>
       {children}
     </time>
-  );
-}
-
-/** The top of a page: a kicker, a serif headline, a standfirst, and the page's actions. */
-export function PageHeader({
-  eyebrow,
-  title,
-  description,
-  actions,
-  children,
-  className,
-}: {
-  eyebrow?: React.ReactNode;
-  title: React.ReactNode;
-  description?: React.ReactNode;
-  actions?: React.ReactNode;
-  children?: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={cx('border-b border-line', className)}>
-      <div className="px-4 pb-6 pt-6 sm:px-5 sm:pt-8">
-        <div className="flex flex-wrap items-end justify-between gap-5">
-          <div className="min-w-0 max-w-3xl animate-[rise_600ms_var(--ease-out-expo)_both]">
-            {eyebrow && <div className="mb-3">{eyebrow}</div>}
-            <h1 className="display text-[clamp(30px,4vw,42px)] leading-[1.06] text-text">{title}</h1>
-            {description && <div className="mt-3 max-w-2xl text-[15px] leading-relaxed text-muted">{description}</div>}
-          </div>
-          {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
-        </div>
-        {children && <div className="mt-6">{children}</div>}
-      </div>
-    </div>
   );
 }
 
@@ -257,15 +207,15 @@ export function Eyebrow({ children }: { children: React.ReactNode }) {
 /** Link-based segmented control for filters and sort orders. */
 export function Segmented({ items, label }: { items: { href: string; label: React.ReactNode; active: boolean }[]; label: string }) {
   return (
-    <nav aria-label={label} className="inline-flex max-w-full gap-0.5 overflow-x-auto rounded-full bg-fg/[0.06] p-[3px] [scrollbar-width:none]">
+    <nav aria-label={label} className="inline-flex max-w-full gap-0.5 overflow-x-auto rounded-full bg-hover p-[3px] [scrollbar-width:none]">
       {items.map((item) => (
         <Link
           key={item.href}
           href={item.href}
           aria-current={item.active ? 'page' : undefined}
           className={cx(
-            'whitespace-nowrap rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors',
-            item.active ? 'bg-fg/[0.14] text-text' : 'text-faint hover:text-text',
+            'whitespace-nowrap rounded-full px-3.5 py-1.5 text-13 font-medium transition-colors',
+            item.active ? 'bg-selected text-text' : 'text-faint hover:text-text',
           )}
         >
           {item.label}
@@ -278,15 +228,15 @@ export function Segmented({ items, label }: { items: { href: string; label: Reac
 /** A row of link chips that narrows a list: the active one is solid. */
 export function FilterChips({ items, label, className }: { items: { href: string; label: React.ReactNode; active: boolean }[]; label: string; className?: string }) {
   return (
-    <nav aria-label={label} className={cx('flex gap-1.5 overflow-x-auto border-b border-line px-4 py-3 [scrollbar-width:none]', className)}>
+    <nav aria-label={label} className={cx('flex gap-1.5 overflow-x-auto px-4 py-3 [scrollbar-width:none]', className)}>
       {items.map((item) => (
         <Link
           key={item.href}
           href={item.href}
           aria-current={item.active ? 'page' : undefined}
           className={cx(
-            'inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-[13px] font-medium transition-colors',
-            item.active ? 'bg-text text-ink' : 'bg-fg/[0.06] text-muted hover:bg-fg/[0.1] hover:text-text',
+            'inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-13 font-medium transition-colors',
+            item.active ? 'bg-text text-ink' : 'bg-hover text-muted hover:bg-active hover:text-text',
           )}
         >
           {item.label}
@@ -302,7 +252,7 @@ export function Panel({ title, action, children, className }: { title?: React.Re
     <section className={cx('card p-5', className)}>
       {(title || action) && (
         <div className="mb-3.5 flex items-center justify-between gap-3">
-          {title && <h2 className="text-[17px] font-bold tracking-[-0.015em] text-text">{title}</h2>}
+          {title && <h2 className="text-17 font-semibold tracking-[-0.015em] text-text">{title}</h2>}
           {action}
         </div>
       )}
@@ -314,7 +264,7 @@ export function Panel({ title, action, children, className }: { title?: React.Re
 /** Label and value rows for a facts box. */
 export function Facts({ rows, className }: { rows: [React.ReactNode, React.ReactNode][]; className?: string }) {
   return (
-    <dl className={cx('space-y-3 text-[14px]', className)}>
+    <dl className={cx('space-y-3 text-14', className)}>
       {rows.map(([label, value], i) => (
         <div key={i} className="flex items-center justify-between gap-4">
           <dt className="text-faint">{label}</dt>

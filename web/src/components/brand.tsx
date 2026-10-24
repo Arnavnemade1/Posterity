@@ -19,7 +19,7 @@ export function Wordmark({ className, size = 24 }: { className?: string; size?: 
   return (
     <span className={cx('inline-flex items-center gap-2', className)}>
       <Mark size={size} />
-      <span className="text-[19px] font-bold leading-none tracking-[-0.03em] text-text">Posterity</span>
+      <span className="text-18 font-bold leading-none tracking-[-0.03em] text-text">Posterity</span>
     </span>
   );
 }
