@@ -307,13 +307,13 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
           )}
         </p>
 
-        <div className="mb-4 mt-4 grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-1 rounded-2xl bg-panel py-3.5 sm:grid-cols-[auto_repeat(3,minmax(0,1fr))]">
-          <div className="row-span-2 flex items-center gap-3 pl-4 pr-2 sm:row-span-1">
-            <MagnitudeStar magnitude={mag} size={34} />
-            <div>
-              <div className="numeric text-20 leading-none text-text">{formatMagnitude(mag)}</div>
-              <div className="mt-1 text-13 text-faint">Magnitude</div>
+        <div className="mb-4 mt-4 grid grid-cols-2 overflow-hidden rounded-2xl bg-panel sm:grid-cols-4 [&>*]:flex [&>*]:min-w-0 [&>*]:flex-col [&>*]:items-center [&>*]:justify-center [&>*]:px-3 [&>*]:py-4 [&>*:nth-child(-n+2)]:max-sm:border-b [&>*:nth-child(odd)]:max-sm:border-r sm:[&>*+*]:border-l [&>*]:border-line">
+          <div>
+            <div className="flex items-center gap-2">
+              <MagnitudeStar magnitude={mag} size={22} />
+              <span className="numeric text-20 leading-none text-text">{formatMagnitude(mag)}</span>
             </div>
+            <div className="mt-1.5 text-13 text-faint">Magnitude</div>
           </div>
           {(
             [
@@ -322,9 +322,9 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
               ['Trust', percent(s?.trust ?? 0.5), 'Bayesian; starts at 50%'],
             ] as const
           ).map(([label, value, hint]) => (
-            <div key={label} className="min-w-0 pr-3 max-sm:col-start-2 max-sm:flex max-sm:items-baseline max-sm:gap-2" title={hint}>
-              <div className="numeric text-17 leading-none text-text">{value}</div>
-              <div className="text-13 text-faint sm:mt-1">{label}</div>
+            <div key={label} title={hint}>
+              <div className="numeric text-20 leading-none text-text">{value}</div>
+              <div className="mt-1.5 text-13 text-faint">{label}</div>
             </div>
           ))}
         </div>

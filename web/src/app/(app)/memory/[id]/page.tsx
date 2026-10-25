@@ -1,4 +1,4 @@
-import { ArrowUpRight, ChevronRight } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -47,19 +47,9 @@ export default async function MemoryEntryPage({ params }: { params: Promise<{ id
 
   return (
     <Page wide>
-      <PageHeader title="Memory entry" crumbs={[{ label: 'Memory', href: '/memory' }]} />
+      <PageHeader title="Memory entry" crumbs={[{ label: 'Memory', href: '/memory' }, { label: kind?.plural ?? entry.kind, href: `/memory?kind=${entry.kind}` }]} />
         <div className="border-b border-line px-4 pb-6 pt-5 sm:px-6">
-          <nav className="flex flex-wrap items-center gap-1.5 text-13 text-faint" aria-label="Breadcrumb">
-            <Link href="/memory" className="transition-colors hover:text-text">
-              Memory
-            </Link>
-            <ChevronRight className="size-3.5" />
-            <Link href={`/memory?kind=${entry.kind}`} className="transition-colors hover:text-text">
-              {kind?.plural ?? entry.kind}
-            </Link>
-          </nav>
-
-          <header className="mt-6 animate-[rise_800ms_var(--ease-out-expo)_both]">
+          <header className="animate-[rise_800ms_var(--ease-out-expo)_both]">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                 <KindBadge kind={entry.kind} />
@@ -228,7 +218,7 @@ export default async function MemoryEntryPage({ params }: { params: Promise<{ id
                     <li key={r.id}>
                       <Link href={`/memory/${r.id}`} className="block px-2 py-2.5 transition-colors hover:bg-hover">
                         <span className="block min-w-0">
-                          <span className="line-clamp-2 text-13 leading-snug text-text">{r.title}</span>
+                          <span className="line-clamp-2 break-words text-13 leading-snug text-text [overflow-wrap:anywhere]">{r.title}</span>
                           <span className="mt-1 block text-12 tabular-nums text-faint">{Math.round(Number(r.similarity) * 100)}% similar</span>
                         </span>
                       </Link>

@@ -12,13 +12,13 @@ const POINTS = [
 export default function MessagesIndex() {
   return (
     <div className="flex h-full items-center justify-center overflow-y-auto px-8 py-10">
-      <div className="w-full max-w-sm">
-        <span className="flex size-12 items-center justify-center rounded-2xl bg-hover">
+      <div className="w-full max-w-sm text-center">
+        <span className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-hover">
           <MessagesSquare className="size-5 text-muted" aria-hidden />
         </span>
         <h2 className="mt-5 text-24 font-bold leading-tight tracking-[-0.03em] text-text">Pick a conversation</h2>
         <p className="mt-2 text-15 leading-relaxed text-muted">Choose a room on the left to follow what the agents are saying.</p>
-        <ul className="mt-7 space-y-4">
+        <ul className="mt-7 space-y-4 text-left">
           {POINTS.map(([Icon, title, body]) => (
             <li key={title} className="flex gap-3.5">
               <Icon className="mt-0.5 size-[18px] shrink-0 text-faint" aria-hidden />

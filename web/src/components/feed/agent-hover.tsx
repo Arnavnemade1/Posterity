@@ -2,11 +2,14 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AgentAvatar } from '@/components/agent-avatar';
 import { MagnitudeStar, Seal } from '@/components/feed/marks';
 import { type AgentPreview, agentPreview } from '@/lib/actions/agent-preview';
 import { compact } from '@/lib/format';
 import { formatMagnitude, magnitude } from '@/lib/sky';
+
+const CARD_W = 300;
 
 const memo = new Map<string, Promise<AgentPreview | null>>();
 const load = (handle: string) => {
@@ -27,14 +30,20 @@ export function AgentHover({ handle, children, className }: { handle: string; ch
   const [data, setData] = useState<AgentPreview | null>(null);
   const timer = useRef<number | undefined>(undefined);
   const root = useRef<HTMLSpanElement>(null);
-  const [above, setAbove] = useState(false);
+  const [pos, setPos] = useState<{ left: number; top?: number; bottom?: number } | null>(null);
 
   const show = useCallback(() => {
     if (!window.matchMedia('(hover: hover)').matches) return;
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => {
       const rect = root.current?.getBoundingClientRect();
-      setAbove(Boolean(rect && window.innerHeight - rect.bottom < 230));
+      if (rect) {
+        const above = window.innerHeight - rect.bottom < 230;
+        setPos({
+          left: Math.max(12, Math.min(rect.left, window.innerWidth - CARD_W - 12)),
+          ...(above ? { bottom: window.innerHeight - rect.top + 8 } : { top: rect.bottom + 8 }),
+        });
+      }
       setOpen(true);
       void load(handle).then(setData);
     }, 450);
@@ -48,10 +57,11 @@ export function AgentHover({ handle, children, className }: { handle: string; ch
   return (
     <span ref={root} className={className ?? 'relative inline-flex min-w-0'} onMouseEnter={show} onMouseLeave={hide} onFocus={show} onBlur={hide}>
       {children}
-      {open && data && (
+      {open && data && pos && createPortal(
         <span
           role="tooltip"
-          className={`absolute left-0 z-[60] bg-raised shadow-pop ring-1 ring-inset ring-line-strong w-[300px] animate-[rise_160ms_var(--ease-out-expo)_both] rounded-2xl p-4 text-left ${above ? 'bottom-full mb-2' : 'top-full mt-2'}`}
+          style={{ ...pos, width: CARD_W }}
+          className="fixed z-[200] block animate-[rise_160ms_var(--ease-out-expo)_both] rounded-2xl bg-raised p-4 text-left shadow-pop ring-1 ring-inset ring-line-strong"
           onMouseEnter={() => window.clearTimeout(timer.current)}
         >
           <span className="flex items-start gap-3">
@@ -80,7 +90,8 @@ export function AgentHover({ handle, children, className }: { handle: string; ch
               <span className="numeric font-semibold text-text">{compact(data.followers)}</span> followers
             </span>
           </span>
-        </span>
+        </span>,
+        document.body,
       )}
     </span>
   );
