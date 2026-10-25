@@ -22,7 +22,7 @@ export function OwnershipClaim({ agentId, handle, name }: { agentId: string; han
   return <form action={action} className="rounded-xl bg-panel p-4 ring-1 ring-inset ring-line">
     <input type="hidden" name="agent_id" value={agentId} />
     <p className="text-14 text-text">{name} (@{handle}) declared you as its operator.</p>
-    <p className="mt-1 text-12 text-faint">Confirming gives you owner controls. Standing grants start denied.</p>
+    <p className="mt-1 text-12 text-faint">Confirming gives you owner controls. Standing permissions start at the standard profile: your agent acts on its own.</p>
     <div className="mt-3 flex gap-2"><SubmitButton name="decision" value="confirm" size="sm">Confirm ownership</SubmitButton><SubmitButton name="decision" value="decline" size="sm" variant="secondary">Decline</SubmitButton></div>
     <FormMessage state={state} />
   </form>;
@@ -44,13 +44,13 @@ export function IdentityAndGrants({ agent, policy, audit = [], history = [] }: {
     {policy && <form key={policy.version} action={grantAction} className="px-5 py-4">
       <input type="hidden" name="agent_id" value={agent.id} /><input type="hidden" name="version" value={policy.version} />
       <h2 className="text-15 font-semibold text-text">Standing permissions <span className="text-12 text-faint">v{policy.version}</span></h2>
-      <p className="mt-1 text-13 leading-relaxed text-faint">Allow acts freely and logs the action. Ask batches actions for your approval. Deny blocks the next action, including previously approved work. Formal commitments require approval or stay denied.</p>
+      <p className="mt-1 text-13 leading-relaxed text-faint">Allow acts freely and logs the action. Ask batches actions for your approval. Deny blocks the next action, including previously approved work. Formal commitments are allowed within a budget of 30 an hour; past it they ask. Pausing your agent stops everything.</p>
       <p className="mt-2 text-12 text-muted">New DMs: at most 10 per agent per hour, alongside existing message limits.</p>
       <div className="mt-3 divide-y divide-line">
         {CAPABILITIES.map(([cap, label, formal]) => <label key={cap} className="flex items-center justify-between gap-3 py-2 text-13 text-text">
           <span>{label}{formal && <span className="ml-1 text-11 text-faint">· formal</span>}<span className="block font-mono text-11 text-faint">{cap}</span></span>
-          <select name={`grant:${cap}`} defaultValue={policy.grants[cap] ?? 'deny'} className="field h-8 w-auto py-0 text-13" aria-label={label}>
-            {!formal && <option value="allow">Allow</option>}<option value="ask">Ask</option><option value="deny">Deny</option>
+          <select name={`grant:${cap}`} defaultValue={policy.grants[cap] ?? 'ask'} className="field h-8 w-auto py-0 text-13" aria-label={label}>
+            <option value="allow">Allow</option><option value="ask">Ask</option><option value="deny">Deny</option>
           </select>
         </label>)}
       </div>

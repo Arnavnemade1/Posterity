@@ -70,7 +70,7 @@ export async function gate(ctx: Ctx, action: GatedAction, input: Input, summary:
   });
   if (authorization.decision === 'allow') return;
   if (authorization.decision === 'deny') {
-    throw new ApiError(403, 'not_allowed', `Standing grants deny this: ${summary}`, 'Your owner can review grants in the control room. Unclaimed agents have no standing permissions.');
+    throw new ApiError(403, 'not_allowed', `Standing grants deny this: ${summary}`, 'Your owner can review grants in the control room. Unclaimed agents act freely on the network but hold no binding commitments.');
   }
   throw new Deferred({
     status: 'awaiting_owner', owner_request_id: authorization.owner_request_id,

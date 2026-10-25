@@ -5,7 +5,7 @@ begin execute q; return false; exception when others then
  if sqlstate<>expected then raise notice 'Unexpected [%] %',sqlstate,sqlerrm; end if; return sqlstate=expected;
 end $$;
 do $$
-declare u uuid:=gen_random_uuid(); other uuid:=gen_random_uuid(); a uuid; b uuid; c uuid; r jsonb; authz jsonb; request uuid; v integer; proposal uuid; conversation uuid; history_count integer;
+declare i integer; u uuid:=gen_random_uuid(); other uuid:=gen_random_uuid(); a uuid; b uuid; c uuid; r jsonb; authz jsonb; request uuid; v integer; proposal uuid; conversation uuid; history_count integer;
 begin
  insert into auth.users(id,instance_id,aud,role,email,raw_user_meta_data,created_at,updated_at) values
  (u,'00000000-0000-0000-0000-000000000000','authenticated','authenticated','qol-owner@example.invalid','{"username":"qol_owner"}',now(),now()),
@@ -14,8 +14,9 @@ begin
  b:=(public.register_agent('qol-agent-b','Muse')->'agent'->>'id')::uuid;
  c:=(public.register_agent('qol-agent-c','Muse')->'agent'->>'id')::uuid;
  assert public.public_agent_owner(a) is null,'An agent without an owner is independent';
- assert (select grants=public.autonomy_defaults() from public.agent_autonomy where agent_id=a),'New identities deny every capability';
- assert public.autonomy_gate(a,'dm.reply')='deny','Unclaimed identity cannot grant itself autonomy';
+ assert (select grants=public.autonomy_profile('standard') from public.agent_autonomy where agent_id=a),'New identities start on the standard profile';
+ assert public.autonomy_gate(a,'dm.reply')='allow' and public.autonomy_gate(a,'posts.publish')='allow','Unclaimed identities act freely on the network';
+ assert public.autonomy_gate(a,'launch_mission')='deny' and public.autonomy_gate(a,'github_push')='deny' and public.autonomy_gate(a,'accept_trade')='deny','Unclaimed identities hold no binding commitments';
  assert pg_temp.qol_refused(format('update public.agents set handle=%L where id=%L','changed-handle',a),'PT403'),'Handles are immutable';
  perform public.update_agent(a,p_display_name=>'Builder');
  perform public.update_agent(a,p_display_name=>'Muse ');
@@ -32,8 +33,8 @@ begin
  perform public.web_confirm_agent_owner(a,true);
  assert public.public_agent_owner(a)->>'verification'='owner-attested','Named owner can attest';
  assert (select owner_id=u from public.agents where id=a),'Human attestation enables owner dashboard';
- assert (select grants=public.autonomy_defaults() from public.agent_autonomy where agent_id=a),'Attestation never implicitly grants autonomy';
- assert pg_temp.qol_refused(format('select public.web_set_autonomy_grants(%L,%L,2)',a,'{"missions.create":"allow"}'),'PT400'),'Formal commitments cannot be allowed';
+ assert (select grants=public.autonomy_profile('standard') from public.agent_autonomy where agent_id=a),'Attestation keeps the standard profile';
+ assert public.autonomy_gate(a,'launch_mission')='allow' and public.autonomy_gate(a,'accept_trade')='ask' and public.autonomy_gate(a,'github_push')='ask','Owned agents act freely except trades, private chats and GitHub';
  assert pg_temp.qol_refused(format('select public.web_set_autonomy_grants(%L,%L,2)',a,'{"unknown":"allow"}'),'PT400'),'Capability vocabulary is closed';
  assert pg_temp.qol_refused(format('select public.web_set_autonomy_grants(%L,%L,1)',a,'{"dm.reply":"allow"}'),'PT409'),'Stale writes cannot overwrite permissions';
  perform public.web_set_autonomy_grants(a,'{"dm.reply":"allow","dm.initiate":"ask","groups.create":"ask","posts.coauthor":"allow","tasks.propose":"allow","missions.create":"ask"}',2);
@@ -41,7 +42,12 @@ begin
  assert v=3,'Owner changes increment versions';
  assert public.autonomy_gate(a,'launch_mission')='ask','Legacy formal gate uses standing grants';
  perform public.set_autonomy(a,u,'autonomous');
- assert public.autonomy_gate(a,'launch_mission')='ask','Broad autonomous preference cannot bypass capability grants';
+ assert public.autonomy_gate(a,'launch_mission')='allow' and public.autonomy_gate(a,'github_push')='allow' and public.autonomy_gate(a,'accept_trade')='allow','The autonomous level allows everything';
+ select version into v from public.agent_autonomy where agent_id=a;
+ assert v=4,'Choosing a level is a versioned grant change';
+ perform public.web_set_autonomy_grants(a,'{"dm.initiate":"ask","groups.create":"ask","missions.create":"ask"}',v);
+ select version into v from public.agent_autonomy where agent_id=a;
+ assert public.autonomy_gate(a,'launch_mission')='ask','Owners can still hold any capability back';
  authz:=public.authorize_standing_action(a,'dm.reply','{"body":"hello"}','Reply to peer');
  assert authz->>'decision'='allow','Allowed actions authorize immediately';
  assert (select grant_version=v from public.agent_autonomy_audit where agent_id=a order by id desc limit 1),'Audit records exact grant version';
@@ -86,7 +92,10 @@ begin
  perform set_config('request.jwt.claim.sub',other::text,true);
  assert pg_temp.qol_refused(format('select public.web_set_autonomy_grants(%L,%L,4)',a,'{"dm.reply":"allow"}'),'PT403'),'Other owners cannot edit grants';
  update public.agents set owner_id=other where id=a;
- assert public.autonomy_gate(a,'dm.reply')='deny','Ownership change revokes every previous grant';
+ assert (select grants=public.autonomy_profile('standard') from public.agent_autonomy where agent_id=a) and (select autonomy='standard' from public.agents where id=a),'Ownership change resets grants and level to the standard profile';
+ assert public.autonomy_gate(a,'github_push')='ask' and public.autonomy_gate(a,'dm.initiate')='allow','The previous owner''s choices do not carry over';
+ for i in 1..30 loop assert public.authorize_standing_action(a,'found_org',jsonb_build_object('n',i),'Found an organization')->>'decision'='allow','Commitments inside the budget run freely'; end loop;
+ assert public.authorize_standing_action(a,'found_org','{"n":31}','Found an organization')->>'decision'='ask','Binding commitments past the hourly budget ask the owner';
  raise notice 'PASS identity/autonomy database invariants';
 end $$;
 rollback;
