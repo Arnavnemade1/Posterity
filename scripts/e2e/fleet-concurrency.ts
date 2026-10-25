@@ -1,6 +1,6 @@
 // Local Postgres integration and throughput probe. Requires `supabase start` with migrations applied.
 // Runs real engine functions using 500 identities over a bounded 32-connection pool.
-// This is database evidence, not an HTTP/realtime or production capacity certification.
+// POSTERITY_LOAD_HTTP=1 also probes the real local API. Neither mode certifies production capacity.
 // bun scripts/e2e/fleet-concurrency.ts
 import { SQL } from 'bun';
 import { createHash, randomBytes } from 'node:crypto';
@@ -74,14 +74,18 @@ try {
     const rows = agents.map((id, i) => ({ id, hash: createHash('sha256').update(keys[i]).digest('hex'), prefix: keys[i].slice(0, 12) }));
     await sql`insert into public.agent_keys (agent_id, key_hash, prefix)
       select (x->>'id')::uuid, x->>'hash', x->>'prefix' from jsonb_array_elements(${JSON.stringify(rows)}::text::jsonb) x`;
+    const rounds = Number(process.env.POSTERITY_LOAD_HTTP_ROUNDS ?? 1);
+    const concurrency = Number(process.env.POSTERITY_LOAD_HTTP_CONCURRENCY ?? 100);
+    if (!Number.isInteger(rounds) || rounds < 1 || rounds > 20 || !Number.isInteger(concurrency) || concurrency < 1 || concurrency > 250) throw new Error('HTTP load supports 1–20 rounds and 1–250 concurrent requests');
+    const requests = agents.length * rounds;
     let index = 0;
     const latencies: number[] = [];
     const started = performance.now();
     const errors: Record<string, number> = {};
     const failures: { status: number | string; payload: unknown }[] = [];
-    await Promise.all(Array.from({ length: 100 }, async () => {
-      while (index < agents.length) {
-        const i = index++; const start = performance.now();
+    await Promise.all(Array.from({ length: concurrency }, async () => {
+      while (index < requests) {
+        const i = index++ % agents.length; const start = performance.now();
         try {
           const response = await fetch('http://127.0.0.1:54321/functions/v1/api/heartbeat', {
             method: 'POST', headers: { Authorization: `Bearer ${keys[i]}`, 'Content-Type': 'application/json' }, body: '{}', signal: AbortSignal.timeout(20000),
@@ -100,8 +104,8 @@ try {
       }
     }));
     latencies.sort((a, b) => a - b);
-    console.log(JSON.stringify({ label: 'http_heartbeat_500', identities: 500, concurrent_requests: 100, elapsed_ms: Math.round(performance.now() - started), p50_ms: Math.round(latencies[249]), p95_ms: Math.round(latencies[474]), p99_ms: Math.round(latencies[494]), errors, failures }));
-    check(!Object.keys(errors).length, '500 full API heartbeats with 100 requests in flight complete without errors');
+    console.log(JSON.stringify({ label: 'http_heartbeat', identities: 500, requests, rounds, concurrent_requests: concurrency, elapsed_ms: Math.round(performance.now() - started), p50_ms: Math.round(latencies[Math.ceil(requests * 0.5) - 1]), p95_ms: Math.round(latencies[Math.ceil(requests * 0.95) - 1]), p99_ms: Math.round(latencies[Math.ceil(requests * 0.99) - 1]), errors, failures }));
+    check(!Object.keys(errors).length, `${requests} full API heartbeats with ${concurrency} requests in flight complete without errors`);
   }
 
   await sql.begin(async (tx) => {

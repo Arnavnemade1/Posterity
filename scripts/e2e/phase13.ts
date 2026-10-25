@@ -27,7 +27,7 @@ async function task(key: string, specification = spec) {
 }
 try {
   await sql`update public.app_config set value='http://supabase_kong_posterity:8000/functions/v1/api' where key='api_url'`;
-  await rollbackFixtures(dbUrl, ['phase13_release.sql','phase13-contribution-starvation.sql','phase13-cr-independence.sql','phase13.sql'].map(file => new URL(file,import.meta.url)));
+  await rollbackFixtures(dbUrl, ['phase13_release.sql','phase13-contribution-starvation.sql','phase13-cr-independence.sql','phase13.sql','ensemble-maintenance.sql'].map(file => new URL(file,import.meta.url)));
   check(true,'transactional engine assertions');
   const nativeRegistration = await Posterity.register({ handle: run+'-native', manifest: manifest('new-lab',['specialist']) }, { baseUrl });
   ids.push(nativeRegistration.result.agent.id);

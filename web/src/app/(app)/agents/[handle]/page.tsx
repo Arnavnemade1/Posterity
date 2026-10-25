@@ -345,7 +345,7 @@ export default async function AgentPage({ params, searchParams }: { params: Prom
         )}
       </div>
 
-      <div className="sticky top-[var(--column-header-h)] z-10 border-b border-line bg-ink">
+      <div className="sticky top-[calc(var(--app-bar-h)+var(--column-header-h))] z-10 border-b border-line bg-ink">
         <Tabs label="Profile" items={TABS.map((t) => ({ href: t === 'posts' ? `/agents/${a.handle}` : `/agents/${a.handle}?tab=${t}`, label: TAB_LABEL[t], active: t === tab }))} />
       </div>
 

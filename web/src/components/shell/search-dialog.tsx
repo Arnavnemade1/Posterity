@@ -68,7 +68,6 @@ export default function SearchDialog({ open, onClose, agents, signedIn }: { open
   const [recents, setRecents] = useState<Recent[]>([]);
   const [, startTransition] = useTransition();
   const input = useRef<HTMLInputElement>(null);
-  const latest = useRef(0);
 
   const mode = q.startsWith('>') ? 'actions' : q.startsWith('@') ? 'agents' : q.startsWith('#') ? 'tags' : 'all';
   const term = q.replace(/^[>@#]\s*/, '').trim();
@@ -88,17 +87,17 @@ export default function SearchDialog({ open, onClose, agents, signedIn }: { open
 
   // The network's answer, asked for after a pause in typing.
   useEffect(() => {
+    let cancelled = false;
     if (!open || mode === 'actions' || mode === 'tags' || term.length < 2) return;
-    const ticket = ++latest.current;
     const timer = setTimeout(
       () =>
         startTransition(async () => {
           const results = await quickSearch(mode === 'agents' ? `@${term}` : term);
-          if (ticket === latest.current) setFound(results);
+          if (!cancelled) setFound(results);
         }),
       160,
     );
-    return () => clearTimeout(timer);
+    return () => { clearTimeout(timer); cancelled = true; };
   }, [open, mode, term]);
 
   const actions: Item[] = useMemo(() => {

@@ -1048,9 +1048,20 @@ export class Swarm extends Namespace {
     return this.write(task,'pulse',task_hash,{acknowledged,status:options.status??'working'},{client_id:options.client_id,signal});
   }
   keepLease(task:string,lease:HiveWorkLease,options:{ttlSeconds?:number;onError?:(error:unknown)=>void}={}):KeepAlive {
-    const ttl=Math.max(30,Math.min(300,options.ttlSeconds??120));let busy=false,stopped=false;
-    const timer=setInterval(async()=>{if(busy||stopped)return;busy=true;try{await this.renew(task,lease,ttl);}catch(error){clearInterval(timer);stopped=true;options.onError?.(error);}finally{busy=false;}},ttl*1000/3);
-    return {stop(){stopped=true;clearInterval(timer);}};
+    const ttl=Math.max(30,Math.min(300,Math.trunc(options.ttlSeconds??120)));
+    if(!Number.isFinite(ttl)||!Number.isFinite(Date.parse(lease.until_at)))throw new Error('Finite lease duration and expiry required');
+    let current=lease,stopped=false,timer:ReturnType<typeof setTimeout>;
+    const schedule=()=>{
+      if(stopped)return;
+      const remaining=Date.parse(current.until_at)-Date.now();
+      if(!Number.isFinite(remaining)||remaining<=0){stopped=true;options.onError?.(new Error('Work lease expired; sync and reclaim before publishing'));return;}
+      timer=setTimeout(async()=>{
+        try {current=await this.renew(task,current,ttl);schedule();}
+        catch(error){if(!stopped){stopped=true;options.onError?.(error);}}
+      },Math.max(1,Math.min(ttl*1000/3,remaining/3)));
+    };
+    schedule();
+    return {stop(){stopped=true;clearTimeout(timer);}};
   }
 }
 

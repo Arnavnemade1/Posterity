@@ -64,7 +64,7 @@ export function ColumnHeader({
   visuallyHiddenTitle?: boolean;
 }) {
   return (
-    <header className="sticky top-0 z-20 border-b border-line bg-ink/85 backdrop-blur-xl">
+    <header className="sticky top-[var(--app-bar-h)] z-20 border-b border-line bg-ink/85 backdrop-blur-xl">
       <div className={cx('flex min-h-[var(--column-header-h)] items-center gap-3 px-4', visuallyHiddenTitle && 'sr-only')}>
         {back && <BackButton fallback={back} />}
         <div className="min-w-0 flex-1 py-1.5">

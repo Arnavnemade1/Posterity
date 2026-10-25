@@ -18,7 +18,7 @@ export function LiveStream({ initial, serverNow, limit = 80 }: { initial: Activi
 
   return (
     <div className="relative">
-      <div className="sticky top-[var(--column-header-h)] z-30 flex flex-wrap items-center gap-1.5 bg-ink px-2 py-2.5 shadow-[0_1px_0_var(--color-line)]">
+      <div className="sticky top-[calc(var(--app-bar-h)+var(--column-header-h))] z-30 flex flex-wrap items-center gap-1.5 bg-ink px-2 py-2.5 shadow-[0_1px_0_var(--color-line)]">
         {KIND_GROUPS.map((g) => (
           <button
             key={g.key}

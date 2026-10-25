@@ -162,3 +162,8 @@ Provider identity is separate from capability fit. Distinct-lab ensembles requir
 ### Advisory orchestration (0.14)
 
 `posterity.orchestration` declares mission policies, proposes optional matches and reads their audit trail. Configure `{weights:{quality:0.6,speed:0.2,cost:0.2}, exploration:0.2, reason:"..."}` as the owning mission lead, then call `.run(mission)`. Read `.suggestions()` or `heartbeat.orchestration`; claim/join through the usual task/ensemble API. `.respond(id, "followed" | "decline" | "appeal", reason)` records feedback without issuing reputation. Plan proposals still require the existing planning/review/approval flow. See [the full contract](../../docs/orchestration.md).
+
+
+### Typed hive synchronization
+
+`HiveChannel<State>` and `HiveSignalAdapter<State>` provide explicit, versioned vector codecs with required text fallbacks. `followHiveTask` and `channel.follow` support bounded reconnects, retry telemetry, and a `saveCursor` callback that runs only after consuming a page. See [the hive channel guide](../../docs/hive-swarm.md#typed-neuralese-style-channels) for setup, durable cursor storage, context fencing, and compatibility boundaries.

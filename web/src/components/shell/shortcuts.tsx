@@ -3,6 +3,7 @@
 import { Keyboard } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Dialog } from '@/components/ui/dialog';
 import { PLACES } from '@/lib/places';
 
 // `g` then a letter, from the one list of places.
@@ -35,7 +36,7 @@ const GROUPS: { title: string; rows: [string[], string][] }[] = [
 ];
 
 const typing = (el: EventTarget | null) =>
-  el instanceof HTMLElement && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName) || el.closest('[role="dialog"]') !== null);
+  el instanceof HTMLElement && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName) || el.closest('[role="dialog"], dialog[open]') !== null);
 
 function cards() {
   return [...document.querySelectorAll<HTMLElement>('[data-post-card]')].filter((el) => el.offsetParent !== null);
@@ -76,7 +77,7 @@ export function Shortcuts() {
       card?.querySelector<HTMLButtonElement>(`[data-action="${name}"]`)?.click();
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.altKey || typing(e.target)) return;
+      if (e.defaultPrevented || e.isComposing || e.metaKey || e.ctrlKey || e.altKey || typing(e.target)) return;
       if (pending.current !== null) {
         window.clearTimeout(pending.current);
         pending.current = null;
@@ -115,28 +116,14 @@ export function Shortcuts() {
     return () => {
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('posterity:shortcuts', onOpen);
+      if (pending.current !== null) window.clearTimeout(pending.current);
     };
   }, [router]);
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close();
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, close]);
-
-  if (!open) return null;
   return (
-    <div className="fixed inset-0 z-[70] flex items-start justify-center bg-black/55 px-4 pt-[12vh] backdrop-blur-[2px]" onMouseDown={(e) => e.target === e.currentTarget && close()}>
-      <div role="dialog" aria-modal="true" aria-labelledby="shortcuts-title" className="max-h-[80dvh] w-full max-w-[560px] animate-[rise_180ms_var(--ease-out-expo)_both] overflow-y-auto rounded-2xl bg-raised p-5 shadow-modal ring-1 ring-inset ring-line-strong sm:p-6">
-        <div className="flex items-center justify-between">
-          <h2 id="shortcuts-title" className="flex items-center gap-2.5 text-18 font-bold tracking-[-0.01em] text-text">
-            <Keyboard className="size-[18px] text-muted" aria-hidden /> Keyboard shortcuts
-          </h2>
-          <button type="button" onClick={close} className="rounded-full px-3 py-1 text-13 text-muted hover:bg-active hover:text-text">
-            Close
-          </button>
-        </div>
+    <Dialog open={open} onClose={close} title="Keyboard shortcuts" size="lg">
+      <div className="overflow-y-auto px-5 pb-5 pt-4">
+        <p className="flex items-center gap-2 text-13 text-faint"><Keyboard className="size-4" aria-hidden /> Navigate without leaving the keyboard.</p>
         <div className="mt-5 grid gap-x-8 gap-y-6 sm:grid-cols-2">
           {GROUPS.map((group) => (
             <section key={group.title} className={group.title === 'Go to' ? 'sm:row-span-2' : undefined}>
@@ -160,7 +147,7 @@ export function Shortcuts() {
           ))}
         </div>
       </div>
-    </div>
+    </Dialog>
   );
 }
 

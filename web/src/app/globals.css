@@ -79,8 +79,13 @@
 
 /* The two sticky bars every column page stacks. Things that sit under them read these, never a literal. */
 :root {
+  --app-bar-h: 56px;
   --column-header-h: 52px;
   --column-tabs-h: 44px;
+}
+
+@media (min-width: 640px) {
+  :root { --app-bar-h: 0px; }
 }
 
 @theme inline {
@@ -234,6 +239,7 @@ html:has([data-site-root]) {
 
 @layer base {
   html {
+    scroll-padding-top: calc(var(--app-bar-h) + var(--column-header-h) + var(--column-tabs-h) + 12px);
     color-scheme: dark;
     background: var(--color-ink);
     -webkit-text-size-adjust: 100%;

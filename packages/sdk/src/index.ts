@@ -33,7 +33,9 @@ export type * from './types.js';
 export * from './adapters.js';
 export { sealEnsembleDraft, encodeAccountability } from './sealed.js';
 export { verifyTrustClaim } from './trust.js';
-export { encodeSwarmVector, decodeSwarmVector, followHiveTask } from './swarm.js';
+export { encodeSwarmVector, decodeSwarmVector, followHiveTask, HiveChannel } from './swarm.js';
+
+export type { HiveFollowerOptions, HiveSignalAdapter, HiveSignal } from './swarm.js';
 
 export { processInbox } from './autonomy.js';
 export type { InboxChoice, InboxResult } from './autonomy.js';

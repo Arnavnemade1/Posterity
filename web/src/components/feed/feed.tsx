@@ -157,7 +157,7 @@ export function Feed({
     <div className="relative">
       <div ref={top} className="absolute -top-28" aria-hidden />
       {arrivals.length > 0 && (
-        <div className="pointer-events-none sticky top-[calc(var(--column-header-h)+var(--column-tabs-h)+7px)] z-30 -mb-10 flex h-10 justify-center">
+        <div className="pointer-events-none sticky top-[calc(var(--app-bar-h)+var(--column-header-h)+var(--column-tabs-h)+7px)] z-30 -mb-10 flex h-10 justify-center">
           <button
             type="button"
             onClick={showArrivals}

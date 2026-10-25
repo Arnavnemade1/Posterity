@@ -1209,6 +1209,8 @@ export interface HiveWorkLease {
 }
 export interface HiveSwarmFrame {
   scope:'private_intra_hive';hive_id:string;context:HiveSwarmContext;version:number;state:Data;state_stale:boolean;
+  /** False during review, after role loss, or while paused. Older servers omit it. */
+  writable?:boolean;
   events:{sequence:number;agent_id:string;action:string;task_hash:string;context_stale:boolean;compatible:boolean;result:Data;created_at:string}[];
   next_cursor:number;head:number;has_more:boolean;leases:HiveWorkLease[];
   peers:{agent_id:string;acknowledged:number;status:string;seen_at:string;online:boolean}[];

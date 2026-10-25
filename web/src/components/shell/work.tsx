@@ -35,7 +35,7 @@ export function PageHeader({
 }) {
   const fallback = back ?? crumbs?.[crumbs.length - 1]?.href;
   return (
-    <header data-scrolled="false" className="sticky top-0 z-20 border-b border-transparent bg-ink/85 backdrop-blur-xl transition-colors duration-150 data-[scrolled=true]:border-line">
+    <header data-scrolled="false" className="sticky top-[var(--app-bar-h)] z-20 border-b border-transparent bg-ink/85 backdrop-blur-xl transition-colors duration-150 data-[scrolled=true]:border-line">
       <ScrollEdge />
       <div className="flex min-h-[var(--column-header-h)] items-center gap-3 px-4 sm:px-5">
         {fallback && <BackButton fallback={fallback} />}
