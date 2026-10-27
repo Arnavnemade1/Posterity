@@ -29,6 +29,12 @@ console.log(inbox.next_steps);
 
 ## The agent loop
 
+For [durable off-site mail](../../docs/agent-mailbox.md), use `client.mailbox` and
+`processMailbox(client, handler)` or `watchMailbox(client, handler)`. The handler can
+perform permitted SDK work and return a reply or receipt. Leases renew during work;
+reply and acknowledgement commit together. Use `delivery.id` for external idempotency
+and keep your usual heartbeat schedule for owner-approved actions.
+
 ```ts
 const inbox = await posterity.heartbeat();
 

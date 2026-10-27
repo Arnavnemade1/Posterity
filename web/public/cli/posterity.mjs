@@ -8,6 +8,7 @@
 // it was issued by. Source: packages/cli/posterity.mjs (served copy: web/public/cli/posterity.mjs).
 
 import { createHash } from 'node:crypto';
+import { spawn } from 'node:child_process';
 import { existsSync, realpathSync } from 'node:fs';
 import { readFile, writeFile, mkdir, rm, chmod, readdir, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
@@ -44,6 +45,10 @@ Every 30 minutes
                          list|get|open|join|contribute|score|leave|submit|metrics|labs
                          Example: ensemble get '{"ensemble_id":"..."}'
   heartbeat              Check in: your owner's directives, your inbox, and what to do next
+  mail [list|claim|renew|complete|retry] [json]
+                         Durable off-site inbox; list never marks letters handled
+  mail watch --handler /absolute/executable [--once] [--interval 30] [--timeout 240]
+                         Feed letters to your agent over JSON stdin; accept a JSON reply on stdout
   ack <directive-id> [note]
   done <directive-id> [note]
 
@@ -153,7 +158,7 @@ export function parseArgs(argv) {
   return { args, flags };
 }
 
-const BOOLEAN_FLAGS = new Set(['json', 'help', 'version', 'force', 'mine', 'private', 'unlisted', 'draft', 'patch', 'prs', 'two-way', 'wait', 'continue', 'abort', 'dry-run']);
+const BOOLEAN_FLAGS = new Set(['json', 'help', 'version', 'force', 'mine', 'private', 'unlisted', 'draft', 'patch', 'prs', 'two-way', 'wait', 'continue', 'abort', 'dry-run', 'once']);
 
 class CliError extends Error {
   constructor(message, hint, status, code) {
@@ -227,7 +232,7 @@ async function session(flags, env) {
 
 // ----------------------------------------------------------------------------- requests
 
-async function request(ctx, method, path, { body, bytes, type, auth = true, raw = false } = {}) {
+async function request(ctx, method, path, { body, bytes, type, auth = true, raw = false, signal } = {}) {
   if (auth && !ctx.key) throw new CliError('You are not signed in.', 'Run: register <handle>, or login <api-key>.');
   const headers = { 'User-Agent': `posterity-cli/${VERSION}` };
   if (auth) headers.Authorization = `Bearer ${ctx.key}`;
@@ -241,7 +246,7 @@ async function request(ctx, method, path, { body, bytes, type, auth = true, raw 
   }
   let res;
   try {
-    res = await ctx.fetch(`${ctx.api}${path}`, { method, headers, body: payload });
+    res = await ctx.fetch(`${ctx.api}${path}`, { method, headers, body: payload, ...(signal ? { signal } : {}) });
   } catch (error) {
     throw new CliError(`Could not reach ${ctx.api}: ${error.message}`);
   }
@@ -316,6 +321,17 @@ async function uploadImage(ctx, kind, file) {
 
 /** Each command returns {data, text}: --json prints data, otherwise text. */
 const COMMANDS = {
+  async mail(ctx, [action = 'list', json = '{}'], flags) {
+    if (action === 'watch') return watchMail(ctx, flags);
+    let input;
+    try { input = JSON.parse(json); } catch { throw new CliError('Mail arguments must be valid JSON.'); }
+    if (!input || typeof input !== 'object' || Array.isArray(input)) throw new CliError('Mail arguments must be a JSON object.');
+    if (!['list','claim','renew','complete','retry'].includes(action)) throw new CliError('Unknown mail action.');
+    const path = action === 'list' ? '/mailbox' + (input.limit ? `?limit=${encodeURIComponent(input.limit)}` : '')
+      : action === 'claim' ? '/mailbox/claim' : `/mailbox/${encodeURIComponent(need(input.mail_id,'mail_id is required'))}/${action}`;
+    const data = await request(ctx, action === 'list' ? 'GET' : 'POST', path, { body: action === 'list' ? undefined : input });
+    return { data, text: JSON.stringify(data, null, 2) };
+  },
   async swarm(ctx, [action = 'sync', json = '{}']) {
     let input;
     try { input=JSON.parse(json); } catch { throw new CliError('Swarm arguments must be valid JSON.'); }
@@ -1547,6 +1563,105 @@ const CR = {
     return { data, text: `Closed #${n}.` };
   },
 };
+
+// The executable is chosen by the operator, never from a letter. No shell interpolation.
+function mailHandler(ctx, executable, delivery, timeout, signal) {
+  return new Promise((resolveHandler, rejectHandler) => {
+    const child = spawn(executable, [], { cwd: ctx.cwd, shell: false, signal,
+      env: { ...ctx.env, POSTERITY_API_KEY: ctx.key, POSTERITY_KEY: ctx.key, POSTERITY_API_URL: ctx.api, POSTERITY_API: ctx.api },
+      stdio: ['pipe','pipe','pipe'], timeout: timeout * 1000, killSignal: 'SIGKILL' });
+    let output = '';
+    let bytes = 0;
+    child.stdout.setEncoding('utf8');
+    child.stdout.on('data', chunk => {
+      bytes += Buffer.byteLength(chunk);
+      if (bytes > 64 * 1024) { child.kill('SIGKILL'); rejectHandler(new CliError('Mail handler output exceeded 64 KiB.')); }
+      else output += chunk.toString();
+    });
+    // Drain diagnostics without risking credential or letter content in the runner's logs.
+    child.stderr.resume();
+    child.on('error', () => rejectHandler(new CliError('Mail handler could not run or was stopped.')));
+    child.stdin.on('error', () => {});
+    child.on('close', code => {
+      if (code !== 0) return rejectHandler(new CliError('Mail handler failed or timed out.'));
+      try {
+        const choice = JSON.parse(output);
+        if (choice !== null && (!choice || typeof choice !== 'object' || Array.isArray(choice)
+          || Object.keys(choice).some(k => !['reply','note'].includes(k))
+          || (choice.reply !== undefined && (typeof choice.reply !== 'string' || !choice.reply.trim() || choice.reply.length > 8000))
+          || (choice.note !== undefined && (typeof choice.note !== 'string' || choice.note.length > 2000)))) throw new Error('Invalid choice');
+        resolveHandler(choice);
+      } catch { rejectHandler(new CliError('Mail handler must print null or a JSON object with optional reply and note.')); }
+    });
+    child.stdin.end(JSON.stringify({ delivery, idempotency_key: delivery.id }));
+  });
+}
+
+async function watchMail(ctx, flags) {
+  const executable = need(flags.handler, 'mail watch --handler /absolute/executable [--once]');
+  if (!String(executable).startsWith('/')) throw new CliError('Mail handler must be an absolute executable path.');
+  const interval = Number(flags.interval ?? 30);
+  const timeout = Number(flags.timeout ?? 240);
+  const limit = Number(flags.limit ?? 10);
+  if (!Number.isInteger(interval) || interval < 1 || !Number.isInteger(timeout) || timeout < 1 || timeout > 840
+    || !Number.isInteger(limit) || limit < 1 || limit > 100) throw new CliError('Use interval >= 1, timeout 1-840, and limit 1-100.');
+  if (!ctx.key) throw new CliError('You are not signed in.');
+  const stop = new AbortController();
+  const halt = () => stop.abort();
+  process.once('SIGINT', halt);
+  process.once('SIGTERM', halt);
+  let processed = 0;
+  let failed = 0;
+  let heartbeatAt = 0;
+  const mailRequest = (method, path, options = {}) => request(ctx, method, path, { ...options, signal: AbortSignal.timeout(30_000) });
+  try {
+    while (!stop.signal.aborted) {
+      let count = 0;
+      try {
+        // This also executes owner-approved replies and refreshes private standing directives.
+        if (Date.now() >= heartbeatAt) {
+          await mailRequest('POST', '/heartbeat', { body: {} });
+          heartbeatAt = Date.now() + 30 * 60_000;
+        }
+        for (; count < limit && !stop.signal.aborted; count++) {
+          const { delivery } = await mailRequest('POST', '/mailbox/claim', { body: { lease_seconds: Math.max(60, timeout + 60) } });
+          if (!delivery) break;
+          const path = `/mailbox/${encodeURIComponent(delivery.id)}`;
+          try {
+            const choice = await mailHandler(ctx, executable, delivery, timeout, stop.signal);
+            stop.signal.throwIfAborted();
+            const receipt = await mailRequest('POST', `${path}/${choice === null ? 'retry' : 'complete'}`, {
+              body: { ...(choice ?? { note: 'Worker deferred this letter' }), lease_token: delivery.lease_token },
+            });
+            processed++;
+            if (!flags.once) process.stdout.write(JSON.stringify({ id: delivery.id, status: receipt.status }) + '\n');
+          } catch {
+            failed++;
+            await mailRequest('POST', `${path}/retry`, { body: { lease_token: delivery.lease_token, note: 'Handler or delivery failed; retry requested' } }).catch(() => {});
+            if (!flags.once) process.stderr.write(`Mail ${delivery.id}: failed; delivery will be retried.\n`);
+          }
+        }
+      } catch (error) {
+        if (flags.once || (error instanceof CliError && (error.status === 401 || error.status === 403))) throw error;
+        failed++;
+        process.stderr.write('Mailbox unavailable; reconnecting after the polling interval.\n');
+      }
+      if (flags.once) break;
+      if (count === limit) continue;
+      await new Promise(resolveWait => {
+        const done = () => { clearTimeout(timer); stop.signal.removeEventListener('abort', done); resolveWait(); };
+        const timer = setTimeout(done, interval * 1000);
+        stop.signal.addEventListener('abort', done, { once: true });
+        if (stop.signal.aborted) done();
+      });
+    }
+  } finally {
+    process.removeListener('SIGINT', halt);
+    process.removeListener('SIGTERM', halt);
+  }
+  if (flags.once && failed) throw new CliError(`${failed} mail delivery attempt(s) failed; retries were scheduled.`);
+  return { data: { processed, failed }, text: `Mailbox stopped: ${processed} processed, ${failed} failed.` };
+}
 
 // ----------------------------------------------------------------------------- main
 

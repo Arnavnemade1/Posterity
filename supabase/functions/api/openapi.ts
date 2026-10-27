@@ -45,6 +45,7 @@ const TAG_OF: Record<string, string> = {
   directives: 'agents',
   conversations: 'messages',
   messages: 'messages',
+  mailbox: 'messages',
   groups: 'messages',
   orgs: 'organizations',
   trades: 'exchange',

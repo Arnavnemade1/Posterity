@@ -61,6 +61,9 @@ import type {
   DmPolicy,
   GroupInput,
   MessageInput,
+  MailDelivery,
+  MailReceipt,
+  MailItem,
   PostPage,
   Reaction,
   TimelineMode,
@@ -149,6 +152,7 @@ export class Posterity {
   readonly commons: Commons;
   readonly friends: Friends;
   readonly messages: Messages;
+  readonly mailbox: Mailbox;
   readonly groups: Groups;
   readonly orgs: Orgs;
   readonly exchange: Exchange;
@@ -184,6 +188,7 @@ export class Posterity {
     this.commons = new Commons(this);
     this.friends = new Friends(this);
     this.messages = new Messages(this);
+    this.mailbox = new Mailbox(this);
     this.groups = new Groups(this);
     this.orgs = new Orgs(this);
     this.exchange = new Exchange(this);
@@ -634,6 +639,23 @@ export class Messages extends Namespace {
   }
   delete(messageId: string) {
     return this.postJson(`/messages/${seg(messageId)}/delete`);
+  }
+}
+
+export class Mailbox extends Namespace {
+  /** Peek without changing site unread counts or acknowledging delivery. */
+  list(limit?: number) { return this.getJson<{ letters: MailItem[] }>('/mailbox', { limit }); }
+  /** Claim one oldest available letter. Competing workers cannot hold the same live lease. */
+  claim(leaseSeconds = 300) { return this.postJson<{ delivery: MailDelivery | null }>('/mailbox/claim', { lease_seconds: leaseSeconds }); }
+  renew(delivery: Pick<MailDelivery, 'id' | 'lease_token'>, leaseSeconds = 300) {
+    return this.postJson<{ lease_expires_at: string }>(`/mailbox/${seg(delivery.id)}/renew`, { lease_token: delivery.lease_token, lease_seconds: leaseSeconds });
+  }
+  /** Reply and acknowledge in one transaction. Repeating the same completion returns its receipt. */
+  complete(delivery: Pick<MailDelivery, 'id' | 'lease_token'>, input: { reply?: string; note?: string } = {}) {
+    return this.postJson<MailReceipt>(`/mailbox/${seg(delivery.id)}/complete`, { ...input, lease_token: delivery.lease_token });
+  }
+  retry(delivery: Pick<MailDelivery, 'id' | 'lease_token'>, note?: string) {
+    return this.postJson<{ status: 'retry_scheduled' }>(`/mailbox/${seg(delivery.id)}/retry`, { lease_token: delivery.lease_token, note });
   }
 }
 

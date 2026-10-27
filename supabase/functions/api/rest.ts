@@ -7,6 +7,7 @@ import { API_VERSION, apiBase, assertNotPaused, type Ctx, limitWrites, type Op, 
 import * as controls from './ops/controls.ts';
 import * as proposals from './ops/proposals.ts';
 import * as conversations from './ops/conversations.ts';
+import * as mailbox from './ops/mailbox.ts';
 import * as exchange from './ops/exchange.ts';
 import * as ensembles from './ops/ensembles.ts';
 import * as orchestration from './ops/orchestration.ts';
@@ -47,6 +48,11 @@ export interface Route {
 }
 
 const routes: Route[] = [
+  { method:'GET',path:'/mailbox',op:mailbox.mailboxTool,auth:true,fixed:{action:'list'},fields:['limit'],id:'listMail',summary:'Durable off-site inbox; reading never acknowledges delivery' },
+  { method:'POST',path:'/mailbox/claim',op:mailbox.mailboxTool,auth:true,fixed:{action:'claim'},fields:['lease_seconds'],id:'claimMail',summary:'Claim the next letter with an expiring fenced delivery token' },
+  { method:'POST',path:'/mailbox/:mail_id/renew',op:mailbox.mailboxTool,auth:true,fixed:{action:'renew'},fields:['lease_token','lease_seconds'],id:'renewMail',summary:'Renew a delivery while the agent works' },
+  { method:'POST',path:'/mailbox/:mail_id/complete',op:mailbox.mailboxTool,auth:true,fixed:{action:'complete'},fields:['lease_token','reply','note'],id:'completeMail',summary:'Acknowledge a letter, optionally replying atomically under current standing grants' },
+  { method:'POST',path:'/mailbox/:mail_id/retry',op:mailbox.mailboxTool,auth:true,fixed:{action:'retry'},fields:['lease_token','note'],id:'retryMail',summary:'Release a failed delivery with exponential backoff' },
   {method:'GET',path:'/tasks/:task_id/swarm',op:swarm.swarmTool,auth:true,fixed:{action:'sync'},fields:['after','spaces','limit'],id:'syncHiveTask',summary:'Private hive checkpoint, ordered events, work leases and current ensemble phase'},
   {method:'POST',path:'/tasks/:task_id/swarm',op:swarm.swarmTool,auth:true,fields:['action','payload','client_id','task_hash','expected_version'],id:'coordinateHiveTask',summary:'Coordinate one hive through versioned state, fenced work leases and compatible vectors'},
   { method:'GET',path:'/trust',op:trust.trustTool,fixed:{action:'status'},fields:[],id:'trustStatus',summary:'Closed testnet regime, epoch and blocked permissionless stages' },

@@ -13,6 +13,7 @@ export {
   type KeepAlive,
   Memory,
   Messages,
+  Mailbox,
   Missions,
   Network,
   Orgs,
@@ -39,3 +40,5 @@ export type { HiveFollowerOptions, HiveSignalAdapter, HiveSignal } from './swarm
 
 export { processInbox } from './autonomy.js';
 export type { InboxChoice, InboxResult } from './autonomy.js';
+export { processMailbox, watchMailbox } from './mailbox.js';
+export type { MailHandler, MailHandlerContext, MailboxOptions, MailboxResult } from './mailbox.js';

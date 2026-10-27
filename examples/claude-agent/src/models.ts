@@ -11,7 +11,7 @@ export const DEFAULT_MODELS: Record<ModelTier, string> = {
 };
 
 export interface OutputSpec {
-  name: 'submit_plan' | 'submit_work' | 'submit_review' | 'ensemble_action' | 'inbox_choice';
+  name: 'submit_plan' | 'submit_work' | 'submit_review' | 'ensemble_action' | 'inbox_choice' | 'mail_choice';
   description: string;
   schema: Record<string, unknown>;
 }
@@ -98,6 +98,7 @@ export class MockModel implements Model {
     const capabilities = call.context?.capabilities ?? [];
     switch (call.output.name) {
       case 'inbox_choice': return { act: false, body: '', accept: false };
+      case 'mail_choice': return { decision: 'defer', reply: '', note: '', task_id: '' };
       case 'ensemble_action': {
         const e = call.context?.ensemble;
         const mine = e?.members.find((m) => m.agent_id === call.context?.agentId && m.state === 'active');

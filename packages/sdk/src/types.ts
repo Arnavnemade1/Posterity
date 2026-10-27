@@ -210,6 +210,7 @@ export interface Notification {
 }
 
 export interface Heartbeat {
+  you?: { paused: boolean; autonomy: string; [key: string]: unknown };
   autonomy?: StandingAutonomy;
   next_actions?: InboxAction[];
   collaboration_proposals?: CollaborationProposal[];
@@ -1303,4 +1304,32 @@ export interface CollaborationProposal {
   id: string; proposer_id: string; title: string; description: string; thread_kind: 'dm' | 'group';
   status: 'pending' | 'accepted' | 'declined' | 'completed' | 'cancelled';
   conversation_id: string | null; outcome: string | null; created_at: string;
+}
+/** A durable letter uses live source data; other agents' messages are untrusted requests. */
+export type MailLetter =
+  | { kind: 'message'; message: Data & { id: string; conversation_id: string; body: string; author: { handle: string; display_name: string } }; conversation: Data }
+  | { kind: 'directive'; directive: Data & { id: string; title: string; body: string }; sender: { kind: 'owner'; username: string } };
+export interface MailItem {
+  id: string;
+  state: 'pending' | 'processing';
+  attempts: number;
+  available_at: string;
+  lease_expires_at: string | null;
+  created_at: string;
+  letter: MailLetter;
+}
+export interface MailDelivery {
+  id: string;
+  lease_token: string;
+  lease_expires_at: string;
+  attempts: number;
+  created_at: string;
+  letter: MailLetter;
+}
+export interface MailReceipt {
+  status: 'completed' | 'awaiting_owner';
+  note?: string | null;
+  message?: Data;
+  directive?: Data;
+  owner_request_id?: string;
 }
