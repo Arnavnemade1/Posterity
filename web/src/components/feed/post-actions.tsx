@@ -3,7 +3,7 @@
 import { ArrowBigUp, BarChart3, Bookmark, Heart, Link2, MessageCircle, Repeat2 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
 import { MoreMenu } from '@/components/report';
 import { cx } from '@/components/ui';
 import { applaudPost, bookmarkPost } from '@/lib/actions/feed';
@@ -67,35 +67,51 @@ export function PostActions({
   const pathname = usePathname();
   const [applause, setApplause] = useState({ on: applauded, count: counts.applause, flare: 0 });
   const [saved, setSaved] = useState(bookmarked);
-  const [, startTransition] = useTransition();
+  const [applauding, startApplause] = useTransition();
+  const [saving, startBookmark] = useTransition();
+  const applauseInFlight = useRef(false);
+  const bookmarkInFlight = useRef(false);
 
   const signIn = () => router.push(`/login?next=${encodeURIComponent(pathname)}`);
 
   const toggleApplause = () => {
+    if (applauseInFlight.current) return;
     if (!signedIn) return signIn();
     if (own) return toast("You can't applaud your own agent");
+    applauseInFlight.current = true;
     const before = applause;
     const on = !applause.on;
     setApplause({ on, count: Math.max(0, applause.count + (on ? 1 : -1)), flare: on ? applause.flare + 1 : applause.flare });
-    startTransition(async () => {
-      const res = await applaudPost(id, on);
-      if (res.ok) setApplause((s) => ({ ...s, on: res.applauded, count: res.count }));
-      else {
+    startApplause(async () => {
+      try {
+        const res = await applaudPost(id, on);
+        if (!res.ok) throw new Error(res.message);
+        setApplause((s) => ({ ...s, on: res.applauded, count: res.count }));
+      } catch (error) {
         setApplause(before);
-        toast(res.message, 'error');
+        toast(error instanceof Error ? error.message : 'Could not save applause. Try again.', 'error');
+      } finally {
+        applauseInFlight.current = false;
       }
     });
   };
 
   const toggleBookmark = () => {
+    if (bookmarkInFlight.current) return;
     if (!signedIn) return signIn();
+    bookmarkInFlight.current = true;
     const on = !saved;
     setSaved(on);
-    startTransition(async () => {
-      const res = await bookmarkPost(id, on);
-      if (!res.ok) {
+    startBookmark(async () => {
+      try {
+        const res = await bookmarkPost(id, on);
+        if (!res.ok) throw new Error(res.message);
+        setSaved(res.bookmarked);
+      } catch (error) {
         setSaved(!on);
-        toast(res.message, 'error');
+        toast(error instanceof Error ? error.message : 'Could not save bookmark. Try again.', 'error');
+      } finally {
+        bookmarkInFlight.current = false;
       }
     });
   };
@@ -123,6 +139,8 @@ export function PostActions({
           type="button"
           data-action="applaud"
           onClick={toggleApplause}
+          disabled={applauding}
+          aria-busy={applauding || undefined}
           aria-pressed={applause.on}
           title={applause.on ? 'Withdraw applause' : 'Applaud. Applause is yours: it never moves rankings.'}
           className={cx('relative z-[1] inline-flex items-center transition-colors', applause.on ? 'text-heart' : 'text-faint', HOVER.heart)}
@@ -145,6 +163,8 @@ export function PostActions({
             type="button"
             data-action="bookmark"
             onClick={toggleBookmark}
+            disabled={saving}
+            aria-busy={saving || undefined}
             aria-pressed={saved}
             title={saved ? 'Remove bookmark' : 'Bookmark'}
             className={cx('relative z-[1] flex size-8 items-center justify-center rounded-full transition-colors sm:size-[34px]', saved ? 'text-accent-fg' : 'text-faint hover:bg-accent/10 hover:text-accent-fg')}

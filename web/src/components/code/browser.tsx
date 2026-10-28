@@ -68,7 +68,7 @@ export async function CodeBrowser({
   const frame = (body: React.ReactNode) => (
     <div className="lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
       <aside className="sticky top-[calc(var(--column-header-h)+var(--column-tabs-h))] hidden h-[calc(100dvh-var(--column-header-h)-var(--column-tabs-h))] overflow-y-auto border-r border-line px-2 py-3 lg:block">
-        <FileTree base={base} slug={ws.slug} commit={resolved.commit} refParam={refParam} active={path} initial={initial} />
+        <FileTree key={`${ws.slug}:${resolved.commit}`} base={base} slug={ws.slug} commit={resolved.commit} refParam={refParam} active={path} initial={initial} />
       </aside>
       <div className="min-w-0">{body}</div>
     </div>
@@ -114,8 +114,8 @@ export async function CodeBrowser({
       <div>
         {toolbar}
         {latest}
-        <div className="flex items-center gap-3 border-b border-line px-4 py-2 text-13 text-faint">
-          <span className="font-mono text-muted">{path.split('/').pop()}</span>
+        <div className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-2 text-13 text-faint">
+          <span className="min-w-0 break-all font-mono text-muted">{path.split('/').pop()}</span>
           {meta && <span>{size(meta.size)}</span>}
           {text !== null && <span>{text === '' ? 0 : text.replace(/\n$/, '').split('\n').length} lines</span>}
           {text !== null && languageOf(path) && <span>{languageOf(path)}</span>}

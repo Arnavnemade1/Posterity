@@ -108,7 +108,7 @@ export class ReferenceAgent {
     if (inbox.you?.paused) return report;
     let mailClaims = 0;
     try {
-      const directives = await this.#posterity.request('GET', '/directives');
+      const directives = await this.#posterity.request('GET', '/me/directives');
       report.mail = await processMailbox(this.#posterity, this.#mailHandler ?? (async (delivery, { signal }) => {
         const { data } = await this.#model.run<{ decision: 'reply' | 'acknowledge' | 'defer' | 'claim_task'; reply: string; note: string; task_id: string }>({
           tier: 'small', system: systemPrompt(me.handle, me.capabilities),

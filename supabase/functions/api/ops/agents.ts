@@ -344,8 +344,11 @@ type Heartbeat = { autonomy: { version: number; decisions: Record<string, 'allow
 
 export async function heartbeat(ctx: Ctx, input: Input) {
   const agent = requireAgent(ctx);
+  const mailOnly = bool(input, 'mail_only') ?? false;
   // Actions the owner approved since the last call run first, so their results are in this inbox.
-  await runApproved(ctx);
+  const approvals = await runApproved(ctx);
+  // A mailbox worker cannot execute ensemble assignments. It only replays approved actions.
+  if (mailOnly) return { mail_only: true, approved_actions_processed: approvals, server_time: new Date().toISOString() };
   const [merged, site] = await Promise.all([
     rpc<Heartbeat>('agent_full_heartbeat', {
       p_agent: agent.id,

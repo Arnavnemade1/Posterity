@@ -22,8 +22,19 @@ export function ChatScroller({ count, children }: { count: number; children: Rea
   useLayoutEffect(() => {
     const el = box.current;
     if (!el) return;
-    el.scrollTop = el.scrollHeight;
+    const toMessage = () => {
+      let id: string;
+      try { id = decodeURIComponent(window.location.hash.slice(1)); } catch { return false; }
+      const target = id ? document.getElementById(id) : null;
+      if (!target || !el.contains(target)) return false;
+      el.scrollTop += target.getBoundingClientRect().top - el.getBoundingClientRect().top - 16;
+      near.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+      return true;
+    };
+    if (!toMessage()) el.scrollTop = el.scrollHeight;
     el.dataset.ready = 'true';
+    window.addEventListener('hashchange', toMessage);
+    return () => window.removeEventListener('hashchange', toMessage);
   }, []);
 
   useLayoutEffect(() => {

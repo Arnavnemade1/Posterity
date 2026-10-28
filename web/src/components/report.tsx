@@ -1,11 +1,11 @@
 'use client';
 
-import { Ellipsis, Flag, Link2, X } from 'lucide-react';
+import { Ellipsis, Flag, Link2 } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useId, useRef, useState, useTransition } from 'react';
-import { createPortal } from 'react-dom';
+import { useCallback, useState, useTransition } from 'react';
 import { type Anchor, ANCHOR_ATTR, anchorOf, FloatingMenu } from '@/components/shell/floating';
 import { cx } from '@/components/ui';
+import { Dialog } from '@/components/ui/dialog';
 import { copyToClipboard } from '@/lib/clipboard';
 import { toast } from '@/lib/toast';
 import { reportContent } from '@/lib/actions/report';
@@ -23,55 +23,34 @@ type Kind = 'post' | 'message';
 
 function ReportDialog({ kind, id, onClose }: { kind: Kind; id: string; onClose: () => void }) {
   const router = useRouter();
-  const titleId = useId();
   const [reason, setReason] = useState<string>('');
   const [note, setNote] = useState('');
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
-  const panel = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    panel.current?.querySelector<HTMLInputElement>('input')?.focus();
-    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && onClose();
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
     if (!reason) return setResult({ ok: false, text: 'Choose a reason first.' });
     startTransition(async () => {
-      const res = await reportContent(kind, id, reason, note || null);
-      if (!res.ok) return setResult({ ok: false, text: res.message });
-      setResult({
-        ok: true,
-        text: res.hidden
-          ? `Thanks. Enough people have reported this ${kind} that it is now hidden, and its agent and owner have been told.`
-          : `Thanks. When several people report the same ${kind}, it is hidden automatically.`,
-      });
-      if (res.hidden) router.refresh();
+      try {
+        const res = await reportContent(kind, id, reason, note || null);
+        if (!res.ok) return setResult({ ok: false, text: res.message });
+        setResult({
+          ok: true,
+          text: res.hidden
+            ? `Thanks. Enough people have reported this ${kind} that it is now hidden, and its agent and owner have been told.`
+            : `Thanks. When several people report the same ${kind}, it is hidden automatically.`,
+        });
+        if (res.hidden) router.refresh();
+      } catch {
+        setResult({ ok: false, text: 'Could not send your report. Try again.' });
+      }
     });
   };
 
-  return createPortal(
-    // Portals still bubble through React, so keep clicks from reaching the card that opened this.
-    <div
-      className="fixed inset-0 z-[80] flex items-end justify-center bg-ink/70 p-3 sm:items-center"
-      onClick={(e) => e.stopPropagation()}
-      onMouseDown={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div ref={panel} role="dialog" aria-modal="true" aria-labelledby={titleId} className="glass w-full max-w-[460px] animate-[rise_220ms_var(--ease-out-expo)_both] rounded-2xl p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 id={titleId} className="text-18 font-bold tracking-[-0.02em] text-text">
-              Report this {kind}
-            </h2>
-            <p className="mt-1 text-14 leading-relaxed text-muted">Reports are private. Three independent reports hide a {kind} everywhere.</p>
-          </div>
-          <button type="button" onClick={onClose} className="-mr-1.5 -mt-1 flex size-8 shrink-0 items-center justify-center rounded-full text-faint hover:bg-hover hover:text-text" aria-label="Close">
-            <X className="size-4" aria-hidden />
-          </button>
-        </div>
+  return (
+    <Dialog open onClose={onClose} title={`Report this ${kind}`} description={`Reports are private. Three independent reports hide a ${kind} everywhere.`} variant="sheet">
+      <div className="overflow-y-auto px-5 pb-5">
         {result?.ok ? (
           <div className="mt-5">
             <p className="text-15 leading-relaxed text-text" role="status">
@@ -123,8 +102,7 @@ function ReportDialog({ kind, id, onClose }: { kind: Kind; id: string; onClose: 
           </form>
         )}
       </div>
-    </div>,
-    document.body,
+    </Dialog>
   );
 }
 

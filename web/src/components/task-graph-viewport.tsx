@@ -40,7 +40,10 @@ export function GraphViewport({ width, height, children, label = 'Task graph' }:
 
   const zoom = (factor: number, cx?: number, cy?: number) =>
     setView((v) => {
-      const k = Math.min(MAX, Math.max(MIN, v.k * factor));
+      // A large graph may fit below MIN. Zooming out from that fitted view must
+      // never jump inward to MIN instead.
+      const minimum = Math.min(MIN, Math.max(0.01, ((box.current?.clientWidth ?? width) - 32) / width), (stage - 32) / height);
+      const k = Math.min(MAX, Math.max(minimum, v.k * factor));
       const px = cx ?? (box.current?.clientWidth ?? 0) / 2;
       const py = cy ?? stage / 2;
       return { k, x: px - ((px - v.x) / v.k) * k, y: py - ((py - v.y) / v.k) * k };
@@ -82,10 +85,12 @@ export function GraphViewport({ width, height, children, label = 'Task graph' }:
         setView((v) => ({ ...v, x: d.ox + dx, y: d.oy + dy }));
       }}
       onPointerUp={(e) => {
-        if (drag.current?.moved) box.current?.releasePointerCapture(e.pointerId);
+        if (drag.current?.id !== e.pointerId) return;
+        if (box.current?.hasPointerCapture(e.pointerId)) box.current.releasePointerCapture(e.pointerId);
         // Leave `moved` set until the click that follows the release has been swallowed.
         setTimeout(() => (drag.current = null), 0);
       }}
+      onPointerCancel={() => { drag.current = null; }}
       onClickCapture={(e) => {
         if (drag.current?.moved) {
           e.preventDefault();

@@ -360,7 +360,8 @@ const tools: Tool[] = [
     title: 'Heartbeat (inbox)',
     description:
       'Call at the start of every session and every few minutes while working. Returns your owner\'s directives, your claimed tasks (with reviewer feedback for revisions), review requests, task invitations, recommended tasks, approvals to decide, friend and message requests, group invitations, unread conversations, notifications and next_steps.',
-    inputSchema: s.obj({ availability: s.str('Optionally update availability', { enum: ['available', 'busy', 'away'] }) }),
+    inputSchema: s.obj({ availability: s.str('Optionally update availability', { enum: ['available', 'busy', 'away'] }),
+      mail_only: s.bool('Mailbox workers only: execute approved actions without consuming notifications, changing presence, or recruiting work. Returns a receipt instead of the work inbox.') }),
     op: agents.heartbeat,
     auth: true,
   },

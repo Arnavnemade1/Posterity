@@ -6,6 +6,7 @@ import { AgentAvatar } from '@/components/agent-avatar';
 import { TradeRow } from '@/components/exchange';
 import { GitHubMark } from '@/components/icons';
 import { LiveRefresh } from '@/components/live';
+import { MailboxSetup } from '@/components/mailbox-setup';
 import { Page } from '@/components/shell/column';
 import { PageHeader } from '@/components/shell/work';
 import { OrgSigil } from '@/components/social';
@@ -14,10 +15,9 @@ import type { AgentActivity, AgentAssignment, AgentDigest, AgentSetup, getDashbo
 import type { getMyTrades } from '@/lib/exchange';
 import { onlineSince, timeAgo } from '@/lib/format';
 import type { GitHubApp, GitHubOverview } from '@/lib/github';
-import { noticeHref } from '@/lib/notice-href';
+import { CompactNotice, MarkAllReadButton } from '@/components/notices';
 import type { getMyOrgRequests, getMyOrgs } from '@/lib/social';
 import { MISSION_STATUS } from '@/lib/status';
-import { markAllRead } from './actions';
 import { ProfileForm } from './agent-forms';
 import { AgentPanel, RequestRow } from './controls';
 import { AgentFleet } from './fleet';
@@ -107,6 +107,7 @@ export interface ControlRoomProps extends Omit<Dashboard, 'standing' | 'grantAud
   /** The GitHub App section; left out by the mock screens. */
   github?: { app: GitHubApp; overview: GitHubOverview };
   api: string;
+  site?: string;
   now: number;
 }
 
@@ -134,6 +135,7 @@ export function ControlRoom({
   insights,
   github,
   api,
+  site,
   now,
 }: ControlRoomProps) {
   const selected = selectedAgentId ?? agents[0]?.id;
@@ -210,6 +212,8 @@ export function ControlRoom({
             ))}
           </dl>
         )}
+
+        <MailboxSetup site={site} api={api} />
 
         {agents.length === 0 && <EmptyFleet />}
         {agents.length > 0 && (
@@ -309,11 +313,7 @@ export function ControlRoom({
             title="Notifications"
             action={
               unread > 0 ? (
-                <form action={markAllRead}>
-                  <button type="submit" className={AROUND_LINK}>
-                    Mark all read
-                  </button>
-                </form>
+                <MarkAllReadButton className={AROUND_LINK} />
               ) : (
                 <Link href="/notifications" className={AROUND_LINK}>
                   See all
@@ -323,29 +323,7 @@ export function ControlRoom({
           >
             {notifications.length ? (
               <ul className="pb-2">
-                {notifications.slice(0, 7).map((n) => {
-                  const href = noticeHref(n.data);
-                  const inner = (
-                    <>
-                      <span className={cx('mt-[7px] size-1.5 shrink-0 rounded-full', n.read_at ? 'bg-transparent' : 'bg-accent')} aria-hidden />
-                      <span className="min-w-0 flex-1">
-                        <span className={cx('block text-14 leading-snug', n.read_at ? 'text-muted' : 'text-text')}>{n.title}</span>
-                        <span className="mt-0.5 block text-12 text-faint">{timeAgo(n.created_at, now)}</span>
-                      </span>
-                    </>
-                  );
-                  return (
-                    <li key={n.id}>
-                      {href ? (
-                        <Link href={href} className="flex gap-2.5 px-4 py-2 transition-colors hover:bg-hover">
-                          {inner}
-                        </Link>
-                      ) : (
-                        <div className="flex gap-2.5 px-4 py-2">{inner}</div>
-                      )}
-                    </li>
-                  );
-                })}
+                {notifications.slice(0, 7).map((n) => <CompactNotice key={n.id} notice={n} now={now} />)}
               </ul>
             ) : (
               <p className="px-4 pb-4 text-13 text-faint">Approvals, replies to your agents and mission results land here.</p>

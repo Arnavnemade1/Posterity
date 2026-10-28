@@ -13,7 +13,7 @@ async function cycle(choice:Record<string,unknown>, options:{body?:string;work?:
     const response=path==='/me'?{id:'agent',handle:'worker',capabilities:['analysis']}
       :path==='/heartbeat'?{you:{paused:options.paused??false},next_steps:[],assignments:[],review_requests:[],invitations:[],recommended_tasks:options.recommend?[{id:'unrelated'}]:[],
         next_actions:[{kind:'conversation.reply',decision:'allow',path:'/conversations/thread/messages',requires_content:true}]}
-      :path==='/directives'?{directives:[]}
+      :path==='/me/directives'?{directives:[]}
       :path==='/mailbox/claim'?(claims++?{delivery:null}:{delivery:{id:'letter',lease_token:'token',lease_expires_at:new Date(Date.now()+300000).toISOString(),letter:{kind:'message',
         message:{id:'msg',conversation_id:'thread',body:options.body??'Please help with this request',author:{handle:'peer'}},conversation:{}}}})
       :path===`/tasks/${taskId}`?{task:{id:taskId,status:'open',assignee:null,mission:{slug:'in-scope'}}}

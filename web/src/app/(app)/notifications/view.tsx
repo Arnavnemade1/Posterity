@@ -1,13 +1,14 @@
+'use client';
+
 // The notification center: what waits for you, what your agents did, and the rest, newest first and grouped by day.
-import { Bell, CircleCheck, UserCheck } from 'lucide-react';
+import { Bell, UserCheck } from 'lucide-react';
 import Link from 'next/link';
-import { NoticeRow } from '@/components/notices';
+import { MarkAllReadButton, NoticeRow, useNoticeUpdates } from '@/components/notices';
 import { noticeMeta, type NoticeGroup } from '@/components/notice-kinds';
 import { LiveRefresh } from '@/components/live';
 import { Page } from '@/components/shell/column';
 import { PageHeader } from '@/components/shell/work';
-import { markAllRead } from '@/app/(app)/control/actions';
-import { buttonClass, EmptyState } from '@/components/ui';
+import { EmptyState } from '@/components/ui';
 import type { Notice } from '@/lib/notice-href';
 import type { Viewer } from '@/lib/viewer';
 
@@ -51,10 +52,12 @@ function hrefFor(tab: string, extra = '') {
 }
 
 export function NotificationsView({ notices, tab, now, viewer, more, moreHref }: NotificationsViewProps) {
+  const updates = useNoticeUpdates();
+  const isUnread = (n: Notice) => !n.read_at && !updates.get(n.id)?.read;
   const inGroup = (n: Notice, group: NoticeGroup) => noticeMeta(n.kind).group === group;
-  const shown = tab === 'all' ? notices : notices.filter((n) => inGroup(n, tab as NoticeGroup));
-  const unread = notices.filter((n) => !n.read_at).length;
-  const waiting = notices.filter((n) => !n.read_at && inGroup(n, 'decision')).length;
+  const shown = tab === 'all' ? notices : notices.filter((n) => inGroup(n, tab as NoticeGroup) && (tab !== 'decision' || isUnread(n)));
+  const unread = notices.filter(isUnread).length;
+  const waiting = notices.filter((n) => isUnread(n) && inGroup(n, 'decision')).length;
 
   const days: { label: string; items: Notice[] }[] = [];
   for (const n of shown) {
@@ -65,7 +68,7 @@ export function NotificationsView({ notices, tab, now, viewer, more, moreHref }:
   }
 
   const empty = EMPTY[tab] ?? EMPTY.all;
-  const count = (group: NoticeGroup) => notices.filter((n) => !n.read_at && inGroup(n, group)).length;
+  const count = (group: NoticeGroup) => notices.filter((n) => isUnread(n) && inGroup(n, group)).length;
 
   return (
     <Page wide>
@@ -74,11 +77,7 @@ export function NotificationsView({ notices, tab, now, viewer, more, moreHref }:
         meta={unread ? `${unread} unread${waiting ? ` · ${waiting} waiting on you` : ''}` : 'All caught up'}
         actions={
           unread > 0 ? (
-            <form action={markAllRead}>
-              <button type="submit" className={buttonClass('secondary', 'sm')}>
-                <CircleCheck className="size-3.5" aria-hidden /> Mark all read
-              </button>
-            </form>
+            <MarkAllReadButton />
           ) : undefined
         }
         tabs={{

@@ -63,7 +63,7 @@ export default function SearchDialog({ open, onClose, agents, signedIn }: { open
   const router = useRouter();
   const listId = useId();
   const [q, setQ] = useState('');
-  const [found, setFound] = useState<QuickResult[]>([]);
+  const [answer, setAnswer] = useState<{ query: string; results: QuickResult[]; failed?: boolean } | null>(null);
   const [active, setActive] = useState(0);
   const [recents, setRecents] = useState<Recent[]>([]);
   const [, startTransition] = useTransition();
@@ -72,13 +72,17 @@ export default function SearchDialog({ open, onClose, agents, signedIn }: { open
   const mode = q.startsWith('>') ? 'actions' : q.startsWith('@') ? 'agents' : q.startsWith('#') ? 'tags' : 'all';
   const term = q.replace(/^[>@#]\s*/, '').trim();
   const lower = term.toLowerCase();
+  const query = `${mode}:${term}`;
+  const searchable = (mode === 'all' || mode === 'agents') && term.length >= 2;
+  const found = useMemo(() => searchable && answer?.query === query ? answer.results : [], [searchable, answer, query]);
+  const searching = searchable && answer?.query !== query;
 
   // Each time it opens: a clean field, fresh recents.
   useEffect(() => {
     if (!open) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- resetting the field when the dialog opens is the point
     setQ('');
-    setFound([]);
+    setAnswer(null);
     setActive(0);
     setRecents(readRecents());
     const t = setTimeout(() => input.current?.focus(), 30);
@@ -92,13 +96,17 @@ export default function SearchDialog({ open, onClose, agents, signedIn }: { open
     const timer = setTimeout(
       () =>
         startTransition(async () => {
-          const results = await quickSearch(mode === 'agents' ? `@${term}` : term);
-          if (!cancelled) setFound(results);
+          try {
+            const results = await quickSearch(mode === 'agents' ? `@${term}` : term);
+            if (!cancelled) setAnswer({ query, results });
+          } catch {
+            if (!cancelled) setAnswer({ query, results: [], failed: true });
+          }
         }),
       160,
     );
     return () => { clearTimeout(timer); cancelled = true; };
-  }, [open, mode, term]);
+  }, [open, mode, term, query]);
 
   const actions: Item[] = useMemo(() => {
     const list: Item[] = [];
@@ -158,6 +166,9 @@ export default function SearchDialog({ open, onClose, agents, signedIn }: { open
     return out;
   }, [mode, term, lower, actions, places, recents, found]);
 
+  // A network response can shrink the list while a later row is selected.
+  const selected = Math.max(0, Math.min(active, items.length - 1));
+
   const run = (item: Item | undefined) => {
     if (!item) return;
     if (item.href && item.id !== 'network' && item.group !== 'Tags') remember({ href: item.href, title: item.title, detail: item.detail });
@@ -186,25 +197,21 @@ export default function SearchDialog({ open, onClose, agents, signedIn }: { open
           onKeyDown={(e) => {
             if (e.key === 'ArrowDown') {
               e.preventDefault();
-              move(active + 1);
+              move(selected + 1);
             } else if (e.key === 'ArrowUp') {
               e.preventDefault();
-              move(active - 1);
-            } else if (e.key === 'Home') {
+              move(selected - 1);
+            } else if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
               e.preventDefault();
-              move(0);
-            } else if (e.key === 'End') {
-              e.preventDefault();
-              move(items.length - 1);
-            } else if (e.key === 'Enter') {
-              e.preventDefault();
-              run(items[active]);
+              run(items[selected]);
             }
           }}
           role="combobox"
           aria-expanded
           aria-controls={listId}
-          aria-activedescendant={items[active] ? `${listId}-${active}` : undefined}
+          aria-activedescendant={items[selected] ? `${listId}-${selected}` : undefined}
+          aria-autocomplete="list"
+          aria-busy={searching}
           aria-label="Search"
           placeholder="Search, or type > for actions, @ for agents, # for tags"
           autoComplete="off"
@@ -223,10 +230,11 @@ export default function SearchDialog({ open, onClose, agents, signedIn }: { open
                 type="button"
                 id={`${listId}-${i}`}
                 role="option"
-                aria-selected={i === active}
+                aria-selected={i === selected}
+                tabIndex={-1}
                 onMouseMove={() => i !== active && setActive(i)}
                 onClick={() => run(item)}
-                className={cx('flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left', i === active && 'bg-active')}
+                className={cx('flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left', i === selected && 'bg-active')}
               >
                 <span className="flex size-6 shrink-0 items-center justify-center text-muted">{item.handle ? <AgentAvatar handle={item.handle} size={22} /> : (item.icon ?? <ArrowRight className="size-4 text-faint" />)}</span>
                 <span className="min-w-0 flex-1">
@@ -242,13 +250,13 @@ export default function SearchDialog({ open, onClose, agents, signedIn }: { open
                     ))}
                   </span>
                 ) : (
-                  <CornerDownLeft className={cx('size-3.5 shrink-0 text-faint', i !== active && 'invisible')} aria-hidden />
+                  <CornerDownLeft className={cx('size-3.5 shrink-0 text-faint', i !== selected && 'invisible')} aria-hidden />
                 )}
               </button>
             </li>
           );
         })}
-        {!items.length && <li className="px-3 py-8 text-center text-14 text-faint">{term.length >= 2 ? 'No matches. Press Enter to search the whole network.' : 'Nothing matches.'}</li>}
+        {!items.length && <li role="status" className="px-3 py-8 text-center text-14 text-faint">{searching ? 'Searching…' : answer?.query === query && answer.failed ? 'Could not search right now. Try again.' : mode === 'agents' && term.length < 2 ? 'Type at least two characters to find an agent.' : 'No matches.'}</li>}
       </ul>
     </Dialog>
   );

@@ -1,6 +1,6 @@
 'use server';
 
-import { refresh } from 'next/cache';
+import { refresh, revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 
@@ -52,8 +52,9 @@ export async function updateProfile(_prev: { ok: boolean; message: string } | nu
 }
 
 export async function markAllRead() {
-  await rpc('web_mark_notifications_read', { p_ids: null });
-  refresh();
+  const { error } = await rpc('web_mark_notifications_read', { p_ids: null });
+  if (error) throw new Error('Could not mark notifications read. Try again.');
+  revalidatePath('/', 'layout');
 }
 
 export async function goToClaim(form: FormData) {
@@ -143,11 +144,15 @@ export async function updateDirective(_prev: ControlState, form: FormData): Prom
 
 export async function decideOwnerRequest(_prev: ControlState, form: FormData): Promise<ControlState> {
   const approve = form.get('decision') === 'approve';
-  return control(
+  const requestId = text(form, 'request_id');
+  const { error } = await rpc(
     'web_decide_owner_request',
-    { p_request: text(form, 'request_id'), p_approve: approve, p_note: text(form, 'note') },
-    approve ? 'Approved. It runs on your agent’s next heartbeat.' : 'Declined.',
+    { p_request: requestId, p_approve: approve, p_note: text(form, 'note') },
   );
+  if (error) return { ok: false, message: error };
+  // The database acknowledges related notifications atomically with the decision.
+  revalidatePath('/', 'layout');
+  return { ok: true, message: approve ? 'Approved. It runs on your agent’s next heartbeat.' : 'Declined.' };
 }
 
 export async function saveAgentIdentity(_prev: ControlState, form: FormData): Promise<ControlState> {

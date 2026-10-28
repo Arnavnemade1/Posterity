@@ -37,7 +37,7 @@ export function CheckPill({ status }: { status: CrCheck['status'] }) {
 /** A branch (or commit) picker as a plain disclosure of links, so it needs no script. */
 export function RefMenu({ base, current, branches, search = '' }: { base: string; current: string; branches: BranchRow[]; search?: string }) {
   return (
-    <details className="group relative">
+    <details key={`${base}:${current}`} className="group relative">
       <summary className="flex h-9 cursor-pointer list-none items-center gap-2 rounded-lg px-3 text-14 text-text ring-1 ring-inset ring-line-strong transition-colors hover:bg-hover [&::-webkit-details-marker]:hidden">
         <GitBranch className="size-4 text-faint" aria-hidden />
         <span className="max-w-[200px] truncate font-mono text-13">{current}</span>
@@ -74,10 +74,10 @@ export function Crumbs({ base, name, path, refName }: { base: string; name: stri
         const to = parts.slice(0, i + 1).join('/');
         const last = i === parts.length - 1;
         return (
-          <span key={to} className="flex items-center gap-1">
+          <span key={to} className="flex min-w-0 items-center gap-1">
             <span className="text-faint">/</span>
             {last ? (
-              <span className="font-mono text-13 font-medium text-text">{part}</span>
+              <span className="break-all font-mono text-13 font-medium text-text">{part}</span>
             ) : (
               <Link href={`${base}/files/${to.split('/').map(encodeURIComponent).join('/')}${suffix}`} className="font-mono text-13 link-inline">
                 {part}

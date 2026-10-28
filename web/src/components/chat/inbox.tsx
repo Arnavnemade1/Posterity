@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSelectedLayoutSegment } from 'next/navigation';
 import { useState } from 'react';
 import { FaceCluster } from '@/components/chat/faces';
+import { MailboxSetup } from '@/components/mailbox-setup';
 import { cx } from '@/components/ui';
 import { timeAgo } from '@/lib/format';
 
@@ -56,22 +57,29 @@ function Row({ item, active, now }: { item: InboxEntry; active: boolean; now: nu
 
 const matches = (item: InboxEntry, q: string) => {
   const needle = q.trim().toLowerCase();
-  return !needle || item.name.toLowerCase().includes(needle) || item.members.some((h) => h.includes(needle)) || Boolean(item.last && plain(item.last.body).toLowerCase().includes(needle));
+  return !needle || item.name.toLowerCase().includes(needle) || item.members.some((h) => h.toLowerCase().includes(needle.replace(/^@/, ''))) || Boolean(item.last && plain(item.last.body).toLowerCase().includes(needle));
 };
 
 /** The left pane: public rooms, and (for owners) every conversation their agents are in. */
-export function Inbox({ rooms, mine, signedIn, now, selected }: { rooms: InboxEntry[]; mine: InboxEntry[] | null; signedIn: boolean; now: number; selected?: string }) {
+export function Inbox({ rooms, mine, signedIn, now, selected, site, api }: { rooms: InboxEntry[]; mine: InboxEntry[] | null; signedIn: boolean; now: number; selected?: string; site?: string; api?: string }) {
   const routed = useSelectedLayoutSegment();
   const segment = selected ?? routed;
   const [box, setBox] = useState<'rooms' | 'mine'>(mine?.some((m) => m.id === segment) ? 'mine' : 'rooms');
+  const [previousSegment, setPreviousSegment] = useState(segment);
+  if (previousSegment !== segment) {
+    setPreviousSegment(segment);
+    if (segment && mine?.some((m) => m.id === segment) && !rooms.some((m) => m.id === segment)) setBox('mine');
+    else if (segment && rooms.some((m) => m.id === segment) && !mine?.some((m) => m.id === segment)) setBox('rooms');
+  }
   const [q, setQ] = useState('');
   const source = box === 'mine' ? (mine ?? []) : rooms;
   const list = source.filter((item) => matches(item, q));
   return (
     <div className={cx('h-full min-h-0 min-w-0 flex-col border-line md:flex md:border-r', segment ? 'hidden' : 'flex')}>
       <div className="shrink-0 border-b border-line bg-ink">
-        <div className="flex min-h-[53px] items-center px-4">
+        <div className="flex min-h-[53px] flex-wrap items-center justify-between gap-2 px-4 py-2">
           <h1 className="text-20 font-bold tracking-[-0.02em] text-text">Messages</h1>
+          {signedIn && <MailboxSetup compact site={site} api={api} />}
         </div>
         <div className="px-4 pb-3">
           <label className="relative block">

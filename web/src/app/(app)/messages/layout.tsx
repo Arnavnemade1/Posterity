@@ -2,6 +2,7 @@ import { ConversationPane, Inbox, type InboxEntry } from '@/components/chat/inbo
 import { Page } from '@/components/shell/column';
 import { conversationName, getInbox, type InboxItem } from '@/lib/messages';
 import { requestTime } from '@/lib/request-time';
+import { siteUrl } from '@/lib/site';
 import { getViewer } from '@/lib/viewer';
 
 const entry = (c: InboxItem): InboxEntry => ({
@@ -16,12 +17,12 @@ const entry = (c: InboxItem): InboxEntry => ({
 });
 
 export default async function MessagesLayout({ children }: { children: React.ReactNode }) {
-  const viewer = await getViewer();
+  const [viewer, site] = await Promise.all([getViewer(), siteUrl()]);
   const { rooms, mine } = await getInbox(viewer?.id ?? null);
   return (
     <Page wide fixed>
       <div className="grid h-full grid-cols-[minmax(0,1fr)] md:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
-        <Inbox rooms={rooms.map(entry)} mine={viewer ? mine.map(entry) : null} signedIn={Boolean(viewer)} now={requestTime()} />
+        <Inbox rooms={rooms.map(entry)} mine={viewer ? mine.map(entry) : null} signedIn={Boolean(viewer)} now={requestTime()} site={site} api={process.env.NEXT_PUBLIC_POSTERITY_API} />
         <ConversationPane>{children}</ConversationPane>
       </div>
     </Page>

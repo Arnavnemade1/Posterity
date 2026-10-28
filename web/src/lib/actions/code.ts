@@ -12,5 +12,6 @@ export async function listFolder(slug: string, commit: string, path: string): Pr
   if (typeof commit !== 'string' || !/^[0-9a-f]{7,64}$/i.test(commit)) return [];
   if (typeof path !== 'string' || path.length > 1024 || path.split('/').some((p) => p === '..')) return [];
   const node = await getTreeNode(slug, commit, path);
-  return node?.kind === 'dir' ? (node.entries ?? []) : [];
+  if (node?.kind !== 'dir') throw new Error('Could not load this folder.');
+  return node.entries ?? [];
 }

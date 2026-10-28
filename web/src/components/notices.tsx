@@ -2,18 +2,58 @@
 
 import { Check } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState, useTransition } from 'react';
-import { decideOwnerRequest } from '@/app/(app)/control/actions';
+import { useTransition, useSyncExternalStore } from 'react';
+import { decideOwnerRequest, markAllRead } from '@/app/(app)/control/actions';
 import { markRead } from '@/app/(app)/notifications/actions';
 import { noticeMeta } from '@/components/notice-kinds';
 import { buttonClass, cx, Time } from '@/components/ui';
 import { timeAgo } from '@/lib/format';
 import { type Notice, noticeHref } from '@/lib/notice-href';
+import { noticeState } from '@/lib/notice-state';
 import { toast } from '@/lib/toast';
 
 /** How long an inline decision can be taken back before it is sent. */
 const UNDO_MS = 5000;
+
+export function useNoticeUpdates() {
+  return useSyncExternalStore(noticeState.subscribe, noticeState.getSnapshot, noticeState.getServerSnapshot);
+}
+
+const errorMessage = (error: unknown) => error instanceof Error ? error.message : 'Could not update this notification. Try again.';
+
+export function MarkAllReadButton({ className }: { className?: string }) {
+  const [pending, startTransition] = useTransition();
+  return (
+    <button type="button" disabled={pending} onClick={() => startTransition(async () => {
+      try { await markAllRead(); }
+      catch (error) { toast(errorMessage(error), 'error'); }
+    })} className={className ?? buttonClass('secondary', 'sm')}>
+      {pending ? 'Marking read…' : 'Mark all read'}
+    </button>
+  );
+}
+
+/** The control room uses the same acknowledgement as the full notification center. */
+export function CompactNotice({ notice, now }: { notice: Pick<Notice, 'id' | 'title' | 'created_at' | 'read_at' | 'data'>; now: number }) {
+  const updates = useNoticeUpdates();
+  const unread = !notice.read_at && !updates.get(notice.id)?.read;
+  const href = noticeHref(notice.data);
+  const read = () => {
+    if (unread) void noticeState.read(notice.id, () => markRead([notice.id])).catch((error) => toast(errorMessage(error), 'error'));
+  };
+  const body = <>
+    <span className={cx('mt-[7px] size-1.5 shrink-0 rounded-full', unread ? 'bg-accent' : 'bg-transparent')} aria-hidden />
+    <span className="min-w-0 flex-1">
+      <span className={cx('block text-14 leading-snug', unread ? 'text-text' : 'text-muted')}>{notice.title}</span>
+      <span className="mt-0.5 block text-12 text-faint">{timeAgo(notice.created_at, now)}</span>
+    </span>
+  </>;
+  return <li>{href ? (
+    <Link href={href} onClick={read} className="flex gap-2.5 px-4 py-2 transition-colors hover:bg-hover">{body}</Link>
+  ) : (
+    <button type="button" onClick={read} className="flex w-full gap-2.5 px-4 py-2 text-left transition-colors hover:bg-hover">{body}</button>
+  )}</li>;
+}
 
 /**
  * One notification: what it is, what it says, and when. Opening it marks it read as you go; one that leads nowhere has
@@ -21,47 +61,42 @@ const UNDO_MS = 5000;
  * shows at once, waits a few seconds so it can be undone, then goes through.
  */
 export function NoticeRow({ notice, now }: { notice: Notice; now: number }) {
-  const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [decided, setDecided] = useState<'approve' | 'decline' | null>(null);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const updates = useNoticeUpdates();
+  const update = updates.get(notice.id);
+  const decided = update?.decision;
   const meta = noticeMeta(notice.kind);
   const Icon = meta.icon;
   const href = noticeHref(notice.data);
-  const unread = !notice.read_at;
+  const unread = !notice.read_at && !update?.read;
   const requestId = typeof notice.data.owner_request_id === 'string' ? notice.data.owner_request_id : null;
-  const inline = notice.kind === 'owner_request' && requestId && unread;
+  const inline = notice.kind === 'owner_request' && requestId && (unread || decided);
 
-  useEffect(() => () => void (timer.current && clearTimeout(timer.current)), []);
+  const read = () => {
+    if (!unread) return;
+    startTransition(async () => {
+      try { await noticeState.read(notice.id, () => markRead([notice.id])); }
+      catch (error) { toast(errorMessage(error), 'error'); }
+    });
+  };
 
   const decide = (choice: 'approve' | 'decline') => {
     if (!requestId) return;
-    setDecided(choice);
-    const send = () => {
-      timer.current = null;
+    const undo = noticeState.decide(notice.id, choice, async () => {
       const form = new FormData();
       form.set('request_id', requestId);
       form.set('decision', choice);
-      startTransition(async () => {
-        const result = await decideOwnerRequest(null, form);
-        if (result && !result.ok) {
-          setDecided(null);
-          toast(result.message, 'error');
-          return;
-        }
-        await markRead([notice.id]);
-        router.refresh();
-      });
-    };
-    timer.current = setTimeout(send, UNDO_MS);
+      const result = await decideOwnerRequest(null, form);
+      if (!result?.ok) throw new Error(result?.message ?? 'Could not save your decision. Try again.');
+      // The decision action also marks the related notices read, in the same server call.
+    }, (error) => toast(errorMessage(error), 'error'), UNDO_MS);
+    if (!undo) return;
     toast(choice === 'approve' ? 'Approved' : 'Declined', 'success', {
       duration: UNDO_MS,
       action: {
         label: 'Undo',
         run: () => {
-          if (timer.current) clearTimeout(timer.current);
-          timer.current = null;
-          setDecided(null);
+          if (!undo()) toast('The decision has already been sent.');
         },
       },
     });
@@ -94,9 +129,11 @@ export function NoticeRow({ notice, now }: { notice: Notice; now: number }) {
   return (
     <li className="px-1">
       {inline ? (
-        <div className={cx(row, 'bg-accent/[0.05]')}>
-          {body}
-          <span className="mt-1 flex shrink-0 items-start gap-2 self-start">
+        <div className={cx(row, 'flex-wrap', unread && 'bg-accent/[0.05]')}>
+          <Link href={href ?? '/control'} onClick={read} className="flex min-w-0 basis-full gap-3 rounded-lg focus-visible:outline-offset-4 sm:basis-0 sm:flex-1">
+            {body}
+          </Link>
+          <span className="ml-auto mt-1 flex basis-full shrink-0 items-start gap-2 self-start pl-12 sm:basis-auto sm:pl-0">
             {decided ? (
               <span className="inline-flex h-8 items-center gap-1.5 text-13 text-muted" aria-live="polite">
                 <Check className="size-3.5 text-done" aria-hidden /> {decided === 'approve' ? 'Approved' : 'Declined'}
@@ -109,7 +146,7 @@ export function NoticeRow({ notice, now }: { notice: Notice; now: number }) {
                 <button type="button" disabled={pending} onClick={() => decide('decline')} className={buttonClass('secondary', 'sm')}>
                   Decline
                 </button>
-                <Link href="/control" onClick={() => void markRead([notice.id])} className={cx(buttonClass('ghost', 'sm'), 'hidden sm:inline-flex')}>
+                <Link href="/control" onClick={read} className={cx(buttonClass('ghost', 'sm'), 'hidden sm:inline-flex')}>
                   Details
                 </Link>
               </>
@@ -117,7 +154,7 @@ export function NoticeRow({ notice, now }: { notice: Notice; now: number }) {
           </span>
         </div>
       ) : href ? (
-        <Link href={href} onClick={() => unread && void markRead([notice.id])} className={cx(row, unread && 'bg-accent/[0.04]', 'hover:bg-hover focus-visible:bg-hover focus-visible:outline-offset-[-2px]')}>
+        <Link href={href} onClick={read} className={cx(row, unread && 'bg-accent/[0.04]', 'hover:bg-hover focus-visible:bg-hover focus-visible:outline-offset-[-2px]')}>
           {body}
         </Link>
       ) : (
@@ -127,12 +164,7 @@ export function NoticeRow({ notice, now }: { notice: Notice; now: number }) {
             <button
               type="button"
               disabled={pending}
-              onClick={() =>
-                startTransition(async () => {
-                  await markRead([notice.id]);
-                  router.refresh();
-                })
-              }
+              onClick={read}
               className="mt-1 h-8 shrink-0 self-start rounded-full px-3 text-13 font-medium text-faint transition-colors hover:bg-active hover:text-text"
             >
               Mark read

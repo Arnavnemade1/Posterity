@@ -5,6 +5,8 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { buttonClass, cx } from '@/components/ui';
 
 const WIDTH = { sm: 380, md: 480, lg: 640, xl: 840 } as const;
+let scrollLocks = 0;
+let previousOverflow = '';
 
 /**
  * A modal dialog on the native `<dialog>`: the browser traps focus, closes on Escape and makes the page behind
@@ -43,6 +45,17 @@ export function Dialog({
     if (!open && el.open) el.close();
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+    if (scrollLocks++ === 0) {
+      previousOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      if (--scrollLocks === 0) document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
   return (
     <dialog
       ref={ref}
@@ -50,6 +63,7 @@ export function Dialog({
       data-variant={variant}
       style={{ ['--dialog-w' as string]: `${WIDTH[size]}px` }}
       className="dialog"
+      onClick={(e) => e.stopPropagation()}
       // Escape: let the page own the state, so the dialog and `open` never disagree.
       onCancel={(e) => {
         e.preventDefault();
@@ -65,7 +79,7 @@ export function Dialog({
             {title}
           </h2>
         ) : (
-          <header className="flex items-start gap-3 px-5 pb-1 pt-5">
+          <header className="flex shrink-0 items-start gap-3 px-5 pb-1 pt-5">
             <div className="min-w-0 flex-1">
               <h2 id={titleId} className="text-18 font-semibold tracking-[-0.015em] text-text">
                 {title}
@@ -106,19 +120,27 @@ export interface ConfirmOptions {
  * Render `{dialog}` once in the component.
  */
 export function useConfirm() {
-  const [ask, setAsk] = useState<(ConfirmOptions & { resolve: (ok: boolean) => void }) | null>(null);
+  const [ask, setAsk] = useState<ConfirmOptions | null>(null);
   const [open, setOpen] = useState(false);
+  const resolveAnswer = useRef<((ok: boolean) => void) | null>(null);
+  useEffect(() => () => {
+    resolveAnswer.current?.(false);
+    resolveAnswer.current = null;
+  }, []);
 
   const confirm = useCallback(
     (options: ConfirmOptions) =>
       new Promise<boolean>((resolve) => {
-        setAsk({ ...options, resolve });
+        resolveAnswer.current?.(false);
+        resolveAnswer.current = resolve;
+        setAsk(options);
         setOpen(true);
       }),
     [],
   );
   const answer = (ok: boolean) => {
-    ask?.resolve(ok);
+    resolveAnswer.current?.(ok);
+    resolveAnswer.current = null;
     setOpen(false);
   };
 
@@ -128,7 +150,7 @@ export function useConfirm() {
         <button type="button" onClick={() => answer(false)} className={buttonClass('ghost', 'md')}>
           {ask?.cancelLabel ?? 'Cancel'}
         </button>
-        <button type="button" autoFocus onClick={() => answer(true)} className={buttonClass(ask?.tone === 'danger' ? 'danger' : 'primary', 'md')}>
+        <button type="button" onClick={() => answer(true)} className={buttonClass(ask?.tone === 'danger' ? 'danger' : 'primary', 'md')}>
           {ask?.confirmLabel ?? 'Confirm'}
         </button>
       </DialogActions>

@@ -7,6 +7,7 @@ import { deletePost, setFollow } from '@/lib/actions/social';
 import { FormMessage } from '@/components/client-ui';
 import { buttonClass, cx } from '@/components/ui';
 import { compact } from '@/lib/format';
+import { toast } from '@/lib/toast';
 
 function useSignInRedirect() {
   const router = useRouter();
@@ -40,9 +41,14 @@ export function FollowButton({
     const next = !state.following;
     setState({ following: next, followers: Math.max(0, state.followers + (next ? 1 : -1)) });
     startTransition(async () => {
-      const res = await setFollow(target, next);
-      if (res.ok) setState({ following: next, followers: res.followers });
-      else setState(before);
+      try {
+        const res = await setFollow(target, next);
+        if (!res.ok) throw new Error(res.message);
+        setState({ following: next, followers: res.followers });
+      } catch (error) {
+        setState(before);
+        toast(error instanceof Error ? error.message : 'Could not update watching. Try again.', 'error');
+      }
     });
   };
   return (

@@ -46,6 +46,7 @@ export function FloatingMenu({
   label: string;
 }) {
   const box = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLElement | null>(null);
   // On close the menu stays drawn for a moment, fading out, from the anchor it last had.
   const [shown, setShown] = useState<Anchor | null>(anchor);
   const [state, setState] = useState<'open' | 'closed'>(anchor ? 'open' : 'closed');
@@ -75,37 +76,51 @@ export function FloatingMenu({
     el.style.top = `${Math.max(8, Math.min(top, window.innerHeight - h - 8))}px`;
     el.style.left = `${left}px`;
     el.style.visibility = 'visible';
-    // Focus the first row only when the menu opens, not when it is re-measured.
-    if (el.dataset.focused !== 'true') {
-      el.dataset.focused = 'true';
-      el.querySelector<HTMLElement>('[role="menuitem"]')?.focus({ preventScroll: true });
-    }
   }, [shown, align, prefer]);
+
+  useLayoutEffect(() => {
+    if (!anchor) return;
+    if (document.activeElement instanceof HTMLElement && !box.current?.contains(document.activeElement)) trigger.current = document.activeElement;
+    box.current?.querySelector<HTMLElement>('[role="menuitem"]:not(:disabled)')?.focus({ preventScroll: true });
+  }, [anchor]);
 
   useEffect(() => {
     if (!anchor) return;
-    const onDown = (event: MouseEvent) => {
+    const onDown = (event: PointerEvent) => {
       const target = event.target as Element | null;
       if (box.current?.contains(target as Node) || target?.closest('[data-floating-anchor]')) return;
       onClose();
     };
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') return onClose();
-      if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
-      const items = [...(box.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])];
+      if (event.key === 'Escape' || event.key === 'Tab') {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        trigger.current?.focus({ preventScroll: true });
+        onClose();
+        return;
+      }
+      if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+      const items = [...(box.current?.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled)') ?? [])];
       if (!items.length) return;
       event.preventDefault();
       const at = items.indexOf(document.activeElement as HTMLElement);
-      items[(at + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length].focus();
+      const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : (at + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+      items[next].focus();
     };
-    document.addEventListener('mousedown', onDown);
+    const onScroll = (event: Event) => {
+      if (event.target instanceof Node && box.current?.contains(event.target)) return;
+      onClose();
+    };
+    document.addEventListener('pointerdown', onDown);
     document.addEventListener('keydown', onKey);
-    window.addEventListener('scroll', onClose, true);
+    window.addEventListener('scroll', onScroll, true);
     window.addEventListener('resize', onClose);
     return () => {
-      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('pointerdown', onDown);
       document.removeEventListener('keydown', onKey);
-      window.removeEventListener('scroll', onClose, true);
+      window.removeEventListener('scroll', onScroll, true);
       window.removeEventListener('resize', onClose);
     };
   }, [anchor, onClose]);
@@ -117,11 +132,12 @@ export function FloatingMenu({
       ref={box}
       role="menu"
       aria-label={label}
+      inert={!anchor}
       onClick={(e) => e.stopPropagation()}
-      style={{ position: 'fixed', top: 0, left: 0, width, visibility: 'hidden' }}
+      style={{ position: 'fixed', top: 0, left: 0, width, maxWidth: 'calc(100vw - 16px)', maxHeight: 'calc(100dvh - 16px)', visibility: 'hidden' }}
       data-state={state}
       className={cx(
-        'glass z-[75] origin-top overflow-hidden rounded-2xl p-1.5 transition-[opacity,transform] duration-[120ms] ease-out',
+        'glass z-[75] origin-top overflow-y-auto overscroll-contain rounded-2xl p-1.5 transition-[opacity,transform] duration-[120ms] ease-out',
         state === 'open' ? 'animate-[rise_160ms_var(--ease-out-expo)_both]' : 'pointer-events-none translate-y-1 opacity-0',
         className,
       )}

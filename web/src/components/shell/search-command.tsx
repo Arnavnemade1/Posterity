@@ -51,8 +51,10 @@ export function SearchCommand({ agents, signedIn }: { agents: PaletteAgent[]; si
   if (open && !everOpened) setEverOpened(true);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.isComposing) return;
       const typing = e.target instanceof HTMLElement && (e.target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName));
-      if ((e.key === 'k' && (e.metaKey || e.ctrlKey)) || (e.key === '/' && !typing)) {
+      const modal = document.querySelector('dialog[open], [role="dialog"][aria-modal="true"]');
+      if ((e.key.toLowerCase() === 'k' && (e.metaKey || e.ctrlKey) && !e.altKey) || (e.key === '/' && !typing && !modal && !e.metaKey && !e.ctrlKey && !e.altKey)) {
         e.preventDefault();
         setOpen((o) => !o);
       }

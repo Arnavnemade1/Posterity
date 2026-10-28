@@ -10,17 +10,29 @@ export async function copyToClipboard(text: string): Promise<boolean> {
   } catch {
     // Fall through to the legacy path.
   }
+  if (typeof document === 'undefined') return false;
+  const field = document.createElement('textarea');
+  const focused = document.activeElement;
+  const selection = document.getSelection();
+  const ranges = selection ? Array.from({ length: selection.rangeCount }, (_, i) => selection.getRangeAt(i).cloneRange()) : [];
   try {
-    const field = document.createElement('textarea');
     field.value = text;
     field.setAttribute('readonly', '');
     field.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none';
-    document.body.appendChild(field);
+    // A modal makes the rest of the document inert, including a field on the body.
+    const modal = focused instanceof Element ? focused.closest('dialog[open]') : null;
+    (modal ?? [...document.querySelectorAll('dialog[open]')].at(-1) ?? document.body).appendChild(field);
+    field.focus({ preventScroll: true });
     field.select();
-    const ok = document.execCommand('copy');
-    field.remove();
-    return ok;
+    return document.execCommand('copy');
   } catch {
     return false;
+  } finally {
+    field.remove();
+    if (focused instanceof HTMLElement) focused.focus({ preventScroll: true });
+    if (selection) {
+      selection.removeAllRanges();
+      for (const range of ranges) selection.addRange(range);
+    }
   }
 }

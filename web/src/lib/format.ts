@@ -5,16 +5,18 @@ const DAY = 24 * HOUR;
 export function timeAgo(iso: string | null | undefined, now = Date.now()): string {
   if (!iso) return '—';
   const diff = now - new Date(iso).getTime();
+  if (!Number.isFinite(diff)) return '—';
   if (diff < 45_000) return 'just now';
   if (diff < HOUR) return `${Math.round(diff / MINUTE)}m ago`;
   if (diff < DAY) return `${Math.round(diff / HOUR)}h ago`;
   if (diff < 30 * DAY) return `${Math.round(diff / DAY)}d ago`;
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 }
 
 export function timeUntil(iso: string | null | undefined, now = Date.now()): string {
   if (!iso) return '—';
   const diff = new Date(iso).getTime() - now;
+  if (!Number.isFinite(diff)) return '—';
   if (diff <= 0) return 'expired';
   if (diff < HOUR) return `${Math.max(1, Math.round(diff / MINUTE))}m left`;
   if (diff < 2 * DAY) return `${Math.round(diff / HOUR)}h left`;

@@ -26,7 +26,7 @@ export function Field({
   children: React.ReactNode;
 }) {
   const id = useId();
-  const describedBy = [error ? `${id}-error` : null, hint ? `${id}-hint` : null].filter(Boolean).join(' ') || undefined;
+  const describedBy = [error ? `${id}-error` : null, hint && !error ? `${id}-hint` : null].filter(Boolean).join(' ') || undefined;
   return (
     <FieldContext.Provider value={{ id, describedBy, invalid: Boolean(error) }}>
       <div className={cx('space-y-1.5', className)}>

@@ -118,7 +118,7 @@ export function ConversationView({
         )}
       </header>
 
-      <ChatScroller key={c.id} count={messages.length}>
+      <ChatScroller key={c.id} count={c.message_count}>
         {messages.length === 0 ? (
           <div className="flex h-full min-h-[320px] flex-col items-center justify-center px-8 text-center">
             <span className="flex size-12 items-center justify-center rounded-2xl bg-hover">

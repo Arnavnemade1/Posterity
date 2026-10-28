@@ -6,6 +6,7 @@ import { useState, useTransition } from 'react';
 import { cx } from '@/components/ui';
 import { listFolder } from '@/lib/actions/code';
 import type { DirEntry } from '@/lib/code';
+import { toast } from '@/lib/toast';
 
 const href = (base: string, path: string, ref: string | null) => `${base}/files/${path.split('/').map(encodeURIComponent).join('/')}${ref ? `?ref=${encodeURIComponent(ref)}` : ''}`;
 
@@ -35,8 +36,14 @@ export function FileTree({
   // A folder you are looking at (the active path is a folder) opens too.
   const [open, setOpen] = useState<Set<string>>(() => new Set([...ancestors, ...(initial[active] ? [active] : [])]));
   const [cache, setCache] = useState<Record<string, DirEntry[]>>(initial);
-  const [loading, setLoading] = useState<string | null>(null);
+  const [loading, setLoading] = useState<Set<string>>(() => new Set());
   const [, startTransition] = useTransition();
+  const [previous, setPrevious] = useState({ active, initial });
+  if (previous.active !== active || previous.initial !== initial) {
+    setPrevious({ active, initial });
+    setCache((c) => ({ ...c, ...initial }));
+    if (previous.active !== active) setOpen((o) => new Set([...o, ...ancestors, ...(initial[active] ? [active] : [])]));
+  }
 
   const toggle = (path: string) => {
     const next = new Set(open);
@@ -47,12 +54,18 @@ export function FileTree({
     }
     next.add(path);
     setOpen(next);
-    if (cache[path]) return;
-    setLoading(path);
+    if (cache[path] || loading.has(path)) return;
+    setLoading((l) => new Set([...l, path]));
     startTransition(async () => {
-      const entries = await listFolder(slug, commit, path);
-      setCache((c) => ({ ...c, [path]: entries }));
-      setLoading((l) => (l === path ? null : l));
+      try {
+        const entries = await listFolder(slug, commit, path);
+        setCache((c) => ({ ...c, [path]: entries }));
+      } catch {
+        setOpen((o) => { const next = new Set(o); next.delete(path); return next; });
+        toast('Could not load this folder. Open it again to retry.', 'error');
+      } finally {
+        setLoading((l) => { const next = new Set(l); next.delete(path); return next; });
+      }
     });
   };
 
@@ -87,7 +100,7 @@ export function FileTree({
             style={pad}
             className={cx('flex h-7 w-full items-center gap-1.5 rounded-md pr-2 text-left text-13 transition-colors duration-100 hover:bg-hover', e.path === active ? 'text-text' : 'text-prose')}
           >
-            <ChevronRight className={cx('size-3 shrink-0 text-faint transition-transform duration-150', isOpen && 'rotate-90', loading === e.path && 'animate-pulse')} aria-hidden />
+            <ChevronRight className={cx('size-3 shrink-0 text-faint transition-transform duration-150', isOpen && 'rotate-90', loading.has(e.path) && 'animate-pulse')} aria-hidden />
             {isOpen ? <FolderOpen className="size-3.5 shrink-0 text-accent-fg" aria-hidden /> : <Folder className="size-3.5 shrink-0 text-accent-fg" aria-hidden />}
             <span className="truncate font-medium">{e.name}</span>
           </button>

@@ -189,7 +189,7 @@ export function Stat({ label, value, hint }: { label: string; value: React.React
 export function Time({ iso, children }: { iso: string | null | undefined; children: React.ReactNode }) {
   if (!iso) return <span>{children}</span>;
   return (
-    <time dateTime={iso} title={new Date(iso).toLocaleString('en-US')}>
+    <time dateTime={iso} title={`${new Date(iso).toLocaleString('en-US', { timeZone: 'UTC' })} UTC`}>
       {children}
     </time>
   );
